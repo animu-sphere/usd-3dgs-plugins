@@ -1,0 +1,364 @@
+# Release workflow (hand-authored). The ost-*.yml workflows are generated from
+# openstrata.ci.yaml; this one is not, because `ost ci generate github` has no
+# tag lane. Keep the name outside the `ost-*.yml` namespace the generator owns
+# so regenerating source CI never clobbers it.
+#
+# Unlike the sibling usd-vrm-plugins release lane, this workflow does NOT
+# mirror the CI pins by hand: scripts/release.py derives the whole job matrix
+# -- bootstrapped `ost` version, runtime artifact digests, OCI references, and
+# each cell's platform/profile/up_to -- from openstrata.ci.yaml's source cells.
+# Editing that one file moves the PR lane and the release lane together, so a
+# re-pinned runtime cannot ship a release built against the old one.
+#
+# Pushing a tag `vX.Y.Z` (which must equal VERSION, match every bundle
+# manifest, and have a finalized CHANGELOG section) builds gaussian-ply on the
+# same three digest-pinned cells as the PR lane, runs each cell's declared
+# verification level, proves packaging is digest-reproducible, then assembles a
+# DRAFT release: per-target lean bundles, manifest and SBOM sidecars, a source
+# archive, SHA256SUMS, and notes rendered from CHANGELOG.md through
+# docs/contributing/RELEASE_NOTES_TEMPLATE.md. Publishing the draft is a human
+# decision (docs/releases/README.md).
+#
+# `workflow_dispatch` is a dry run: the same build/verify/package lanes with an
+# unfinalized changelog tolerated, everything uploaded as a workflow artifact,
+# and no release object created.
+#
+# Fork-PR safety: runs only on tag push / manual dispatch, never on
+# pull_request; the token stays read-only except for the assembling job.
+name: release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: preflight (gate and matrix)
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.gate.outputs.tag }}
+      version: ${{ steps.gate.outputs.version }}
+      is_release: ${{ steps.gate.outputs.is_release }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      ost_version: ${{ steps.matrix.outputs.ost_version }}
+      ost_repository: ${{ steps.matrix.outputs.ost_repository }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Set up Python for the release tooling
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+      - name: Install the release tooling dependencies
+        shell: bash
+        run: python -m pip install --disable-pip-version-check pyyaml==6.0.2
+      # The machine-checkable half of the release gate, run before any hosted
+      # runner is billed. A dispatch has no tag, which selects the dry run.
+      - name: Check the release gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            python scripts/release.py guard \
+              --tag "${{ github.ref_name }}" --github-output "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Release::no tag ref -- running the lane as a dry run"
+            python scripts/release.py guard --github-output "$GITHUB_OUTPUT"
+          fi
+      - name: Derive the release matrix from the CI contract
+        id: matrix
+        shell: bash
+        run: python scripts/release.py matrix --github-output "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.name }}
+    needs: preflight
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
+    env:
+      OST_CI_CELL: ${{ matrix.name }}
+      OST_CI_LANE: release
+      OST_CI_RUNNER_PROFILE: ${{ matrix.runner_profile }}
+      OST_CI_RUNS_ON: ${{ join(matrix.runs_on, ',') }}
+      OST_CI_RUNTIME_ARTIFACT: ${{ matrix.runtime_artifact }}
+      OST_CI_MINIMUM_TRUST: ${{ matrix.minimum_trust }}
+      OST_HOME: ${{ matrix.hosted && format('{0}/.ost-ci-home', github.workspace) || '' }}
+      OST_VERSION: ${{ needs.preflight.outputs.ost_version }}
+      OST_REPOSITORY: ${{ needs.preflight.outputs.ost_repository }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Hosted runner billing notice
+        if: ${{ matrix.hosted }}
+        shell: bash
+        run: echo "::notice title=OpenStrata hosted-runner usage::This job uses GitHub-hosted infrastructure. Private repositories may incur GitHub Actions usage charges. Review repository billing and Actions usage settings."
+      - name: Bootstrap the pinned ost (release asset, checksum-verified)
+        if: ${{ matrix.hosted }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          case "${RUNNER_OS}-${RUNNER_ARCH}" in
+            Linux-X64)   triple=x86_64-unknown-linux-musl ; ext=tar.xz ;;
+            macOS-ARM64) triple=aarch64-apple-darwin ; ext=tar.xz ;;
+            macOS-X64)   triple=x86_64-apple-darwin ; ext=tar.xz ;;
+            Windows-X64) triple=x86_64-pc-windows-msvc ; ext=zip ;;
+            *) echo "::error title=ost bootstrap::no ost release asset for ${RUNNER_OS}-${RUNNER_ARCH}" ; exit 1 ;;
+          esac
+          asset="ost-cli-${triple}.${ext}"
+          base="https://github.com/${OST_REPOSITORY}/releases/download/v${OST_VERSION}"
+          curl -fsSLo "$asset" "$base/$asset"
+          curl -fsSLo "$asset.sha256" "$base/$asset.sha256"
+          actual="$( (command -v sha256sum > /dev/null && sha256sum "$asset" || shasum -a 256 "$asset") | cut -d' ' -f1 )"
+          published="$(cut -d' ' -f1 "$asset.sha256")"
+          if [ "$actual" != "$published" ]; then
+            echo "::error title=ost bootstrap::$asset hashes to $actual but the release publishes $published" ; exit 1
+          fi
+          mkdir -p .ost-ci/bootstrap-bin
+          if [ "$ext" = "zip" ]; then
+            powershell -NoProfile -Command "Expand-Archive -LiteralPath '$asset' -DestinationPath '.ost-ci/bootstrap-bin' -Force"
+          else
+            tar -xf "$asset" -C .ost-ci/bootstrap-bin
+          fi
+          bin="$(find .ost-ci/bootstrap-bin -type f \( -name ost -o -name ost.exe \) | head -n 1)"
+          if [ -z "$bin" ]; then echo "::error title=ost bootstrap::no ost binary inside $asset" ; exit 1 ; fi
+          chmod +x "$bin" 2> /dev/null || true
+          bin_dir="$(cd "$(dirname "$bin")" && pwd)"
+          # GITHUB_PATH must hold a native path: a POSIX /d/a/... entry is
+          # visible to bash but not to Windows CreateProcess.
+          if command -v cygpath > /dev/null; then bin_dir="$(cygpath -w "$bin_dir")"; fi
+          echo "$bin_dir" >> "$GITHUB_PATH"
+          printf '{"schema":1,"pinned_version":"%s","asset":"%s","sha256":"%s"}\n' "$OST_VERSION" "$asset" "$actual" > .ost-ci/bootstrap.json
+      - name: Check ost is available and record its version
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          version="$(ost --version | tr -d '\r')"
+          echo "$version"
+          if [ "${{ matrix.hosted }}" = "true" ] && [ "$version" != "ost $OST_VERSION" ]; then
+            echo "::error title=ost bootstrap::expected 'ost $OST_VERSION', got '$version'" ; exit 1
+          fi
+          printf '{"schema":1,"ost_version":"%s"}\n' "$version" > .ost-ci/ost-version.json
+      - name: Validate the CI manifest
+        shell: bash
+        run: ost ci validate
+      # Speed only. A miss re-pulls the pinned runtime; the digest is
+      # re-verified either way, so this is never a correctness precondition.
+      - name: Restore the artifact registry cache
+        if: ${{ matrix.hosted && vars.OST_CI_DISABLE_CACHE != 'true' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .ost-ci-home/artifacts
+          key: ost-registry-${{ needs.preflight.outputs.ost_version }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cell }}-${{ matrix.runtime_artifact }}
+      - name: Pull the pinned runtime SDK from its remote reference
+        if: ${{ matrix.runtime_remote != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          # The cache-hit test must use the SAME predicate as the gate below.
+          # A cached record that verifies without evidence but fails the gate
+          # would skip the pull and wedge the lane on every subsequent run:
+          # `ost artifact pull` cannot add evidence to a digest already in the
+          # registry (import short-circuits on already_present and drops the
+          # sidecars). Failing this test drops through to eviction + a fresh
+          # pull, which does attach it.
+          if ost artifact show "${{ matrix.runtime_artifact }}" --json > /dev/null 2>&1 \
+             && ost artifact verify "${{ matrix.runtime_artifact }}" \
+                  --minimum-trust ${{ matrix.minimum_trust }} ${{ matrix.evidence_flags }} \
+                  --json > .ost-ci/runtime-cache-verify.json; then
+            echo "pinned runtime already present and verified (cache hit) -- skipping the remote pull"
+          else
+            if [ "${{ matrix.hosted }}" = "true" ] && [ -n "${OST_HOME:-}" ]; then
+              rm -rf "${OST_HOME}/artifacts"
+            fi
+            ost artifact pull "${{ matrix.runtime_remote }}" --expect-artifact "${{ matrix.runtime_artifact }}" --require-kind runtime --json | tee .ost-ci/runtime-pull.json
+          fi
+      - name: Verify and materialize the pinned runtime SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          printf '{"schema":1,"runtime_artifact":"%s","source":"%s"}\n' "${{ matrix.runtime_artifact }}" "${{ matrix.runtime_remote != '' && 'remote-pull' || 'local-registry' }}" > .ost-ci/runtime-source.json
+          ost artifact verify ${{ matrix.runtime_artifact }} --minimum-trust ${{ matrix.minimum_trust }} ${{ matrix.evidence_flags }}
+          ost runtime pull ${{ matrix.platform }} --profile ${{ matrix.profile }} --from-artifact ${{ matrix.runtime_artifact }} --force
+      - name: Validate the materialized runtime (runnable tools)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          ost runtime validate ${{ matrix.platform }} --profile ${{ matrix.profile }} --json | tee .ost-ci/runtime-validate.json
+      - name: Set up host Python for schema tooling
+        if: ${{ matrix.hosted && matrix.host_python != '' }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.host_python }}
+      - name: Build the plugin from source
+        shell: bash
+        run: ost plugin build ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }}
+      # Release gate item 2: the tag re-observes each cell's declared level
+      # rather than trusting an earlier green PR run. Windows stays at L4 for
+      # the hosted multiline-USDA line-ending finding; the level comes from
+      # openstrata.ci.yaml, so lifting the cap there lifts it here too.
+      - name: Run the verification pyramid
+        shell: bash
+        run: ost plugin test ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json
+      - name: Package the plugin (lean; debug symbols split off)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json | tee .ost-ci/package.json
+      # Release gate item 4. Repackaging reuses the existing build tree, so
+      # this costs seconds rather than a second compile -- and unstable
+      # digests would make the published SHA256SUMS meaningless.
+      - name: Prove packaging is digest-reproducible
+        shell: bash
+        run: |
+          set -euo pipefail
+          first="$(jq -r .data.archive_digest .ost-ci/package.json)"
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package-second.json
+          second="$(jq -r .data.archive_digest .ost-ci/package-second.json)"
+          if [ "$first" != "$second" ]; then
+            echo "::error title=release packaging::two packaging runs of the same build disagree ($first vs $second) -- release checksums would be unstable" ; exit 1
+          fi
+          echo "reproducible: $first"
+      # Flatten into the target-qualified asset names
+      # docs/contributing/RELEASE_NOTES_TEMPLATE.md publishes. The archive
+      # basename is already `<bundle>-<version>-<target>`, and `ost` resolves
+      # the target triple, so nothing here is assumed from the runner.
+      - name: Stage the release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$(jq -r .data.archive .ost-ci/package.json)"
+          if command -v cygpath > /dev/null; then archive="$(cygpath -u "$archive")"; fi
+          if [ ! -f "$archive" ]; then
+            echo "::error title=Release::packaged archive not found at $archive" ; exit 1
+          fi
+          dist_dir="$(dirname "$archive")"
+          stem="$(basename "$archive" .tar.zst)"
+          case "$stem" in
+            *"-${RELEASE_VERSION}-"*) : ;;
+            *) echo "::error title=Release::archive '$stem' does not carry version ${RELEASE_VERSION}" ; exit 1 ;;
+          esac
+          mkdir -p release-stage
+          cp "$archive" "release-stage/$(basename "$archive")"
+          cp "$dist_dir/manifest.json" "release-stage/${stem}.manifest.json"
+          cp "$dist_dir/sbom.spdx.json" "release-stage/${stem}.sbom.spdx.json"
+          ls -l release-stage/
+      - name: Upload the staged release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-${{ matrix.name }}
+          path: release-stage/
+          if-no-files-found: error
+      - name: Upload the verification report and CI evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: report-${{ matrix.name }}
+          path: |
+            ${{ matrix.bundle }}/.strata/reports/
+            .ost-ci/
+
+  release:
+    name: assemble release (draft)
+    needs: [preflight, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.preflight.outputs.tag }}
+      RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+      IS_RELEASE: ${{ needs.preflight.outputs.is_release }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Set up Python for the release tooling
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+      - name: Install the release tooling dependencies
+        shell: bash
+        run: python -m pip install --disable-pip-version-check pyyaml==6.0.2
+      - name: Download every target's staged assets
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: release-*
+          path: dist-release
+          merge-multiple: true
+      - name: Add the source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=tar.gz \
+            --prefix="usd-3dgs-plugins-${RELEASE_VERSION}/" \
+            -o "dist-release/usd-3dgs-plugins-${RELEASE_VERSION}-src.tar.gz" HEAD
+      # Sorted so an unchanged set of inputs always yields a byte-identical
+      # SHA256SUMS, which the reproducibility gate above makes meaningful.
+      - name: Write SHA256SUMS over every release file
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist-release
+          rm -f SHA256SUMS
+          find . -maxdepth 1 -type f -printf '%P\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS
+          cat SHA256SUMS
+      - name: Render the release notes from the changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          extra=""
+          if [ "$IS_RELEASE" != "true" ]; then extra="--allow-unreleased"; fi
+          python scripts/release.py notes \
+            --tag "$TAG" \
+            --checksums dist-release/SHA256SUMS \
+            --output release-notes.md $extra
+          cat release-notes.md
+      # Publishing stays a human action (docs/releases/README.md). A re-run
+      # replaces an existing *draft* only; a published release of this tag is
+      # left untouched and fails the job instead.
+      - name: Create the draft GitHub release
+        if: ${{ needs.preflight.outputs.is_release == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --json isDraft > existing.json 2>/dev/null; then
+            if [ "$(jq -r .isDraft existing.json)" = "true" ]; then
+              echo "replacing the existing draft for $TAG"
+              gh release delete "$TAG" --yes
+            else
+              echo "::error title=Release::$TAG is already published; refusing to replace it" ; exit 1
+            fi
+          fi
+          gh release create "$TAG" \
+            --draft \
+            --title "usd-3dgs-plugins $TAG" \
+            --notes-file release-notes.md \
+            dist-release/*
+          echo "::notice title=Release::draft created for $TAG -- review and publish it by hand"
+      - name: Upload the dry-run bundle (workflow_dispatch only)
+        if: ${{ needs.preflight.outputs.is_release != 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-dry-run
+          path: |
+            dist-release/
+            release-notes.md
