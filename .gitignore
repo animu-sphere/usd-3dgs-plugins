@@ -3,6 +3,14 @@
 /.strata/
 CMakeUserPresets.json
 
+# CI and release scratch. Written by the workflows on a runner; listed here so
+# a local reproduction of a lane never offers them for commit.
+/.ost-ci/
+/.ost-ci-home/
+/release-stage/
+/dist-release/
+/release-notes.md
+
 # Python bytecode.
 __pycache__/
 *.pyc

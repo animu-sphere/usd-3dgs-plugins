@@ -9,6 +9,8 @@ layers and authors OpenUSD's standard `ParticleField3DGaussianSplat` schema.
 - **Install guide:** [INSTALL.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/guides/INSTALL.md)
 - **Workspace contract:** [WORKSPACE.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/architecture/WORKSPACE.md)
 
+## Changes
+
 {changelog}
 
 ## Artifacts
@@ -17,6 +19,7 @@ layers and authors OpenUSD's standard `ParticleField3DGaussianSplat` schema.
 | --- | --- |
 | `gaussian-ply-{version}-<target>.tar.zst` | Target-specific read-only file-format plugin bundle and declared dependency closure |
 | `gaussian-ply-{version}-<target>.manifest.json` | OpenStrata package manifest sidecar |
+| `gaussian-ply-{version}-<target>.sbom.spdx.json` | SPDX SBOM for the packaged target |
 | `usd-3dgs-plugins-{version}-src.tar.gz` | Source archive at the tag |
 | `SHA256SUMS` | SHA-256 checksums for every release artifact |
 

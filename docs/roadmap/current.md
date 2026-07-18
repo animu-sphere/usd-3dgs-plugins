@@ -40,8 +40,15 @@ real gate or a documented versioned exception.
 
 ### Release hygiene
 
-- ⬜ Add a tag-driven release workflow after the first hosted CI pass.
-- ⬜ Prove package digest reproducibility on each target.
+- 🚧 Add a tag-driven release workflow. Implemented as
+  [release.yml](../../.github/workflows/release.yml), driven by
+  [scripts/release.py](../../scripts/release.py), which derives its matrix from
+  `openstrata.ci.yaml` so the release and PR lanes cannot pin different
+  runtimes. Not yet observed on hosted runners; exercise it with a
+  `workflow_dispatch` dry run before tagging.
+- 🚧 Prove package digest reproducibility on each target. The release lane
+  packages twice and fails on disagreeing digests; reproducibility is verified
+  locally on Windows only, so the macOS and Linux cells remain unobserved.
 - ⬜ Finalize the `CHANGELOG.md` v0.1.0 section and create
   `docs/releases/v0.1.0.md` only when the tag exists.
 - ⬜ Publish a draft release for human review; publishing remains a human action.
