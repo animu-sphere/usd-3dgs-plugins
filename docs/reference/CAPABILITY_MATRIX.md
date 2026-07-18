@@ -63,4 +63,4 @@ This table describes the current tree. Planned capabilities belong in the
 | Package-origin L0-L4 | supported; locally green |
 | Package-origin L5 | currently skipped because the golden is not staged by OST |
 | Windows/macOS/Linux generated CI | declared and validated; hosted execution pending |
-| Hydra Gaussian renderer | unsupported; outside this repository |
+| Hydra Gaussian renderer | unsupported here; owned by the sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) ([release plan](../roadmap/release-plan.md) v0.9.0) |

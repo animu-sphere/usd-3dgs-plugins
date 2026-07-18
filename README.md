@@ -18,7 +18,9 @@ Graphdeco Gaussian PLY dialect and authors OpenUSD 26.05's standard
 `ParticleField3DGaussianSplat` schema.
 
 Import is **read-only and fully materialized** — the plugin authors Gaussian USD
-data and does not render it.
+data and does not render it. Rendering is a separate concern owned by the
+sibling project [`hydra-merlin`](https://github.com/animu-sphere/hydra-merlin),
+a Hydra integration for the Gaussian particle-field schema.
 
 > **Built with [OpenStrata](https://github.com/animu-sphere/open-strata).**
 > The `ost` CLI is how this workspace is built, tested, packaged, and released,
@@ -50,7 +52,8 @@ The initial PLY vertical slice is implemented:
 - vendored tinyPLY 2.3.4 at a fixed commit
 
 SPZ, glTF/GLB Gaussian extensions, SOG, writing, streaming, and rendering are
-outside the initial implementation.
+outside the initial implementation; the
+[release plan](docs/roadmap/release-plan.md) sequences them.
 
 ## Requirements
 
@@ -172,8 +175,9 @@ are importer policy because PLY does not standardize either field.
 Start with the [documentation index](docs/README.md). Current behavior is in
 the [capability matrix](docs/reference/CAPABILITY_MATRIX.md), the normative PLY
 mapping is in [PLY_MAPPING.md](docs/reference/PLY_MAPPING.md), incomplete work
-is in the [roadmap](docs/roadmap/), and measured OST usage is recorded in the
-[dogfooding reports](docs/reports/ost/).
+is in the [roadmap](docs/roadmap/), the versioned release sequence is in the
+[release plan](docs/roadmap/release-plan.md), and measured OST usage is
+recorded in the [dogfooding reports](docs/reports/ost/).
 
 ## License
 

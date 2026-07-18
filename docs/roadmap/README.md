@@ -9,15 +9,17 @@ Legend: 🚧 in progress · ⬜ not started · ⛔ blocked
 
 | Document | Contents |
 | --- | --- |
+| [release-plan.md](release-plan.md) | The versioned release sequence (v0.2.0 → v1.0.0) with per-release themes and completion criteria. |
 | [current.md](current.md) | The release-stabilization milestone and active carry-over work. |
 | [backlog.md](backlog.md) | Ordered but unscheduled format and cross-cutting work. |
 
 ## Sequences
 
-Two sequences are tracked and always qualified:
+Four sequences are tracked and always qualified:
 
 | Sequence | Notation | What it tracks | Source of truth |
 | --- | --- | --- | --- |
+| Release versions | **v0.1.0-v1.0.0** | One tagged release per primary theme, from the PLY vertical slice to the stable import API. | [release-plan.md](release-plan.md) |
 | Delivery milestones | **M0-M5** | User-visible and engineering capability: workspace, PLY read/mapping/validation/integration, then SPZ. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §18 |
 | SOG maturity | **SOG M1-M4** | One SOG object through payload-oriented streaming composition. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §4.4 |
 | Format phases | **Phase 1-5** | PLY stabilization → SPZ → interoperability candidates → advanced loading → optional export. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §4 |
@@ -29,8 +31,14 @@ Never use an unqualified “M1” for SOG work.
 - M0-M4 are implemented and verified locally on Windows with OpenUSD 26.05.
 - Hosted Windows/macOS/Linux CI is observed and v0.1.0 is tagged; publishing
   the draft release is a pending human action.
-- M5 (`gaussian-spz`) is the next format milestone after release stabilization.
+- The next tagged release target is **v0.2.0 — production-ready Graphdeco PLY
+  import** ([release-plan.md](release-plan.md)).
+- M5 (`gaussian-spz`, release plan v0.3.0) is the next format milestone after
+  v0.2.0 completes PLY stabilization.
 - glTF/GLB requires an ADR; SOG remains later composition work.
+- The v0.9.0 rendering integration preview is delivered by the sibling project
+  [hydra-merlin](https://github.com/animu-sphere/hydra-merlin); this
+  repository stays renderer-neutral.
 - The standing investment order after release stabilization is fixed by the
   [priority ladder](backlog.md#priority-ladder): real-dataset benchmarks first,
   then metadata-only reads and peak-memory reduction, then dialect
