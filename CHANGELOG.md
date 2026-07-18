@@ -6,6 +6,11 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-19
+
+First tagged release: a read-only Gaussian PLY vertical slice, observed on
+hosted Windows, macOS arm64, and Linux.
+
 ### Added
 
 - OpenStrata `usd-plugin-workspace` with the `gaussian-ply` file-format bundle.
@@ -18,7 +23,9 @@ semantic versioning for tagged releases.
   spherical-harmonic conversion.
 - Deterministic C++, Python, negative, binary, and OST golden tests.
 - Target-specific OpenStrata packaging with third-party notice.
-- Generated Windows/macOS/Linux PR CI contract.
+- Generated Windows/macOS/Linux PR CI contract, passing on hosted runners.
+- Tag-driven release workflow deriving its matrix from `openstrata.ci.yaml`,
+  gating on version agreement and digest-reproducible packaging.
 - English architecture, guide, reference, roadmap, report, and release docs.
 
 ### Limitations
@@ -26,4 +33,8 @@ semantic versioning for tagged releases.
 - Read-only, fully materialized PLY import.
 - Canonical Graphdeco property names only.
 - No bundled Gaussian renderer.
-- Hosted cross-platform CI and the first release are not yet completed.
+- Windows is verified to OST L4; macOS and Linux to L5. The cap is inherited
+  from the reference workspace's hosted multiline-USDA line-ending finding.
+- Package-origin L5 skips rather than executes; the bundle manifest has no
+  golden declaration. Upstream packaging seam, tracked in the roadmap.
+- No real-asset corpus or performance measurement yet.
