@@ -34,12 +34,14 @@ struct PlyHeader {
 
 struct PlyDocument {
     PlyHeader header;
-    std::map<std::string, std::vector<double>> vertexProperties;
+    std::map<std::string, std::vector<float>> vertexProperties;
 };
 
 // Isolates tinyPLY from the semantic decoder. The adapter exposes only scalar
-// vertex properties converted to double so the rest of the importer does not
-// depend on tinyPLY's buffers or type enum.
+// vertex properties converted to float so the rest of the importer does not
+// depend on tinyPLY's buffers or type enum. Values a float cannot represent
+// become +/-infinity so the decoder's finiteness validation still rejects
+// out-of-range source data.
 class PlyReader {
 public:
     bool ReadHeader(

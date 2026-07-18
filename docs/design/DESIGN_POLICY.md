@@ -308,7 +308,8 @@ plugins/
 under an outer `SdfChangeBlock`, and authoring a detached temporary stage on
 the calling thread would observe that block. The change block is thread-local
 state, so a worker thread authors the temporary stage unobserved; the
-resulting USDA is then imported into the caller's layer in one transfer.
+authored layer is then transferred into the caller's layer in one
+`TransferContent` step, without a USDA serialization and reparse round-trip.
 
 The `std::async` hop is a correctness workaround, not a performance
 optimization, and it must remain documented and tested. The avoided behavior
@@ -423,25 +424,25 @@ The load may continue with a warning when:
 
 ## 12. Loading model and performance
 
-The initial implementation fully materializes the source. The conceptual path
-is:
+The implementation fully materializes the source. The conceptual path is:
 
 ```text
 source file
-    -> parser-owned numeric arrays
+    -> parser-owned property columns
     -> GaussianCloudData
     -> VtArray
-    -> temporary USD stage
-    -> USDA string
-    -> parsed SdfLayer
+    -> worker-authored SdfLayer
     -> TransferContent
 ```
 
-This creates multiple full-data representations and may produce high peak
-memory usage for multi-million-Gaussian assets. It is acceptable for the
-initial implementation but is treated as a known scalability constraint.
+Each representation is released as the next one is built: the parser's native
+buffers are dropped column by column during float conversion, decoded columns
+are freed as they move into `GaussianCloudData`, and the layer writer consumes
+the cloud while authoring copy-on-write `VtArray` attributes. Peak memory is
+therefore bounded by roughly one full-data representation plus the authored
+layer, not by the sum of every stage.
 
-The v0.1 implementation does not provide streaming, memory mapping, chunked
+The implementation does not provide streaming, memory mapping, chunked
 decoding, partial layer reads, lazy properties, GPU upload, USD caching, or
 payload-level deferred loading.
 
@@ -453,7 +454,7 @@ Before any streaming or restructuring work, collect per-asset measurements:
 - source file size and Gaussian count;
 - `CanRead()` duration and full `Read()` duration;
 - peak resident memory;
-- temporary USDA size and generated USDC size;
+- generated USDC size;
 - flattening duration;
 - time until the stage becomes inspectable in `usdview`.
 
@@ -465,13 +466,10 @@ external asset (§17).
 ### 12.2 Preferred optimization order
 
 1. Support metadata-only reads (§12.3).
-2. Avoid unnecessary `double` storage when source data can be decoded
-   directly to `float`.
-3. Reduce parser-owned full-property arrays.
-4. Reduce repeated copies into intermediate containers.
-5. Investigate removing the USDA string serialization and reparse step.
-6. Consider chunked or streaming import only after the previous improvements
-   are measured.
+2. Consider chunked or streaming import only after the copy reductions already
+   in place — direct-to-`float` decoding, incremental release of parser and
+   intermediate arrays, and direct layer authoring without a USDA round-trip —
+   are measured on the §12.1 corpus.
 
 ### 12.3 Metadata-only reads
 

@@ -102,3 +102,32 @@ Post-v0.1.0 work, exercised locally on Windows on 2026-07-19.
 Hosted observation of the reproducibility fix, the Windows L5 decision, the
 macOS across-run investigation, and the remaining release-stabilization items
 stay in [roadmap/current.md](../roadmap/current.md).
+
+## G. Read-path memory-copy reduction
+
+Post-v0.1.0 work, exercised locally on Windows on 2026-07-19 against
+OpenUSD 26.05.
+
+- ✅ `PlyReader` now converts vertex properties directly to `float` instead of
+  `double` (out-of-float-range doubles become ±infinity so the decoder's
+  finiteness validation still rejects them) and releases each tinyPLY native
+  buffer as soon as its column is converted.
+- ✅ `GaussianPlyDecoder` decodes column-wise: each property column is moved
+  out of the `PlyDocument` and freed as it is converted into
+  `GaussianCloudData`, replacing the per-row map-lookup loop.
+- ✅ `GaussianLayerWriter` consumes the cloud (`WriteToLayer` takes it by
+  rvalue), releases each source array once copied into its copy-on-write
+  `VtArray` attribute, and returns the authored anonymous layer directly.
+- ✅ `GaussianPlyFileFormat::Read` transfers the worker-authored layer with
+  `TransferContent`, removing the USDA string serialization and reparse
+  round-trip. The worker-thread `SdfChangeBlock` workaround (§7.5) is
+  unchanged.
+- ✅ Regenerated the L5 golden: attribute values are identical; the layer
+  `doc` metadata no longer embeds the doubled round-trip provenance line.
+- ✅ Measured on local Postshot captures (SH degree 3, not redistributable),
+  peak commit / `Usd.Stage.Open` wall time, before → after:
+  139k Gaussians: 1.70 GiB / 3.1 s → 0.18 GiB / 0.4 s;
+  696k Gaussians: 8.05 GiB / 15.3 s → 0.40 GiB / 1.9 s;
+  1.94M Gaussians (after only): 0.92 GiB / 5.2 s.
+- ✅ Baselines unchanged: workspace `ost plugin test --up-to 5` 12 pass /
+  0 fail / 3 skip, CTest 2/2 plugin tests pass.

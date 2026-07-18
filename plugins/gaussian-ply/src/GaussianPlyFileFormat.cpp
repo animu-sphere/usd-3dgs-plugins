@@ -12,6 +12,7 @@
 
 #include <future>
 #include <string>
+#include <utility>
 #include <vector>
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -67,28 +68,20 @@ GaussianPlyFileFormat::Read(
     }
 
     // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached
-    // stage on a worker thread avoids observing that block, then the resulting
-    // USDA is imported into the caller's layer in one transfer.
-    std::string usda;
+    // layer on a worker thread avoids observing that block, then the authored
+    // layer is moved into the caller's layer in one transfer without a USDA
+    // serialization and reparse round-trip. The writer consumes the cloud so
+    // its arrays are released as they are authored.
+    SdfLayerRefPtr generated;
     openstrata::gs::usd::GaussianLayerWriter writer;
     auto task = std::async(std::launch::async, [&]() {
-        return writer.WriteToString(
-            cloud, "Gaussian Splatting PLY", &usda, &error);
+        return writer.WriteToLayer(
+            std::move(cloud), "Gaussian Splatting PLY", &generated, &error);
     });
     if (!task.get()) {
         TF_RUNTIME_ERROR(
             "gaussian-ply: failed to author USD for '%s': %s",
             resolvedPath.c_str(), error.c_str());
-        return false;
-    }
-
-    SdfFileFormatConstPtr usdaFormat = SdfFileFormat::FindByExtension("usda");
-    SdfLayerRefPtr generated = SdfLayer::CreateAnonymous(
-        "gaussian-ply.generated.usda", usdaFormat);
-    if (!generated || !generated->ImportFromString(usda)) {
-        TF_RUNTIME_ERROR(
-            "gaussian-ply: generated USD for '%s' could not be parsed",
-            resolvedPath.c_str());
         return false;
     }
 

@@ -1,10 +1,7 @@
 #usda 1.0
 (
     defaultPrim = "Asset"
-    doc = """Generated from Composed Stage of root layer 
-
-
-Generated from Composed Stage of root layer C:\\dev\\usd-3dgs-plugins\\plugins\\gaussian-ply\\tests\\fixtures\\one-gaussian-ascii.ply
+    doc = """Generated from Composed Stage of root layer C:\\dev\\usd-3dgs-plugins\\plugins\\gaussian-ply\\tests\\fixtures\\one-gaussian-ascii.ply
 """
     metersPerUnit = 1
     upAxis = "Y"

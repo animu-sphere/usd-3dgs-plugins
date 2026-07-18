@@ -15,6 +15,14 @@ semantic versioning for tagged releases.
 
 ### Changed
 
+- Reduced read-path memory copies: PLY properties decode directly to `float`
+  instead of `double`, every intermediate representation (tinyPLY buffers,
+  property columns, the Gaussian cloud) is released as soon as the next one is
+  built, and the generated layer is transferred directly instead of being
+  serialized to USDA and reparsed. On a 696k-Gaussian SH-degree-3 capture this
+  cut peak commit memory from 8.05 GiB to 0.40 GiB and `Usd.Stage.Open` from
+  15.3 s to 1.9 s; authored stage content is unchanged apart from the layer
+  `doc` no longer embedding the round-trip provenance line.
 - Consolidated the development policy across the documentation: the phased
   format roadmap and priority ladder, the measure-first performance policy and
   optimization order, the metadata-only read policy, the extent policy, the

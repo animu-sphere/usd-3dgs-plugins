@@ -7,9 +7,11 @@
 #include <cstring>
 #include <exception>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <set>
 #include <sstream>
+#include <type_traits>
 #include <utility>
 
 namespace openstrata::gs::ply {
@@ -79,22 +81,43 @@ bool BuildHeader(
     return true;
 }
 
-template <class T>
-std::vector<double> CopyValues(tinyply::PlyData& data)
+// Narrowing a double outside float range is undefined behavior, so map such
+// values to +/-infinity explicitly; the decoder rejects non-finite values.
+float NarrowToFloat(double value) noexcept
 {
-    std::vector<double> result(data.count);
+    if (value > static_cast<double>(std::numeric_limits<float>::max())) {
+        return std::numeric_limits<float>::infinity();
+    }
+    if (value < -static_cast<double>(std::numeric_limits<float>::max())) {
+        return -std::numeric_limits<float>::infinity();
+    }
+    return static_cast<float>(value);
+}
+
+template <class T>
+std::vector<float> CopyValues(tinyply::PlyData& data)
+{
+    std::vector<float> result(data.count);
     const std::uint8_t* bytes = data.buffer.get_const();
-    for (std::size_t i = 0; i < data.count; ++i) {
-        T value{};
-        std::memcpy(&value, bytes + i * sizeof(T), sizeof(T));
-        result[i] = static_cast<double>(value);
+    if constexpr (std::is_same_v<T, float>) {
+        std::memcpy(result.data(), bytes, data.count * sizeof(float));
+    } else {
+        for (std::size_t i = 0; i < data.count; ++i) {
+            T value{};
+            std::memcpy(&value, bytes + i * sizeof(T), sizeof(T));
+            if constexpr (std::is_same_v<T, double>) {
+                result[i] = NarrowToFloat(value);
+            } else {
+                result[i] = static_cast<float>(value);
+            }
+        }
     }
     return result;
 }
 
 bool CopyValues(
     tinyply::PlyData& data,
-    std::vector<double>* values,
+    std::vector<float>* values,
     std::string* error)
 {
     if (!values || data.isList) {
@@ -195,10 +218,14 @@ bool PlyReader::Read(
                     entry.first + "'.";
                 return false;
             }
-            std::vector<double> values;
+            std::vector<float> values;
             if (!CopyValues(*data, &values, error)) {
                 return false;
             }
+            // Drop the parser-owned native buffer as soon as the property is
+            // converted so both representations never coexist for the whole
+            // payload.
+            data->buffer = tinyply::Buffer();
             if (values.size() != result.header.vertexCount) {
                 if (error) {
                     *error = "PLY property '" + entry.first +
