@@ -1,6 +1,8 @@
 # Current
 
-The active milestone is the first tagged release. M0-M4 implementation detail is
+The active milestone is closing out the first tagged release; the next
+development target is **v0.2.0 — production-ready Graphdeco PLY import**,
+defined in the [release plan](release-plan.md). M0-M4 implementation detail is
 already complete and recorded in the
 [delivery history](../reports/delivery-history.md).
 
@@ -80,6 +82,21 @@ real gate or a documented versioned exception.
 
 No external trained asset enters the repository before license and provenance
 review.
+
+## Next: v0.2.0 — production-ready Graphdeco PLY import ⬜
+
+*Goal: complete and stabilize Graphdeco PLY support before adding another
+format. Scope and completion criteria are in the
+[release plan](release-plan.md).*
+
+Work begins once the v0.1 carry-over above closes, drawing on the
+[PLY compatibility](backlog.md#ply-compatibility) and
+[performance](backlog.md#performance-and-loading) backlogs in priority-ladder
+order: real-dataset baselines (P0, tracked above under real-asset confidence),
+metadata-only reads (P1), documented dialect compatibility with degree-2/3 SH
+and additional malformed fixtures (P2), stable diagnostic identifiers, and the
+first file-format arguments (`shDegree`, `opacityThreshold`,
+`scaleMultiplier`), each gated on clear behavior and automated tests.
 
 ## Documentation consistency 🚧
 

@@ -20,6 +20,10 @@ investment after release stabilization:
 
 ## Milestone ladder
 
+Release-plan mapping: M5 is [v0.3.0](release-plan.md); the glTF/GLB and
+SOG M1 entries are [v0.5.0](release-plan.md) candidates; SOG M2-M4 is
+post-1.0 work.
+
 - ⬜ **M5 — `gaussian-spz`.** Select and pin a decoder dependency, decode into
   `GaussianCloudData`, reuse the PLY USD contract, and add tolerance-aware
   PLY/SPZ equivalence tests plus real-size performance measurements.
@@ -32,6 +36,9 @@ investment after release stabilization:
   chunks, payloads, and deferred loading.
 
 ## PLY compatibility
+
+This section is the core scope of [release plan](release-plan.md) v0.2.0 —
+production-ready Graphdeco PLY import.
 
 - ⬜ Document supported PLY dialects with observed compatibility results for
   Graphdeco reference exports, SuperSplat-exported PLY, and other relevant
@@ -99,10 +106,16 @@ and recorded in the [delivery history](../reports/delivery-history.md).
 
 ## Rendering and ecosystem integration
 
+The rendering integration preview ([release plan](release-plan.md) v0.9.0) is
+delivered by the sibling project
+[hydra-merlin](https://github.com/animu-sphere/hydra-merlin); the file-format
+plugins remain renderer-neutral.
+
 - ⬜ Maintain a renderer capability note as Hydra implementations adopt
-  `ParticleField3DGaussianSplat`.
-- ⬜ Add image-based conformance only in a renderer-specific repository or
-  optional adapter; the file-format plugins remain renderer-neutral.
+  `ParticleField3DGaussianSplat`, starting with hydra-merlin.
+- ⬜ Add image-based conformance only in a renderer-specific repository
+  (hydra-merlin) or optional adapter; the file-format plugins remain
+  renderer-neutral.
 - ⬜ Add examples that demonstrate downstream inspection without making a
   renderer a core dependency.
 
