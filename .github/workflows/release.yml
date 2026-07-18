@@ -311,14 +311,24 @@ jobs:
             -o "dist-release/usd-3dgs-plugins-${RELEASE_VERSION}-src.tar.gz" HEAD
       # Sorted so an unchanged set of inputs always yields a byte-identical
       # SHA256SUMS, which the reproducibility gate above makes meaningful.
+      #
+      # `! -name SHA256SUMS` is load-bearing, not belt-and-braces: the
+      # `> SHA256SUMS` redirection creates the file when the pipeline starts,
+      # concurrently with `find` walking the directory. Without the exclusion
+      # the two race, and a `find` that loses hashes the empty file into its
+      # own manifest -- which makes `sha256sum -c SHA256SUMS` fail for every
+      # consumer. Observed on the runner after passing locally.
       - name: Write SHA256SUMS over every release file
         shell: bash
         run: |
           set -euo pipefail
           cd dist-release
           rm -f SHA256SUMS
-          find . -maxdepth 1 -type f -printf '%P\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\n' \
+            | LC_ALL=C sort | xargs sha256sum > SHA256SUMS
           cat SHA256SUMS
+          # Prove the manifest verifies before it is published or embedded.
+          sha256sum -c SHA256SUMS
       - name: Render the release notes from the changelog
         shell: bash
         run: |
