@@ -1,9 +1,28 @@
-# usd-3dgs-plugins
+# USD 3DGS Plugins
 
-OpenStrata workspace for OpenUSD file-format plugins that expose 3D Gaussian
-Splatting assets as USD layers. The first bundle, `gaussian-ply`, imports the
-common Gaussian Splatting PLY dialect directly into OpenUSD 26.05's standard
+OpenUSD plugins for [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
+assets.
+
+This repository is an OpenUSD plugin **workspace**: it separates
+format-independent Gaussian modelling from format-specific import into
+independently buildable, independently testable components. It currently ships
+one plugin bundle and one shared library. The importer reads the common
+Graphdeco Gaussian PLY dialect and authors OpenUSD 26.05's standard
 `ParticleField3DGaussianSplat` schema.
+
+Import is **read-only and fully materialized** — the plugin authors Gaussian USD
+data and does not render it.
+
+> **Built with [OpenStrata](https://github.com/animu-sphere/open-strata).**
+> The `ost` CLI is how this workspace is built, tested, packaged, and released,
+> and measured usage is published in [docs/reports/ost/](docs/reports/ost/). The
+> repo is **dual-mode**: everything also builds with plain CMake against any
+> OpenUSD install, with no `ost` involved.
+>
+> Its sibling project
+> [`usd-vrm-plugins`](https://github.com/animu-sphere/usd-vrm-plugins) — OpenUSD
+> plugins for VRM avatars — shares this workspace layout, documentation
+> taxonomy, and release process.
 
 The repository follows the policy in
 [`docs/design/DESIGN_POLICY.md`](docs/design/DESIGN_POLICY.md).
@@ -20,7 +39,7 @@ The initial PLY vertical slice is implemented:
 - degree inference and RGB reconstruction for channel-major `f_rest_*`
 - `/Asset/Splat` authored as `ParticleField3DGaussianSplat`
 - deterministic unit, integration, negative, binary, and golden fixtures
-- generated OpenStrata PR CI for Windows, macOS arm64, and Linux
+- generated OpenStrata PR CI passing on hosted Windows, macOS arm64, and Linux
 - vendored tinyPLY 2.3.4 at a fixed commit
 
 SPZ, glTF/GLB Gaussian extensions, SOG, writing, streaming, and rendering are
@@ -81,6 +100,23 @@ cmake --preset default -DCMAKE_PREFIX_PATH=/path/to/openusd
 cmake --build --preset default
 ctest --test-dir build/default --output-on-failure
 ```
+
+## Release artifacts
+
+Pushing a tag `vX.Y.Z` (matching [`VERSION`](VERSION), every bundle manifest,
+and that version's finalized `CHANGELOG.md` section) runs
+[`.github/workflows/release.yml`](.github/workflows/release.yml): it builds and
+verifies on the same three digest-pinned cells as the PR lane, proves packaging
+is digest-reproducible, and assembles a **draft** GitHub release — per-target
+lean bundles with manifest and SBOM sidecars, a source archive, `SHA256SUMS`,
+and notes rendered from `CHANGELOG.md` via
+[docs/contributing/RELEASE_NOTES_TEMPLATE.md](docs/contributing/RELEASE_NOTES_TEMPLATE.md).
+Publishing the draft is a human decision.
+
+The lane takes its runtime digests, `ost` version, and per-cell verification
+levels from `openstrata.ci.yaml` rather than restating them, so the PR and
+release lanes cannot pin different runtimes. Run it manually
+(`workflow_dispatch`) for a dry run that creates no release.
 
 ## Architecture
 
