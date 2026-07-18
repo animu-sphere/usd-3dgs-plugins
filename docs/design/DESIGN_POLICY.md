@@ -440,7 +440,9 @@ buffers are dropped column by column during float conversion, decoded columns
 are freed as they move into `GaussianCloudData`, and the layer writer consumes
 the cloud while authoring copy-on-write `VtArray` attributes. Peak memory is
 therefore bounded by roughly one full-data representation plus the authored
-layer, not by the sum of every stage.
+layer, not by the sum of every stage. The one remaining overlap is the SH rest
+pass, which briefly holds the remaining rest columns alongside the interleaved
+rest array.
 
 The implementation does not provide streaming, memory mapping, chunked
 decoding, partial layer reads, lazy properties, GPU upload, USD caching, or

@@ -86,6 +86,12 @@ void TestFailures()
     error.clear();
     CHECK(!decoder.Decode(Fixture("truncated-binary-le.ply"), &cloud, nullptr, &error));
     CHECK(!error.empty());
+
+    // A double outside float range must narrow to infinity and be rejected by
+    // the finiteness validation, not slip through as an undefined narrowing.
+    error.clear();
+    CHECK(!decoder.Decode(Fixture("out-of-range-double.ply"), &cloud, nullptr, &error));
+    CHECK(error.find("non-finite or out-of-range") != std::string::npos);
 }
 
 } // namespace

@@ -22,7 +22,9 @@ semantic versioning for tagged releases.
   serialized to USDA and reparsed. On a 696k-Gaussian SH-degree-3 capture this
   cut peak commit memory from 8.05 GiB to 0.40 GiB and `Usd.Stage.Open` from
   15.3 s to 1.9 s; authored stage content is unchanged apart from the layer
-  `doc` no longer embedding the round-trip provenance line.
+  `doc` no longer embedding the round-trip provenance line. A missing or
+  size-mismatched vertex property now reports which property is at fault
+  instead of the generic non-finite-value error.
 - Consolidated the development policy across the documentation: the phased
   format roadmap and priority ladder, the measure-first performance policy and
   optimization order, the metadata-only read policy, the extent policy, the
