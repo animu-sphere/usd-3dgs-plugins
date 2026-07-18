@@ -36,6 +36,14 @@ The governing principles are:
 - keep early releases read-only;
 - optimize for correctness and testability before streaming performance.
 
+OpenUSD's standard `ParticleField3DGaussianSplat` schema is used whenever
+possible; a project-specific Gaussian schema may be introduced only when a
+required concept cannot be represented by the standard schema.
+
+Rendering is outside the core responsibility of this repository. A file being
+readable in `usdview` does not imply that the active Hydra renderer can
+display Gaussian splats.
+
 ## 3. Naming
 
 The repository is named `usd-3dgs-plugins` to distinguish 3D Gaussian
@@ -61,15 +69,21 @@ openstrata::gs::sog
 
 ## 4. Format priority
 
-The planned implementation order is:
+Work proceeds in phases:
 
 ```text
-1. PLY
-2. SPZ
-3. glTF / GLB Gaussian Splatting
-4. SOG
-5. SPLAT / KSPLAT if demand justifies them
+Phase 1  stabilize Gaussian PLY
+Phase 2  SPZ
+Phase 3  expand interoperability: glTF/GLB Gaussian extensions, SOG,
+         SPLAT, KSPLAT
+Phase 4  advanced loading (chunked, reduced-copy, lazy, streaming)
+Phase 5  optional export back to external formats
 ```
+
+Phase 3 candidates are accepted individually, and only after their dialect,
+ownership, specification status, and compatibility expectations are
+documented. Phase 4 starts only after profiling confirms the need (§12).
+Phase 5 stays out of scope until read interoperability is stable (§13).
 
 ### 4.1 PLY
 
@@ -81,16 +95,31 @@ PLY is the reference implementation. It establishes:
 - deterministic fixture and expected-value conventions;
 - the complete file-format plugin read path.
 
+Phase 1 stabilization goals are:
+
+- validate representative third-party exports;
+- add metadata-only reads (§12.3);
+- benchmark large scenes (§12.1);
+- improve diagnostics;
+- document supported PLY dialects, including verified Graphdeco reference
+  datasets and SuperSplat-exported PLY behavior.
+
 ### 4.2 SPZ
 
 SPZ is next because it is a compressed 3DGS-specific format that decodes into
-nearly the same semantic model as PLY. Its implementation must reuse the
-intermediate representation and USD authoring layer and must add:
+nearly the same semantic model as PLY, which makes it the test of whether the
+architecture genuinely supports reusable format-independent Gaussian data.
+Its implementation must reuse the intermediate representation and USD
+authoring layer and must add:
 
 - compressed-format support;
 - PLY-versus-SPZ semantic-equivalence tests;
 - tolerance-aware comparisons for quantization error;
-- performance measurements on production-sized assets.
+- comparative size and load-time benchmarks against PLY on production-sized
+  assets.
+
+Duplication of `GaussianLayerWriter` during this work triggers the
+`gaussianUsd` extraction described in §7.4.
 
 ### 4.3 glTF / GLB Gaussian Splatting
 
@@ -150,8 +179,11 @@ The resulting scene graph is:
 
 `/Asset/Splat` represents every Gaussian in the source PLY as one
 `ParticleField3DGaussianSplat` prim. The initial implementation does not add
-unnecessary intermediate scopes. Future formats may add sibling prims such as
-`/Asset/Cameras` or `/Asset/Metadata` when the source format defines them.
+unnecessary intermediate scopes, and additional scopes or hierarchy require a
+concrete use case such as multiple Gaussian clouds, LOD variants, animation,
+source grouping, or renderer-specific material bindings. Future formats may
+add sibling prims such as `/Asset/Cameras` or `/Asset/Metadata` when the
+source format defines them.
 
 ### Layer metadata
 
@@ -167,6 +199,20 @@ The initial convention is:
 
 PLY does not standardize an up axis or linear unit. These values are importer
 defaults, not source-derived claims, and must remain documented as such.
+
+### Asset metadata
+
+`/Asset` carries import provenance in `customData` — source format, Gaussian
+count, and SH degree. Source-specific metadata beyond that is added only when
+it is useful to downstream USD workflows.
+
+### Extent
+
+The authored extent is a conservative three-sigma maximum-scale bound.
+Correctness matters more than tightness: a tighter rotated anisotropic
+Gaussian AABB is worth implementing only if measurements show that loose
+bounds materially affect viewport framing, culling, Hydra scene-index
+performance, or large-scene traversal.
 
 ## 7. Architecture
 
@@ -225,8 +271,8 @@ struct GaussianCloudData {
 ```
 
 `gaussianCore` owns this model and its format-independent validation/math. It
-does not expose OpenUSD types. The writer remains a separate layer and should
-move into shared code only when a second bundle proves the need.
+does not expose OpenUSD types. The writer remains a separate layer; §7.4
+defines when it moves into the shared `gaussianUsd` library.
 
 ### 7.4 USD Gaussian layer writer
 
@@ -239,6 +285,36 @@ The writer owns:
 - writer-side diagnostics.
 
 All format bundles must produce the same authored contract through this layer.
+
+The writer is extracted into a shared `gaussianUsd` library
+(`libs/gaussian-usd`) at a precise moment: when a second importer would
+otherwise duplicate `GaussianLayerWriter`. It is not extracted before then.
+The target structure after the second importer is:
+
+```text
+libs/
+    gaussian-core/       # USD-independent model, math, and validation
+    gaussian-usd/        # GaussianCloudData -> OpenUSD schema
+
+plugins/
+    gaussian-ply/
+    gaussian-spz/
+```
+
+### 7.5 Worker-thread authoring workaround
+
+`Read()` authors the generated stage on a worker thread
+(`GaussianPlyFileFormat.cpp`). Sdf reload executes the file-format `Read()`
+under an outer `SdfChangeBlock`, and authoring a detached temporary stage on
+the calling thread would observe that block. The change block is thread-local
+state, so a worker thread authors the temporary stage unobserved; the
+resulting USDA is then imported into the caller's layer in one transfer.
+
+The `std::async` hop is a correctness workaround, not a performance
+optimization, and it must remain documented and tested. The avoided behavior
+is reproduced on OpenUSD 26.05, the verified runtime. Every OpenUSD upgrade
+must re-evaluate whether direct detached-stage authoring has become safe so
+the workaround can be removed; the roadmap tracks this follow-up.
 
 ## 8. PLY scope
 
@@ -345,20 +421,71 @@ The load may continue with a warning when:
 - unknown extra vertex properties are ignored;
 - non-critical metadata cannot be interpreted.
 
-## 12. Loading model
+## 12. Loading model and performance
 
-The initial implementation fully materializes the source:
+The initial implementation fully materializes the source. The conceptual path
+is:
 
 ```text
-read the complete PLY
-    -> decode every Gaussian
-    -> author every USD attribute
+source file
+    -> parser-owned numeric arrays
+    -> GaussianCloudData
+    -> VtArray
+    -> temporary USD stage
+    -> USDA string
+    -> parsed SdfLayer
+    -> TransferContent
 ```
+
+This creates multiple full-data representations and may produce high peak
+memory usage for multi-million-Gaussian assets. It is acceptable for the
+initial implementation but is treated as a known scalability constraint.
 
 The v0.1 implementation does not provide streaming, memory mapping, chunked
 decoding, partial layer reads, lazy properties, GPU upload, USD caching, or
-payload-level deferred loading. Optimization starts only after real-asset
-measurements identify the limiting resource.
+payload-level deferred loading.
+
+### 12.1 Measure before redesigning
+
+Performance decisions are based on measured bottlenecks, not assumptions.
+Before any streaming or restructuring work, collect per-asset measurements:
+
+- source file size and Gaussian count;
+- `CanRead()` duration and full `Read()` duration;
+- peak resident memory;
+- temporary USDA size and generated USDC size;
+- flattening duration;
+- time until the stage becomes inspectable in `usdview`.
+
+The measurement corpus should include a small synthetic fixture, a medium
+real-world asset, and large references such as Mip-NeRF 360 `garden` and
+`bicycle` — subject to the license and provenance review required for any
+external asset (§17).
+
+### 12.2 Preferred optimization order
+
+1. Support metadata-only reads (§12.3).
+2. Avoid unnecessary `double` storage when source data can be decoded
+   directly to `float`.
+3. Reduce parser-owned full-property arrays.
+4. Reduce repeated copies into intermediate containers.
+5. Investigate removing the USDA string serialization and reparse step.
+6. Consider chunked or streaming import only after the previous improvements
+   are measured.
+
+### 12.3 Metadata-only reads
+
+`SdfFileFormat::Read(..., metadataOnly=true)` must not decode the full
+Gaussian payload. A metadata-only read authors the `/Asset` and
+`/Asset/Splat` structure plus whatever the header provides: Gaussian count,
+SH degree, source format, default prim, up axis, and meters per unit. For
+PLY, the count and SH degree are derivable from the vertex declaration and
+the `f_rest_*` property declarations without loading vertex data.
+
+This is a high-priority improvement because it benefits asset inspection,
+layer discovery, and tooling workflows. The current implementation ignores
+`metadataOnly` and always performs a full read; the capability matrix records
+this gap.
 
 ## 13. Write support
 
@@ -372,6 +499,11 @@ PLY -> USD layer
 PLY write dialect is authoritative. `WriteToFile` returns unsupported with a
 clear diagnostic. `WriteToString` may expose the imported layer as USDA for
 inspection and testing; it is not PLY export.
+
+Export stays out of scope until read interoperability is stable. Any future
+exporter must define its lossless-versus-lossy behavior, supported SH degree,
+coordinate and unit policy, opacity and scale encoding, unsupported-metadata
+handling, and deterministic-output expectations before implementation.
 
 ## 14. Workspace structure
 
@@ -442,6 +574,13 @@ ost plugin test --workspace --up-to 5
 ost plugin package
 ost plugin test --from-package
 ```
+
+### Golden-test policy
+
+Golden outputs validate stable stage semantics, not incidental formatting.
+When a check is really about attribute values, prefer semantic assertions
+over comparisons of full USDA text, which are brittle against formatting
+changes.
 
 ## 17. Test data
 
@@ -533,7 +672,21 @@ Initial bundle:  gaussian-ply
 Parser:          tinyPLY, immutable vendored revision
 Scene graph:     /Asset/Splat
 Architecture:    reader -> semantic decoder -> GaussianCloudData -> USD writer
-Roadmap:         PLY -> SPZ -> glTF/GLB Gaussian Splatting -> SOG
+Roadmap:         PLY -> SPZ -> interoperability candidates (glTF/GLB, SOG,
+                 SPLAT, KSPLAT) -> advanced loading -> optional export
 v0.1:            read-only, fully loaded, ASCII + binary little-endian,
                  position + scale + rotation + opacity + SH
 ```
+
+## 23. Definition of success
+
+The project is successful when:
+
+- common 3DGS assets open as predictable OpenUSD stages;
+- format-specific differences normalize into one common Gaussian model;
+- generated data uses the standard OpenUSD Gaussian schema;
+- plugin behavior is deterministic and well tested;
+- compatibility boundaries are explicit;
+- large datasets load within measured and documented resource limits;
+- adding a new format does not require duplicating common math, validation,
+  or USD authoring logic.

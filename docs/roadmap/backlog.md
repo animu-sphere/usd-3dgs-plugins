@@ -6,6 +6,18 @@ This is ordered but unscheduled work. The active release milestone is in
 
 Legend: ⬜ not started
 
+## Priority ladder
+
+The [design policy](../design/DESIGN_POLICY.md) fixes the standing order of
+investment after release stabilization:
+
+| Priority | Work | Tracked in |
+| --- | --- | --- |
+| P0 | Benchmark real datasets; establish load-time, memory, and output-size baselines | [current.md](current.md), real-asset confidence |
+| P1 | Metadata-only reads; peak-memory reduction | Performance and loading |
+| P2 | Documented PLY dialect compatibility; the SPZ importer | PLY compatibility; milestone ladder |
+| P3 | Tighter anisotropic bounds; worker-thread workaround removal | USD contract evolution; implementation debt |
+
 ## Milestone ladder
 
 - ⬜ **M5 — `gaussian-spz`.** Select and pin a decoder dependency, decode into
@@ -21,6 +33,9 @@ Legend: ⬜ not started
 
 ## PLY compatibility
 
+- ⬜ Document supported PLY dialects with observed compatibility results for
+  Graphdeco reference exports, SuperSplat-exported PLY, and other relevant
+  tools.
 - ⬜ Add degree-2 and degree-3 SH fixtures and exact coefficient assertions.
 - ⬜ Add multi-Gaussian fixtures with asymmetric scales and rotations.
 - ⬜ Decide and document any property aliases from measured ecosystem usage.
@@ -32,19 +47,43 @@ Legend: ⬜ not started
 
 ## Performance and loading
 
+The design policy (§12.2) fixes the optimization order: measure first, then
+metadata-only reads, then memory reduction; streaming comes last.
+
 - ⬜ Build a benchmark harness that separates file read, semantic decode, USD
   authoring, and total stage-open time.
 - ⬜ Record peak resident memory and temporary allocation size.
-- ⬜ Evaluate structure-of-arrays ownership and zero-copy handoff opportunities.
+- ⬜ Implement metadata-only reads: `Read(metadataOnly=true)` should author the
+  stage contract and header-derived metadata (Gaussian count, SH degree,
+  source format) without decoding vertex data.
+- ⬜ Avoid unnecessary `double` storage where source data can decode directly
+  to `float`.
+- ⬜ Reduce parser-owned full-property arrays and repeated copies into
+  intermediate containers; evaluate structure-of-arrays ownership and
+  zero-copy handoff opportunities.
+- ⬜ Investigate removing the USDA string serialization and reparse step from
+  the read path.
 - ⬜ Investigate memory mapping only after the benchmark identifies I/O or copy
   cost as material.
 - ⬜ Investigate chunked decoding, payload composition, and lazy access as SOG
-  requirements, not as speculative v0.1 complexity.
+  requirements, not as speculative complexity, and only after the preceding
+  improvements are measured.
+
+## Implementation debt
+
+- ⬜ Revisit the worker-thread `SdfChangeBlock` workaround in
+  `GaussianPlyFileFormat::Read` (design policy §7.5). Track OpenUSD releases
+  after 26.05 and remove the `std::async` hop when detached-stage authoring
+  under an outer change block becomes safe; keep the behavior documented and
+  tested until then.
 
 ## USD contract evolution
 
 - ⬜ Decide how authoritative source axis/unit metadata overrides the PLY policy
   defaults in formats that define those values.
+- ⬜ Implement a tighter rotated anisotropic Gaussian AABB only if profiling
+  shows the conservative three-sigma bound materially affects viewport
+  framing, culling, Hydra scene-index performance, or large-scene traversal.
 - ⬜ Define multiple-cloud naming, hierarchy, and extent behavior.
 - ⬜ Define camera and training-metadata ownership for source formats that carry
   them.
@@ -88,4 +127,7 @@ Legend: ⬜ not started
 - Per-format copies of the USD authoring contract.
 - Floating third-party dependency revisions.
 - Silent repair of malformed Gaussian data that changes semantic meaning.
+- A streaming architecture ahead of measured need.
+- Renderer-specific material or shading policy.
+- Bidirectional conversion before read interoperability is stable.
 

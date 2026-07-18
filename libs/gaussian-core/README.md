@@ -2,7 +2,10 @@
 
 `gaussianCore` is the format-independent plain C++ library shared by 3DGS
 decoders. It is described to OpenStrata by `openstrata.library.yaml` and exported
-as the CMake target `openstrata::gaussianCore`.
+as the CMake target `openstrata::gaussianCore`. Every format decoder — PLY
+today; SPZ, SOG, and glTF/GLB Gaussian extensions later — normalizes into this
+one representation, so the library stays free of OpenUSD types and
+format-specific code.
 
 It owns:
 

@@ -23,7 +23,8 @@ workspace contract wins; structural changes must update that contract first.
 ## Canonical documents
 
 - [design/DESIGN_POLICY.md](design/DESIGN_POLICY.md) defines product intent,
-  semantic conversion, scene authoring, validation, and milestone gates.
+  semantic conversion, scene authoring, validation, performance policy, and
+  milestone gates.
 - [architecture/WORKSPACE.md](architecture/WORKSPACE.md) is the binding
   structural contract for bundles, libraries, dependency directions, and
   artifacts.
