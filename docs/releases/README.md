@@ -4,9 +4,14 @@ Each tagged version receives an immutable record here: objective, shipped
 capabilities, compatibility, artifact names and digests, and known limitations.
 Release records are history and are not rewritten after publication.
 
-No version has been tagged or published yet. The current target is v0.1.0; its
-incomplete release work is tracked in [roadmap/current.md](../roadmap/current.md).
-Do not create `v0.1.0.md` until the tag exists.
+| Version | Date | Record |
+| --- | --- | --- |
+| v0.1.0 | 2026-07-19 | [v0.1.0.md](v0.1.0.md) — first tagged release; draft pending human review |
+
+Create a record only once its tag exists: it pins the tagged commit, the
+consumed runtime digests, and the published artifact checksums, none of which
+are known before the release lane runs. Remaining work is tracked in
+[roadmap/current.md](../roadmap/current.md).
 
 ## Release gate
 
