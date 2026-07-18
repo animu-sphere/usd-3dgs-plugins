@@ -21,26 +21,45 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <limits>
+#include <type_traits>
+#include <vector>
 
 namespace openstrata::gs::usd {
 namespace {
+
+static_assert(sizeof(Float3) == sizeof(PXR_NS::GfVec3f) &&
+        std::is_trivially_copyable_v<Float3>,
+    "Float3 must be byte-compatible with GfVec3f for bulk copies");
 
 PXR_NS::GfVec3f ToGf(const Float3& value)
 {
     return {value.x, value.y, value.z};
 }
 
+PXR_NS::VtArray<PXR_NS::GfVec3f> TakeVec3fArray(std::vector<Float3>* source)
+{
+    PXR_NS::VtArray<PXR_NS::GfVec3f> array(source->size());
+    if (!source->empty()) {
+        std::memcpy(
+            array.data(), source->data(),
+            source->size() * sizeof(PXR_NS::GfVec3f));
+    }
+    std::vector<Float3>().swap(*source);
+    return array;
+}
+
 } // namespace
 
-bool GaussianLayerWriter::WriteToString(
-    const GaussianCloudData& cloud,
+bool GaussianLayerWriter::WriteToLayer(
+    GaussianCloudData&& cloud,
     const std::string& sourceFormat,
-    std::string* outUsda,
+    PXR_NS::SdfLayerRefPtr* outLayer,
     std::string* error) const
 {
-    if (!outUsda) {
-        if (error) *error = "Gaussian writer received a null string output.";
+    if (!outLayer) {
+        if (error) *error = "Gaussian writer received a null layer output.";
         return false;
     }
     std::string validationError;
@@ -84,25 +103,25 @@ bool GaussianLayerWriter::WriteToString(
         return false;
     }
 
-    PXR_NS::VtArray<PXR_NS::GfVec3f> positions;
-    PXR_NS::VtArray<PXR_NS::GfVec3f> scales;
-    PXR_NS::VtArray<PXR_NS::GfQuatf> rotations;
-    PXR_NS::VtArray<float> opacities;
-    positions.reserve(cloud.gaussianCount);
-    scales.reserve(cloud.gaussianCount);
-    rotations.reserve(cloud.gaussianCount);
-    opacities.reserve(cloud.gaussianCount);
+    // Attribute values share COW storage with the layer after Set, so keeping
+    // the locals alive for the extent pass below costs no extra copies.
+    PXR_NS::VtArray<PXR_NS::GfVec3f> positions =
+        TakeVec3fArray(&cloud.positions);
+    PXR_NS::VtArray<PXR_NS::GfVec3f> scales = TakeVec3fArray(&cloud.scales);
+
+    PXR_NS::VtArray<PXR_NS::GfQuatf> rotations(cloud.gaussianCount);
+    PXR_NS::GfQuatf* rotationOut = rotations.data();
     for (std::size_t i = 0; i < cloud.gaussianCount; ++i) {
-        positions.push_back(ToGf(cloud.positions[i]));
-        scales.push_back(ToGf(cloud.scales[i]));
-        rotations.emplace_back(
-            cloud.rotations[i].real,
-            PXR_NS::GfVec3f(
-                cloud.rotations[i].i,
-                cloud.rotations[i].j,
-                cloud.rotations[i].k));
-        opacities.push_back(cloud.opacities[i]);
+        const Quaternion& q = cloud.rotations[i];
+        rotationOut[i] = PXR_NS::GfQuatf(q.real, q.i, q.j, q.k);
     }
+    std::vector<Quaternion>().swap(cloud.rotations);
+
+    PXR_NS::VtArray<float> opacities(cloud.gaussianCount);
+    std::memcpy(
+        opacities.data(), cloud.opacities.data(),
+        cloud.gaussianCount * sizeof(float));
+    std::vector<float>().swap(cloud.opacities);
 
     if (!splat.CreatePositionsAttr().Set(positions) ||
         !splat.CreateScalesAttr().Set(scales) ||
@@ -116,20 +135,24 @@ bool GaussianLayerWriter::WriteToString(
     const std::size_t coefficientsPerGaussian =
         cloud.CoefficientsPerGaussian();
     const std::size_t restPerGaussian = coefficientsPerGaussian - 1;
-    PXR_NS::VtArray<PXR_NS::GfVec3f> coefficients;
-    coefficients.reserve(cloud.gaussianCount * coefficientsPerGaussian);
+    PXR_NS::VtArray<PXR_NS::GfVec3f> coefficients(
+        cloud.gaussianCount * coefficientsPerGaussian);
+    PXR_NS::GfVec3f* coefficientOut = coefficients.data();
     for (std::size_t gaussian = 0;
          gaussian < cloud.gaussianCount;
          ++gaussian) {
-        coefficients.push_back(ToGf(cloud.dcCoefficients[gaussian]));
+        PXR_NS::GfVec3f* out = coefficientOut +
+            gaussian * coefficientsPerGaussian;
+        out[0] = ToGf(cloud.dcCoefficients[gaussian]);
         const std::size_t base = gaussian * restPerGaussian;
         for (std::size_t coefficient = 0;
              coefficient < restPerGaussian;
              ++coefficient) {
-            coefficients.push_back(
-                ToGf(cloud.restCoefficients[base + coefficient]));
+            out[1 + coefficient] = ToGf(cloud.restCoefficients[base + coefficient]);
         }
     }
+    std::vector<Float3>().swap(cloud.dcCoefficients);
+    std::vector<Float3>().swap(cloud.restCoefficients);
     if (!splat.CreateRadianceSphericalHarmonicsCoefficientsAttr().Set(
             coefficients)) {
         if (error) *error = "Could not author Gaussian SH coefficients.";
@@ -138,25 +161,27 @@ bool GaussianLayerWriter::WriteToString(
 
     // A conservative three-sigma bound. Rotation can only reduce an axis from
     // this max-scale sphere, so this remains valid for every ellipsoid.
+    const PXR_NS::GfVec3f* positionIn = positions.cdata();
+    const PXR_NS::GfVec3f* scaleIn = scales.cdata();
     PXR_NS::GfVec3f minimum(std::numeric_limits<float>::max());
     PXR_NS::GfVec3f maximum(-std::numeric_limits<float>::max());
     for (std::size_t i = 0; i < cloud.gaussianCount; ++i) {
-        const Float3& p = cloud.positions[i];
-        const Float3& s = cloud.scales[i];
+        const PXR_NS::GfVec3f& p = positionIn[i];
+        const PXR_NS::GfVec3f& s = scaleIn[i];
         const double radius = 3.0 * static_cast<double>(
-            std::max({s.x, s.y, s.z}));
+            std::max({s[0], s[1], s[2]}));
         if (!std::isfinite(radius) ||
             radius > std::numeric_limits<float>::max()) {
             if (error) *error = "Gaussian extent exceeds float range.";
             return false;
         }
         const float r = static_cast<float>(radius);
-        minimum[0] = std::min(minimum[0], p.x - r);
-        minimum[1] = std::min(minimum[1], p.y - r);
-        minimum[2] = std::min(minimum[2], p.z - r);
-        maximum[0] = std::max(maximum[0], p.x + r);
-        maximum[1] = std::max(maximum[1], p.y + r);
-        maximum[2] = std::max(maximum[2], p.z + r);
+        minimum[0] = std::min(minimum[0], p[0] - r);
+        minimum[1] = std::min(minimum[1], p[1] - r);
+        minimum[2] = std::min(minimum[2], p[2] - r);
+        maximum[0] = std::max(maximum[0], p[0] + r);
+        maximum[1] = std::max(maximum[1], p[1] + r);
+        maximum[2] = std::max(maximum[2], p[2] + r);
     }
     PXR_NS::VtArray<PXR_NS::GfVec3f> extent = {minimum, maximum};
     if (!splat.CreateExtentAttr().Set(extent)) {
@@ -164,10 +189,7 @@ bool GaussianLayerWriter::WriteToString(
         return false;
     }
 
-    if (!stage->ExportToString(outUsda)) {
-        if (error) *error = "Could not serialize the generated USD stage.";
-        return false;
-    }
+    *outLayer = layer;
     return true;
 }
 

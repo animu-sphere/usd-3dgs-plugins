@@ -14,7 +14,7 @@ investment after release stabilization:
 | Priority | Work | Tracked in |
 | --- | --- | --- |
 | P0 | Benchmark real datasets; establish load-time, memory, and output-size baselines | [current.md](current.md), real-asset confidence |
-| P1 | Metadata-only reads; peak-memory reduction | Performance and loading |
+| P1 | Metadata-only reads | Performance and loading |
 | P2 | Documented PLY dialect compatibility; the SPZ importer | PLY compatibility; milestone ladder |
 | P3 | Tighter anisotropic bounds; worker-thread workaround removal | USD contract evolution; implementation debt |
 
@@ -48,7 +48,10 @@ investment after release stabilization:
 ## Performance and loading
 
 The design policy (§12.2) fixes the optimization order: measure first, then
-metadata-only reads, then memory reduction; streaming comes last.
+metadata-only reads; streaming comes last. The copy-reduction ladder —
+direct-to-`float` decoding, incremental release of parser and intermediate
+arrays, and direct layer authoring without the USDA round-trip — is complete
+and recorded in the [delivery history](../reports/delivery-history.md).
 
 - ⬜ Build a benchmark harness that separates file read, semantic decode, USD
   authoring, and total stage-open time.
@@ -56,13 +59,6 @@ metadata-only reads, then memory reduction; streaming comes last.
 - ⬜ Implement metadata-only reads: `Read(metadataOnly=true)` should author the
   stage contract and header-derived metadata (Gaussian count, SH degree,
   source format) without decoding vertex data.
-- ⬜ Avoid unnecessary `double` storage where source data can decode directly
-  to `float`.
-- ⬜ Reduce parser-owned full-property arrays and repeated copies into
-  intermediate containers; evaluate structure-of-arrays ownership and
-  zero-copy handoff opportunities.
-- ⬜ Investigate removing the USDA string serialization and reparse step from
-  the read path.
 - ⬜ Investigate memory mapping only after the benchmark identifies I/O or copy
   cost as material.
 - ⬜ Investigate chunked decoding, payload composition, and lazy access as SOG

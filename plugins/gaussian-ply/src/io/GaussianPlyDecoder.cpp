@@ -70,15 +70,14 @@ bool ParseRestIndex(const std::string& name, std::size_t* index)
     }
 }
 
-bool ToFloat(double value, float* result)
+bool AllFinite(const std::vector<float>& column) noexcept
 {
-    if (!result || !std::isfinite(value) ||
-        value < -std::numeric_limits<float>::max() ||
-        value > std::numeric_limits<float>::max()) {
-        return false;
+    for (const float value : column) {
+        if (!std::isfinite(value)) {
+            return false;
+        }
     }
-    *result = static_cast<float>(value);
-    return std::isfinite(*result);
+    return true;
 }
 
 void AddCountWarning(
@@ -206,87 +205,145 @@ bool GaussianPlyDecoder::Decode(
     if (!reader.Read(path, requested, &document, error)) {
         return false;
     }
-    auto values = [&](const std::string& name) -> const std::vector<double>* {
+
+    const std::size_t count = header.vertexCount;
+    // Columns are moved out of the document and freed as they are consumed so
+    // the decoded cloud and the parsed columns never coexist in full.
+    auto takeColumn = [&document, count](
+        const std::string& name, std::vector<float>* column) {
         const auto found = document.vertexProperties.find(name);
-        return found == document.vertexProperties.end() ? nullptr : &found->second;
-    };
-    auto value = [&](const std::string& name, std::size_t row, float* result) {
-        const std::vector<double>* array = values(name);
-        return array && row < array->size() && ToFloat((*array)[row], result);
+        if (found == document.vertexProperties.end() ||
+            found->second.size() != count) {
+            return false;
+        }
+        *column = std::move(found->second);
+        document.vertexProperties.erase(found);
+        return true;
     };
 
     GaussianCloudData result;
-    result.gaussianCount = header.vertexCount;
+    result.gaussianCount = count;
     result.shDegree = shDegree;
-    result.positions.reserve(header.vertexCount);
-    result.scales.reserve(header.vertexCount);
-    result.rotations.reserve(header.vertexCount);
-    result.opacities.reserve(header.vertexCount);
-    result.dcCoefficients.reserve(header.vertexCount);
-    result.restCoefficients.reserve(header.vertexCount * restPerChannel);
 
-    std::size_t normalizedQuaternions = 0;
-    std::size_t identityQuaternions = 0;
-    for (std::size_t row = 0; row < header.vertexCount; ++row) {
-        Float3 position;
-        Float3 storedScale;
-        Quaternion storedRotation;
-        float storedOpacity = 0.0f;
-        Float3 dc;
-        if (!value("x", row, &position.x) ||
-            !value("y", row, &position.y) ||
-            !value("z", row, &position.z) ||
-            !value("scale_0", row, &storedScale.x) ||
-            !value("scale_1", row, &storedScale.y) ||
-            !value("scale_2", row, &storedScale.z) ||
-            !value("rot_0", row, &storedRotation.real) ||
-            !value("rot_1", row, &storedRotation.i) ||
-            !value("rot_2", row, &storedRotation.j) ||
-            !value("rot_3", row, &storedRotation.k) ||
-            !value("opacity", row, &storedOpacity) ||
-            !value("f_dc_0", row, &dc.x) ||
-            !value("f_dc_1", row, &dc.y) ||
-            !value("f_dc_2", row, &dc.z)) {
+    {
+        std::vector<float> x;
+        std::vector<float> y;
+        std::vector<float> z;
+        if (!takeColumn("x", &x) ||
+            !takeColumn("y", &y) ||
+            !takeColumn("z", &z) ||
+            !AllFinite(x) || !AllFinite(y) || !AllFinite(z)) {
             if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
             return false;
         }
+        result.positions.resize(count);
+        for (std::size_t row = 0; row < count; ++row) {
+            result.positions[row] = {x[row], y[row], z[row]};
+        }
+    }
 
-        Float3 scale;
-        if (!DecodeLogScale(storedScale, &scale)) {
-            if (error) *error = "Gaussian PLY scale cannot be converted from log space.";
+    {
+        std::vector<float> scale0;
+        std::vector<float> scale1;
+        std::vector<float> scale2;
+        if (!takeColumn("scale_0", &scale0) ||
+            !takeColumn("scale_1", &scale1) ||
+            !takeColumn("scale_2", &scale2) ||
+            !AllFinite(scale0) || !AllFinite(scale1) || !AllFinite(scale2)) {
+            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
             return false;
         }
-        Quaternion rotation;
-        bool identity = false;
-        bool changed = false;
-        if (!NormalizeQuaternion(
-                storedRotation, &rotation, &identity, &changed)) {
-            if (error) *error = "Gaussian PLY contains an invalid quaternion.";
-            return false;
-        }
-        if (identity) {
-            ++identityQuaternions;
-        } else if (changed) {
-            ++normalizedQuaternions;
-        }
-
-        result.positions.push_back(position);
-        result.scales.push_back(scale);
-        result.rotations.push_back(rotation);
-        result.opacities.push_back(Sigmoid(storedOpacity));
-        result.dcCoefficients.push_back(dc);
-
-        for (std::size_t coefficient = 0;
-             coefficient < restPerChannel;
-             ++coefficient) {
-            Float3 rgb;
-            if (!value(indexedRest.at(coefficient), row, &rgb.x) ||
-                !value(indexedRest.at(restPerChannel + coefficient), row, &rgb.y) ||
-                !value(indexedRest.at(2 * restPerChannel + coefficient), row, &rgb.z)) {
-                if (error) *error = "Gaussian PLY contains an invalid SH coefficient.";
+        result.scales.resize(count);
+        for (std::size_t row = 0; row < count; ++row) {
+            if (!DecodeLogScale(
+                    {scale0[row], scale1[row], scale2[row]},
+                    &result.scales[row])) {
+                if (error) *error = "Gaussian PLY scale cannot be converted from log space.";
                 return false;
             }
-            result.restCoefficients.push_back(rgb);
+        }
+    }
+
+    std::size_t normalizedQuaternions = 0;
+    std::size_t identityQuaternions = 0;
+    {
+        std::vector<float> rot0;
+        std::vector<float> rot1;
+        std::vector<float> rot2;
+        std::vector<float> rot3;
+        if (!takeColumn("rot_0", &rot0) ||
+            !takeColumn("rot_1", &rot1) ||
+            !takeColumn("rot_2", &rot2) ||
+            !takeColumn("rot_3", &rot3) ||
+            !AllFinite(rot0) || !AllFinite(rot1) ||
+            !AllFinite(rot2) || !AllFinite(rot3)) {
+            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            return false;
+        }
+        result.rotations.resize(count);
+        for (std::size_t row = 0; row < count; ++row) {
+            bool identity = false;
+            bool changed = false;
+            if (!NormalizeQuaternion(
+                    {rot0[row], rot1[row], rot2[row], rot3[row]},
+                    &result.rotations[row], &identity, &changed)) {
+                if (error) *error = "Gaussian PLY contains an invalid quaternion.";
+                return false;
+            }
+            if (identity) {
+                ++identityQuaternions;
+            } else if (changed) {
+                ++normalizedQuaternions;
+            }
+        }
+    }
+
+    {
+        std::vector<float> opacity;
+        if (!takeColumn("opacity", &opacity) || !AllFinite(opacity)) {
+            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            return false;
+        }
+        result.opacities.resize(count);
+        for (std::size_t row = 0; row < count; ++row) {
+            result.opacities[row] = Sigmoid(opacity[row]);
+        }
+    }
+
+    {
+        std::vector<float> dc0;
+        std::vector<float> dc1;
+        std::vector<float> dc2;
+        if (!takeColumn("f_dc_0", &dc0) ||
+            !takeColumn("f_dc_1", &dc1) ||
+            !takeColumn("f_dc_2", &dc2) ||
+            !AllFinite(dc0) || !AllFinite(dc1) || !AllFinite(dc2)) {
+            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            return false;
+        }
+        result.dcCoefficients.resize(count);
+        for (std::size_t row = 0; row < count; ++row) {
+            result.dcCoefficients[row] = {dc0[row], dc1[row], dc2[row]};
+        }
+    }
+
+    result.restCoefficients.resize(count * restPerChannel);
+    for (std::size_t coefficient = 0;
+         coefficient < restPerChannel;
+         ++coefficient) {
+        std::vector<float> red;
+        std::vector<float> green;
+        std::vector<float> blue;
+        if (!takeColumn(indexedRest.at(coefficient), &red) ||
+            !takeColumn(indexedRest.at(restPerChannel + coefficient), &green) ||
+            !takeColumn(indexedRest.at(2 * restPerChannel + coefficient), &blue) ||
+            !AllFinite(red) || !AllFinite(green) || !AllFinite(blue)) {
+            if (error) *error = "Gaussian PLY contains an invalid SH coefficient.";
+            return false;
+        }
+        for (std::size_t row = 0; row < count; ++row) {
+            result.restCoefficients[row * restPerChannel + coefficient] =
+                {red[row], green[row], blue[row]};
         }
     }
 
