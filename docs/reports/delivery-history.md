@@ -131,3 +131,9 @@ OpenUSD 26.05.
   1.94M Gaussians (after only): 0.92 GiB / 5.2 s.
 - ✅ Baselines unchanged: workspace `ost plugin test --up-to 5` 12 pass /
   0 fail / 3 skip, CTest 2/2 plugin tests pass.
+- ✅ Review follow-up: added the `out-of-range-double.ply` negative fixture so
+  the double→float narrowing rejection (out-of-range doubles become ±infinity
+  and fail finiteness validation) is regression-tested, and `takeColumn` now
+  reports which property is missing or size-mismatched instead of the generic
+  non-finite-value error. Rebuilt and re-ran after the fixes: ladder 12 pass /
+  0 fail / 3 skip with 7 fixtures, CTest 2/2.

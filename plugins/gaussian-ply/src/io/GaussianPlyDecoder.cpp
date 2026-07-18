@@ -209,11 +209,15 @@ bool GaussianPlyDecoder::Decode(
     const std::size_t count = header.vertexCount;
     // Columns are moved out of the document and freed as they are consumed so
     // the decoded cloud and the parsed columns never coexist in full.
-    auto takeColumn = [&document, count](
+    auto takeColumn = [&document, count, error](
         const std::string& name, std::vector<float>* column) {
         const auto found = document.vertexProperties.find(name);
         if (found == document.vertexProperties.end() ||
             found->second.size() != count) {
+            if (error) {
+                *error = "Gaussian PLY property '" + name +
+                    "' is missing or does not match the vertex count.";
+            }
             return false;
         }
         *column = std::move(found->second);
@@ -231,8 +235,10 @@ bool GaussianPlyDecoder::Decode(
         std::vector<float> z;
         if (!takeColumn("x", &x) ||
             !takeColumn("y", &y) ||
-            !takeColumn("z", &z) ||
-            !AllFinite(x) || !AllFinite(y) || !AllFinite(z)) {
+            !takeColumn("z", &z)) {
+            return false;
+        }
+        if (!AllFinite(x) || !AllFinite(y) || !AllFinite(z)) {
             if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
             return false;
         }
@@ -248,8 +254,10 @@ bool GaussianPlyDecoder::Decode(
         std::vector<float> scale2;
         if (!takeColumn("scale_0", &scale0) ||
             !takeColumn("scale_1", &scale1) ||
-            !takeColumn("scale_2", &scale2) ||
-            !AllFinite(scale0) || !AllFinite(scale1) || !AllFinite(scale2)) {
+            !takeColumn("scale_2", &scale2)) {
+            return false;
+        }
+        if (!AllFinite(scale0) || !AllFinite(scale1) || !AllFinite(scale2)) {
             if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
             return false;
         }
@@ -274,8 +282,10 @@ bool GaussianPlyDecoder::Decode(
         if (!takeColumn("rot_0", &rot0) ||
             !takeColumn("rot_1", &rot1) ||
             !takeColumn("rot_2", &rot2) ||
-            !takeColumn("rot_3", &rot3) ||
-            !AllFinite(rot0) || !AllFinite(rot1) ||
+            !takeColumn("rot_3", &rot3)) {
+            return false;
+        }
+        if (!AllFinite(rot0) || !AllFinite(rot1) ||
             !AllFinite(rot2) || !AllFinite(rot3)) {
             if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
             return false;
@@ -300,7 +310,10 @@ bool GaussianPlyDecoder::Decode(
 
     {
         std::vector<float> opacity;
-        if (!takeColumn("opacity", &opacity) || !AllFinite(opacity)) {
+        if (!takeColumn("opacity", &opacity)) {
+            return false;
+        }
+        if (!AllFinite(opacity)) {
             if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
             return false;
         }
@@ -316,8 +329,10 @@ bool GaussianPlyDecoder::Decode(
         std::vector<float> dc2;
         if (!takeColumn("f_dc_0", &dc0) ||
             !takeColumn("f_dc_1", &dc1) ||
-            !takeColumn("f_dc_2", &dc2) ||
-            !AllFinite(dc0) || !AllFinite(dc1) || !AllFinite(dc2)) {
+            !takeColumn("f_dc_2", &dc2)) {
+            return false;
+        }
+        if (!AllFinite(dc0) || !AllFinite(dc1) || !AllFinite(dc2)) {
             if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
             return false;
         }
@@ -336,8 +351,10 @@ bool GaussianPlyDecoder::Decode(
         std::vector<float> blue;
         if (!takeColumn(indexedRest.at(coefficient), &red) ||
             !takeColumn(indexedRest.at(restPerChannel + coefficient), &green) ||
-            !takeColumn(indexedRest.at(2 * restPerChannel + coefficient), &blue) ||
-            !AllFinite(red) || !AllFinite(green) || !AllFinite(blue)) {
+            !takeColumn(indexedRest.at(2 * restPerChannel + coefficient), &blue)) {
+            return false;
+        }
+        if (!AllFinite(red) || !AllFinite(green) || !AllFinite(blue)) {
             if (error) *error = "Gaussian PLY contains an invalid SH coefficient.";
             return false;
         }

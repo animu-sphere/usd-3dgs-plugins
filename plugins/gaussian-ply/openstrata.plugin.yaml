@@ -44,3 +44,4 @@ tests:
     - tests/fixtures/mesh-not-gaussian.ply
     - tests/fixtures/missing-opacity.ply
     - tests/fixtures/truncated-binary-le.ply
+    - tests/fixtures/out-of-range-double.ply
