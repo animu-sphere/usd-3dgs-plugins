@@ -1,0 +1,10 @@
+schema: openstrata.scaffold/v1alpha1
+template:
+  id: usd-fileformat-cpp
+  version: 1.2.0
+generator:
+  name: ost
+  version: 0.18.0
+inputs:
+  extension: ply
+  name: gaussian-ply

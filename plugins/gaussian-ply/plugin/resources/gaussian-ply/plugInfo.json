@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "GaussianPlyFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/libGaussianPlyFileFormat.dll",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "GaussianPlyFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "GaussianPly File Format",
+                        "extensions": ["ply"],
+                        "formatId": "ply",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}

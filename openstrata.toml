@@ -1,0 +1,7 @@
+[project]
+name = "usd-3dgs-plugins"
+version = "0.1.0"
+
+[requires]
+platform = "cy2026"
+profile = "usd"

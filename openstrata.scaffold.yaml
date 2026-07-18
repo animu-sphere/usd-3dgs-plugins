@@ -1,0 +1,9 @@
+schema: openstrata.scaffold/v1alpha1
+template:
+  id: usd-plugin-workspace
+  version: 1.1.0
+generator:
+  name: ost
+  version: 0.18.0
+inputs:
+  name: usd-3dgs-plugins

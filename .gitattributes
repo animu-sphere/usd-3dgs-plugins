@@ -1,0 +1,16 @@
+* text=auto
+
+*.h text eol=lf
+*.cpp text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.usda text eol=lf
+*.ply text eol=lf
+
+# Binary fixtures override the general PLY text policy.
+plugins/gaussian-ply/tests/fixtures/one-gaussian-binary-le.ply -text
+plugins/gaussian-ply/tests/fixtures/truncated-binary-le.ply -text

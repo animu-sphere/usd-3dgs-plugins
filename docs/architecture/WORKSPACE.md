@@ -1,0 +1,176 @@
+# Workspace contract
+
+This is the binding structural contract for `usd-3dgs-plugins`. It fixes
+component identities, dependency directions, root responsibilities, artifact
+naming, and migration invariants. A structural change that contradicts this
+document must change this document first.
+
+Status: the initial workspace and `gaussian-ply` vertical slice are implemented.
+Future component identities are reserved here but do not yet exist.
+
+## 1. Components
+
+| Identity | Kind | Status | Responsibility |
+| --- | --- | --- | --- |
+| `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | implemented | Detect and decode canonical Gaussian Splatting PLY and author a standard OpenUSD Gaussian layer. |
+| `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, and SH layout utilities. |
+| `gaussian-spz` | plugin bundle (`usd-fileformat`) | reserved | Decode SPZ through `GaussianCloudData` and the shared authoring contract. |
+| `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |
+| `gaussian-sog` | plugin bundle (`usd-fileformat`) | reserved | SOG decoding and, later, chunk/LOD composition. |
+
+`gaussianCore` is not a plugin: it has no `plugInfo.json`, performs no plugin
+registration, and exposes no OpenUSD types in its public API.
+
+## 2. Dependency directions
+
+Allowed today:
+
+```text
+gaussian-ply -> gaussianCore
+gaussian-ply -> tinyPLY (private, vendored parser implementation)
+```
+
+Reserved future directions:
+
+```text
+gaussian-spz  -> gaussianCore
+gaussian-gltf -> gaussianCore
+gaussian-sog  -> gaussianCore
+```
+
+Forbidden:
+
+```text
+gaussianCore -> any plugin bundle
+gaussianCore -> tinyPLY
+gaussianCore -> OpenUSD
+gaussian-ply -> another format bundle
+any dependency cycle
+```
+
+The OpenStrata descriptor
+`libs/gaussian-core/openstrata.library.yaml` gives the plain library a workspace
+identity and CMake package/target. `gaussian-ply` declares the edge in
+`requires.libraries`; `ost plugin build/test/package` resolves and executes it.
+
+## 3. Source boundaries
+
+```text
+plugins/gaussian-ply/src/GaussianPlyFileFormat.*
+    thin SdfFileFormat integration
+
+plugins/gaussian-ply/src/io/PlyReader.*
+    tinyPLY isolation and PLY scalar normalization
+
+plugins/gaussian-ply/src/io/GaussianPlyDecoder.*
+    Gaussian dialect validation and semantic decoding
+
+libs/gaussian-core/
+    format- and USD-independent Gaussian model/math
+
+plugins/gaussian-ply/src/usd/GaussianLayerWriter.*
+    OpenUSD schema authoring
+```
+
+The writer may move into a shared USD-facing library only when a second format
+consumer exists. The core remains USD-independent either way.
+
+## 4. Root responsibilities
+
+The repository root owns composition, not plugin implementation:
+
+- dynamic discovery of `plugins/*` for plain CMake builds;
+- workspace-wide version and OpenStrata platform/profile selection;
+- `openstrata.ci.yaml` and generated CI;
+- shared licensing, third-party notices, documentation, and release records;
+- future cross-format equivalence tests and aggregate packaging.
+
+Plugin C++ sources, `plugInfo.json`, format fixtures, and private parser setup
+belong to the bundle. Each bundle must remain buildable through `ost` as an
+independent bundle; the root CMake build is an additional supported path.
+
+## 5. Authored stage contract
+
+Every decoder using the shared Gaussian authoring contract produces:
+
+```text
+/Asset                  Xform, kind=component, defaultPrim
+    /Splat              ParticleField3DGaussianSplat
+```
+
+The initial layer policy is Y-up and one meter per unit. A source format that
+contains authoritative axis/unit metadata may override the defaults only after
+the mapping contract documents that behavior.
+
+## 6. Artifact naming and versioning
+
+Per-bundle artifacts use OpenStrata's target-qualified convention:
+
+```text
+gaussian-ply-<version>-<target>.tar.zst
+gaussian-spz-<version>-<target>.tar.zst
+gaussian-sog-<version>-<target>.tar.zst
+usd-3dgs-plugins-<version>-<target>.tar.zst   # future aggregate
+```
+
+Until a real need for independent release cadences appears, every bundle and
+plain library mirrors the repository-root `VERSION`. Git tags use `vX.Y.Z`.
+
+## 7. Change invariants
+
+Every structural or format PR preserves these invariants:
+
+1. Existing fixture stages remain semantically stable unless a documented
+   contract change intentionally updates their goldens.
+2. Format parsing never leaks into `gaussianCore` or the USD writer.
+3. OpenUSD types never enter the public `gaussianCore` API.
+4. A new format reaches USD through `GaussianCloudData`, not by copying PLY
+   assumptions into its writer.
+5. Manifest and CMake dependency declarations change together.
+6. Plugin registration changes include a discovery test.
+7. Third-party revision and license changes update both notices and package
+   verification.
+
+## 8. CI and verification contract
+
+`openstrata.ci.yaml` is the source of truth; the GitHub workflow is generated by
+`ost ci generate github`. The declared PR matrix is:
+
+| Host | Target | OST level |
+| --- | --- | --- |
+| Windows 2022 x86_64 | cy2026 / USD | L0-L4 |
+| macOS 15 arm64 | cy2026 / USD | L0-L5 |
+| Ubuntu 24.04 x86_64 | cy2026 / USD | L0-L5 |
+
+Windows is capped at L4 until the hosted-runner multiline-USDA line-ending
+behavior is resolved. Local Windows L5 currently passes.
+
+The required local gate is:
+
+```text
+ost plugin build plugins/gaussian-ply
+ctest (gaussianCore and gaussian-ply)
+ost plugin test --workspace --up-to 5
+ost plugin package plugins/gaussian-ply
+ost plugin test plugins/gaussian-ply --from-package --up-to 5
+ost ci validate
+```
+
+The packaged L5 golden is currently skipped because OST packages declared
+fixtures but not the adjacent `.golden.usda`; this is recorded in the
+[dogfooding report](../reports/ost/01-2026-07-18-v0.18.0-bootstrap.md).
+
+## 9. Delivery status
+
+| Milestone | Boundary | Status |
+| --- | --- | --- |
+| M0 | workspace, bundle, discovery, CI contract | implemented; hosted CI not yet observed |
+| M1 | minimal ASCII/binary LE PLY read | implemented |
+| M2 | Gaussian semantic mapping | implemented |
+| M3 | validation and negative fixtures | implemented |
+| M4 | integration, package, docs, notices | implemented locally; release gate incomplete |
+| M5 | SPZ | not started |
+
+Current work and acceptance gaps are tracked in
+[roadmap/current.md](../roadmap/current.md).
+

@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "GaussianPlyFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/@OPENSTRATA_PLUGIN_LIBRARY_PREFIX@GaussianPlyFileFormat@CMAKE_SHARED_LIBRARY_SUFFIX@",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "GaussianPlyFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "GaussianPly File Format",
+                        "extensions": ["ply"],
+                        "formatId": "ply",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}

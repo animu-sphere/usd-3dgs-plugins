@@ -1,0 +1,138 @@
+# usd-3dgs-plugins
+
+OpenStrata workspace for OpenUSD file-format plugins that expose 3D Gaussian
+Splatting assets as USD layers. The first bundle, `gaussian-ply`, imports the
+common Gaussian Splatting PLY dialect directly into OpenUSD 26.05's standard
+`ParticleField3DGaussianSplat` schema.
+
+The repository follows the policy in
+[`docs/design/DESIGN_POLICY.md`](docs/design/DESIGN_POLICY.md).
+
+## Current status
+
+The initial PLY vertical slice is implemented:
+
+- OpenStrata `usd-plugin-workspace` scaffold, generated with OST 0.18.0
+- `gaussian-ply` read-only `SdfFileFormat` bundle
+- ASCII and binary little-endian PLY
+- Gaussian dialect detection and required-property validation
+- position, exponential scale, normalized quaternion, sigmoid opacity
+- degree inference and RGB reconstruction for channel-major `f_rest_*`
+- `/Asset/Splat` authored as `ParticleField3DGaussianSplat`
+- deterministic unit, integration, negative, binary, and golden fixtures
+- generated OpenStrata PR CI for Windows, macOS arm64, and Linux
+- vendored tinyPLY 2.3.4 at a fixed commit
+
+SPZ, glTF/GLB Gaussian extensions, SOG, writing, streaming, and rendering are
+outside the initial implementation.
+
+## Requirements
+
+- OST 0.18.0 (verified baseline)
+- a real `cy2026` / `usd` OpenStrata runtime
+- OpenUSD `>=26.05,<27.0` (the Gaussian particle-field schema is required)
+- a C++17-capable compiler
+
+The verified local runtime is OpenUSD 26.05 on Windows x86-64 / MSVC 143 /
+Python 3.13.
+
+## Build and test
+
+```sh
+ost runtime pull cy2026 --profile usd
+ost plugin build plugins/gaussian-ply
+ost plugin doctor plugins/gaussian-ply
+ost plugin test plugins/gaussian-ply --up-to 5
+ost plugin test --workspace --up-to 5
+ost plugin package plugins/gaussian-ply
+```
+
+`openstrata.ci.yaml` is the cross-platform CI contract. Regenerate the checked-in
+GitHub Actions workflow after matrix changes with `ost ci generate github
+--force`.
+
+Open any compatible PLY in `usdview` with the plugin session composed by OST:
+
+```powershell
+ost plugin view plugins\gaussian-ply "C:\path\to\scene.ply"
+```
+
+The stage can be inspected even when the active Hydra renderer does not draw
+Gaussian splats.
+
+Flatten a PLY-backed stage to a compact binary USD file next to the source:
+
+```powershell
+ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out "C:\path\to\scene.usd" "C:\path\to\scene.ply"
+```
+
+The repository also carries CTest coverage beyond OST's verification pyramid:
+
+```sh
+ctest --test-dir libs/gaussian-core/build/cy2026-windows-x86_64-py313-usd --output-on-failure
+ctest --test-dir plugins/gaussian-ply/build/cy2026-windows-x86_64-py313-usd --output-on-failure
+```
+
+For a plain CMake workspace build, point `CMAKE_PREFIX_PATH` at an OpenUSD 26.05
+installation:
+
+```sh
+cmake --preset default -DCMAKE_PREFIX_PATH=/path/to/openusd
+cmake --build --preset default
+ctest --test-dir build/default --output-on-failure
+```
+
+## Architecture
+
+```text
+SdfFileFormat
+    -> PlyReader (tinyPLY adapter)
+    -> GaussianPlyDecoder
+    -> GaussianCloudData (gaussianCore; no USD types)
+    -> GaussianLayerWriter
+    -> UsdVolParticleField3DGaussianSplat
+```
+
+`gaussianCore` is an OpenStrata plain-library dependency described by
+`libs/gaussian-core/openstrata.library.yaml`. OST builds and installs it into
+the workspace prefix before configuring `gaussian-ply`; a plain root CMake
+build uses the same in-tree target.
+
+## PLY mapping
+
+| PLY property | Interpretation | USD attribute |
+| --- | --- | --- |
+| `x`, `y`, `z` | local-space position | `positions` |
+| `scale_0..2` | `exp(stored)` | `scales` |
+| `rot_0..3` | scalar-first `(w,x,y,z)`, normalized | `orientations` |
+| `opacity` | stable sigmoid | `opacities` |
+| `f_dc_0..2` | RGB DC coefficient | `radiance:sphericalHarmonicsCoefficients[0]` |
+| `f_rest_*` | channel-major RGB non-DC coefficients | remaining SH coefficients |
+
+`f_rest_*` indices must be contiguous. With `R` rest scalars, `R / 3 + 1`
+must be a square coefficient count: 1, 4, 9, 16, and so on. Unknown vertex
+properties are ignored with an aggregated warning; the common `nx/ny/nz`
+placeholders are recognized and ignored silently.
+
+The generated stage contract is:
+
+```text
+/Asset                  Xform, kind=component, defaultPrim
+    /Splat              ParticleField3DGaussianSplat
+```
+
+Layer metadata defaults to `upAxis = Y` and `metersPerUnit = 1`. These values
+are importer policy because PLY does not standardize either field.
+
+## Documentation
+
+Start with the [documentation index](docs/README.md). Current behavior is in
+the [capability matrix](docs/reference/CAPABILITY_MATRIX.md), the normative PLY
+mapping is in [PLY_MAPPING.md](docs/reference/PLY_MAPPING.md), incomplete work
+is in the [roadmap](docs/roadmap/), and measured OST usage is recorded in the
+[dogfooding reports](docs/reports/ost/).
+
+## License
+
+Project code is Apache-2.0. tinyPLY's retained notice and fixed source revision
+are documented in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

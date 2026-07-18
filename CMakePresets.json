@@ -1,0 +1,19 @@
+{
+    "version": 4,
+    "cmakeMinimumRequired": { "major": 3, "minor": 23, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Plain CMake build (no ost)",
+            "description": "Build the whole repo without ost. Point CMAKE_PREFIX_PATH at your OpenUSD install, or pass -DCMAKE_PREFIX_PATH=<path> on the command line. `ost configure` instead writes per-target presets into the tool-owned CMakeUserPresets.json.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "default", "configurePreset": "default" }
+    ]
+}

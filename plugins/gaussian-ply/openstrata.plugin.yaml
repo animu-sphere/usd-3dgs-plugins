@@ -1,0 +1,46 @@
+# OpenStrata plugin bundle manifest.
+# A plugin is a self-describing bundle, not a bare shared library: this file is
+# the contract `ost plugin inspect|build|doctor|test` resolve against.
+manifest:
+  schema: openstrata.plugin/v1alpha1
+plugin:
+  name: gaussian-ply
+  version: 0.1.0
+  kind: usd-fileformat
+# SPDX license for this plugin's own code. Surfaced by `ost plugin inspect` and
+# recorded in the package manifest. Change it to match your project's license.
+license: Apache-2.0
+notices:
+  - THIRD_PARTY_NOTICES.md
+runtime:
+  # The OpenUSD version range this plugin tolerates. The runtime supplies the
+  # certified point within it.
+  # ParticleField3DGaussianSplat is part of OpenUSD 26.05's usdVol schema.
+  openusd: ">=26.05,<27.0"
+  # Source bundles do not hard-code C++ ABI; `ost plugin doctor` compares the
+  # resolved target/runtime ABI when a built or packaged manifest records one.
+  # To pin it, `cxx_abi` accepts a scalar (`msvc143`), the `inherit` sentinel
+  # (defer to the runtime), or a per-OS map for a cross-platform bundle:
+  #   cxx_abi: { windows: msvc143, linux: libstdcxx, macos: libcxx }
+  cxx_abi: inherit
+provides:
+  - usd-fileformat:ply
+requires:
+  capabilities: [usd-stage-read]
+  libraries:
+    - id: gaussianCore
+      version: ">=0.1,<0.2"
+usd:
+  # Where this bundle's plugInfo.json lives, relative to the bundle root.
+  plug_info: plugin/resources/gaussian-ply/plugInfo.json
+tests:
+  smoke:
+    - tests/fixtures/one-gaussian-ascii.ply
+    - tests/fixtures/one-gaussian-binary-le.ply
+    - tests/fixtures/degree-1-sh.ply
+  roundtrip:
+    - tests/fixtures/one-gaussian-ascii.ply
+  negative:
+    - tests/fixtures/mesh-not-gaussian.ply
+    - tests/fixtures/missing-opacity.ply
+    - tests/fixtures/truncated-binary-le.ply

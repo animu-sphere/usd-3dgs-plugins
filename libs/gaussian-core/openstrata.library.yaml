@@ -1,0 +1,7 @@
+schema: openstrata.library/v1alpha1
+library:
+  id: gaussianCore
+  version: 0.1.0
+cmake:
+  package: gaussianCore
+  target: openstrata::gaussianCore

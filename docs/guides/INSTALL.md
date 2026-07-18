@@ -1,0 +1,117 @@
+# Building and installing USD 3DGS Plugins
+
+The project has not published a tagged release yet. The currently verified
+paths are an OpenStrata source build and a locally generated OpenStrata package.
+Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
+before reusing a binary package: OpenUSD plugin binaries must match the target
+platform, compiler ABI, OpenUSD build, and Python ABI.
+
+## With OpenStrata
+
+From the repository root:
+
+```sh
+ost runtime pull cy2026 --profile usd
+ost plugin build plugins/gaussian-ply
+ost plugin doctor plugins/gaussian-ply
+ost plugin test --workspace --up-to 5
+```
+
+Run a USD tool with the plugin environment composed automatically:
+
+```sh
+ost plugin run plugins/gaussian-ply -- usdcat --flatten \
+  plugins/gaussian-ply/tests/fixtures/one-gaussian-ascii.ply
+```
+
+For interactive inspection:
+
+```powershell
+ost plugin view plugins\gaussian-ply "C:\path\to\scene.ply"
+```
+
+The local cactus dogfooding sample was opened with:
+
+```powershell
+ost plugin view plugins\gaussian-ply "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.ply"
+```
+
+Flatten the plugin-backed stage to a binary `.usd` file with no source-path
+comment:
+
+```powershell
+ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out "C:\path\to\scene.usd" "C:\path\to\scene.ply"
+```
+
+The cactus sample was flattened next to its source with:
+
+```powershell
+ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.usd" "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.ply"
+```
+
+The plugin only authors Gaussian schema data; this repository does not provide
+a Hydra renderer. Opening a stage and rendering visible splats are separate
+capabilities.
+
+## Package and verify
+
+```sh
+ost plugin package plugins/gaussian-ply
+ost plugin test plugins/gaussian-ply --from-package --up-to 5
+```
+
+The package is written under:
+
+```text
+plugins/gaussian-ply/dist/plugins/gaussian-ply/<version>/<target>/
+```
+
+The current package-origin run passes discovery, read, and stage-open checks.
+L5 reports a skip because OST does not copy the adjacent golden file into the
+package; source-workspace L5 passes.
+
+## Manual package activation
+
+After extracting the target-matching archive:
+
+- add `plugin/resources/gaussian-ply` to `PXR_PLUGINPATH_NAME`;
+- make the package `lib` directory available to the platform dynamic loader;
+- retain the OpenUSD installation's own plugin and library paths.
+
+On Windows, use `;` as the path separator; Linux and macOS use `:`. Python hosts
+on Windows may need `os.add_dll_directory()` for the extracted `lib` directory.
+Using `ost plugin run <extracted-package>` is the verified path because OST
+composes the environment from the package manifest.
+
+## Plain CMake build
+
+Point `CMAKE_PREFIX_PATH` at an OpenUSD 26.05 installation that provides a
+`pxr` CMake package:
+
+```sh
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/openusd
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
+
+The root build composes `gaussianCore` and every discovered plugin bundle. For
+a bundle-only build, install `gaussianCore` first and make its install prefix
+available through `CMAKE_PREFIX_PATH`.
+
+The root path has been exercised on Windows with the Visual Studio 2022
+generator: it discovered `plugins/gaussian-ply`, built both components, and
+passed all three CTest entries.
+
+## Troubleshooting
+
+- **`.ply` is not recognized**: `PXR_PLUGINPATH_NAME` does not point to the
+  directory containing the generated `plugInfo.json`, or the plugin library
+  failed to load.
+- **The library fails to load**: the package target does not match the host
+  OpenUSD/ABI, or the extracted `lib` directory is not on the loader path.
+- **A normal mesh PLY is rejected**: expected. The bundle recognizes only the
+  documented Gaussian dialect.
+- **The stage opens but nothing is drawn**: the USD data contract is available,
+  but the active Hydra renderer may not implement Gaussian splat rendering.
+- **A large file consumes substantial memory**: v0.1 intentionally performs a
+  full read/decode/author pass; streaming is future work.
