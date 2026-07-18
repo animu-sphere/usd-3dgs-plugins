@@ -14,6 +14,7 @@ Future component identities are reserved here but do not yet exist.
 | --- | --- | --- | --- |
 | `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | implemented | Detect and decode canonical Gaussian Splatting PLY and author a standard OpenUSD Gaussian layer. |
 | `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, and SH layout utilities. |
+| `gaussianUsd` | plain CMake/OpenStrata static library | reserved | Shared `GaussianCloudData` → OpenUSD schema authoring, extracted from `gaussian-ply` when a second importer would otherwise duplicate `GaussianLayerWriter`. |
 | `gaussian-spz` | plugin bundle (`usd-fileformat`) | reserved | Decode SPZ through `GaussianCloudData` and the shared authoring contract. |
 | `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |
 | `gaussian-sog` | plugin bundle (`usd-fileformat`) | reserved | SOG decoding and, later, chunk/LOD composition. |
@@ -36,6 +37,9 @@ Reserved future directions:
 gaussian-spz  -> gaussianCore
 gaussian-gltf -> gaussianCore
 gaussian-sog  -> gaussianCore
+any format bundle -> gaussianUsd
+gaussianUsd   -> gaussianCore
+gaussianUsd   -> OpenUSD
 ```
 
 Forbidden:
@@ -44,6 +48,8 @@ Forbidden:
 gaussianCore -> any plugin bundle
 gaussianCore -> tinyPLY
 gaussianCore -> OpenUSD
+gaussianUsd  -> any plugin bundle
+gaussianUsd  -> tinyPLY or any other format parser
 gaussian-ply -> another format bundle
 any dependency cycle
 ```
@@ -72,8 +78,9 @@ plugins/gaussian-ply/src/usd/GaussianLayerWriter.*
     OpenUSD schema authoring
 ```
 
-The writer may move into a shared USD-facing library only when a second format
-consumer exists. The core remains USD-independent either way.
+The writer moves into the reserved `gaussianUsd` library (`libs/gaussian-usd`)
+only when a second format consumer would otherwise duplicate it; it is not
+extracted before then. The core remains USD-independent either way.
 
 ## 4. Root responsibilities
 

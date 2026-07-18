@@ -60,8 +60,12 @@ real gate or a documented versioned exception.
 ### Real-asset confidence
 
 - ⬜ Select at least one redistributable, provenance-recorded Gaussian PLY with
-  non-trivial SH degree and more than one Gaussian.
-- ⬜ Record peak memory, decode time, USD authoring time, and output array sizes.
+  non-trivial SH degree and more than one Gaussian. Candidate large references
+  are Mip-NeRF 360 `garden` and `bicycle`, pending the same review.
+- ⬜ Record the design-policy baseline metrics (§12.1): source size, Gaussian
+  count, `CanRead()` and full `Read()` durations, peak resident memory,
+  temporary USDA and generated USDC sizes, flattening duration, and time until
+  the stage is inspectable in `usdview`.
 - ⬜ Add it as an opt-in corpus/performance test unless its size is appropriate
   for normal CI.
 

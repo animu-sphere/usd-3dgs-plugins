@@ -33,6 +33,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Unknown extra properties | supported | ignored with one aggregated warning; common `nx/ny/nz` placeholders are silent |
 | Property aliases | unsupported | canonical Graphdeco names only |
 | Arbitrary point-cloud/mesh PLY | unsupported | rejected as non-Gaussian |
+| Metadata-only read | unsupported | `Read(metadataOnly=true)` performs a full decode; header-only reads are a planned improvement tracked in the roadmap |
 
 ## USD authoring
 

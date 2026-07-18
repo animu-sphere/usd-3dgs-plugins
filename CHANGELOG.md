@@ -6,6 +6,14 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidated the development policy across the documentation: the phased
+  format roadmap and priority ladder, the measure-first performance policy and
+  optimization order, the metadata-only read policy, the extent policy, the
+  worker-thread `SdfChangeBlock` workaround record, and the reserved
+  `gaussianUsd` authoring library.
+
 ## [0.1.0] - 2026-07-19
 
 First tagged release: a read-only Gaussian PLY vertical slice, observed on

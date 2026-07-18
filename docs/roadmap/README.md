@@ -20,6 +20,7 @@ Two sequences are tracked and always qualified:
 | --- | --- | --- | --- |
 | Delivery milestones | **M0-M5** | User-visible and engineering capability: workspace, PLY read/mapping/validation/integration, then SPZ. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §18 |
 | SOG maturity | **SOG M1-M4** | One SOG object through payload-oriented streaming composition. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §4.4 |
+| Format phases | **Phase 1-5** | PLY stabilization → SPZ → interoperability candidates → advanced loading → optional export. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §4 |
 
 Never use an unqualified “M1” for SOG work.
 
@@ -29,6 +30,10 @@ Never use an unqualified “M1” for SOG work.
 - The first hosted Windows/macOS/Linux CI run and a tagged release remain open.
 - M5 (`gaussian-spz`) is the next format milestone after release stabilization.
 - glTF/GLB requires an ADR; SOG remains later composition work.
+- The standing investment order after release stabilization is fixed by the
+  [priority ladder](backlog.md#priority-ladder): real-dataset benchmarks first,
+  then metadata-only reads and peak-memory reduction, then dialect
+  documentation and SPZ, then bounds tightening and workaround removal.
 
 ## Quality bar
 
