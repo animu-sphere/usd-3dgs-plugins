@@ -3,8 +3,10 @@
 This is the granular log of completed work. It was separated from the
 [roadmap](../roadmap/) so the roadmap contains only incomplete items.
 
-No release has been tagged yet. Everything below describes the current
-pre-release tree and was exercised locally on Windows against OpenUSD 26.05.
+Sections A-E describe the pre-release tree and were exercised locally on
+Windows against OpenUSD 26.05. The first tagged release is
+[v0.1.0](../releases/v0.1.0.md); later sections record post-tag stabilization
+work.
 
 Legend: ✅ completed locally
 
@@ -70,5 +72,33 @@ Legend: ✅ completed locally
 - ✅ Added the English documentation taxonomy, workspace contract, mapping
   reference, support matrix, roadmap, release structure, and dogfooding log.
 
-Hosted CI, clean external extraction, and the first tag remain incomplete and
-therefore stay in [roadmap/current.md](../roadmap/current.md).
+## F. v0.1 stabilization — packaged-consumer closure and Windows reproducibility
+
+Post-v0.1.0 work, exercised locally on Windows on 2026-07-19.
+
+- ✅ Extracted the Windows package to a clean directory outside the worktree,
+  verified all 20 files against the package manifest hashes, and opened the
+  ASCII, binary little-endian, and degree-1 SH fixtures from there via
+  `ost plugin run <extracted-root>`. `Plug.Registry` resolved the plugin DLL
+  from the extracted tree, not the build tree.
+- ✅ Verified manual OpenUSD activation on Windows without `ost` in the launch
+  path, for both a `usdcat` host and a plain Python host. Found and documented
+  that `usdcat` embeds Python and silently exits when `python313.dll` is not
+  resolvable; found that the extracted `lib` directory is not needed on the
+  loader path because `plugInfo.json` resolves `LibraryPath` absolutely, and
+  that the Python host needed no `os.add_dll_directory()` call.
+- ✅ Identified both causes of the Windows across-run package digest drift.
+  Repackaging the same build is byte-stable; a clean relink changed exactly the
+  PE-header and debug-directory timestamps; and the July-18 local package had
+  silently captured the plain Visual Studio build's DLL because the dual-mode
+  root build writes into the same bundle `lib/` directory that `ost plugin
+  package` stages.
+- ✅ Made MSVC output reproducible with `/Brepro` on `cl.exe`, `lib.exe`, and
+  `link.exe` for `gaussianCore` and the plugin. Two fully clean local
+  build+package cycles now produce identical archive digests; the workspace
+  (12 pass, 0 fail, 3 skip), package-origin (14 pass, 0 fail, 1 skip), and
+  CTest (3/3) baselines are unchanged.
+
+Hosted observation of the reproducibility fix, the Windows L5 decision, the
+macOS across-run investigation, and the remaining release-stabilization items
+stay in [roadmap/current.md](../roadmap/current.md).

@@ -49,8 +49,13 @@ target_include_directories(gaussianPlyDecoder
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
     PRIVATE "${TINYPLY_ROOT}")
 target_link_libraries(gaussianPlyDecoder PUBLIC openstrata::gaussianCore)
+# /Brepro here and on the shared library below: MSVC embeds wall-clock
+# timestamps in object files, the PE header, and the debug directory, so two
+# builds of identical sources produce different bytes. The release lane gates
+# on package digest reproducibility; /Brepro replaces those stamps with
+# content hashes.
 if(MSVC)
-    target_compile_options(gaussianPlyDecoder PRIVATE /utf-8)
+    target_compile_options(gaussianPlyDecoder PRIVATE /utf-8 /Brepro)
 endif()
 
 set(PLUGIN_NAME GaussianPlyFileFormat)
@@ -66,6 +71,10 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     gaussianPlyDecoder
     openstrata::gaussianCore)
+if(MSVC)
+    target_compile_options(${PLUGIN_NAME} PRIVATE /Brepro)
+    target_link_options(${PLUGIN_NAME} PRIVATE /Brepro)
+endif()
 
 # `ost plugin build` writes this fragment when the bundle co-hosts a compiled
 # schema (`schema.usda` + `provides: usd-schema:*`). It adds the generated typed
