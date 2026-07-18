@@ -4,7 +4,7 @@ The active milestone is the first tagged release. M0-M4 implementation detail is
 already complete and recorded in the
 [delivery history](../reports/delivery-history.md).
 
-Legend: 🚧 in progress · ⬜ not started · ⛔ blocked
+Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ## v0.1 release stabilization 🚧
 
@@ -13,9 +13,10 @@ portable, documented release across the declared support matrix.*
 
 ### Hosted support evidence
 
-- ⬜ Run the generated Windows 2022, macOS 15 arm64, and Ubuntu 24.04 PR cells.
-- ⬜ Record compiler/runtime/package digests from those runs in the first
-  release record.
+- ✅ Run the generated Windows 2022, macOS 15 arm64, and Ubuntu 24.04 PR cells.
+  All three pass; first observed on PR #1.
+- ✅ Record compiler/runtime/package digests from those runs in the first
+  release record. See [releases/v0.1.0.md](../releases/v0.1.0.md).
 - ⬜ Decide whether Windows remains capped at OST L4 or can run the same L5
   golden gate as macOS/Linux. Local Windows L5 passes; the cap is inherited from
   the reference workspace's hosted multiline-USDA line-ending finding.
@@ -40,18 +41,21 @@ real gate or a documented versioned exception.
 
 ### Release hygiene
 
-- 🚧 Add a tag-driven release workflow. Implemented as
+- ✅ Add a tag-driven release workflow.
   [release.yml](../../.github/workflows/release.yml), driven by
-  [scripts/release.py](../../scripts/release.py), which derives its matrix from
+  [scripts/release.py](../../scripts/release.py), derives its matrix from
   `openstrata.ci.yaml` so the release and PR lanes cannot pin different
-  runtimes. Not yet observed on hosted runners; exercise it with a
-  `workflow_dispatch` dry run before tagging.
-- 🚧 Prove package digest reproducibility on each target. The release lane
-  packages twice and fails on disagreeing digests; reproducibility is verified
-  locally on Windows only, so the macOS and Linux cells remain unobserved.
-- ⬜ Finalize the `CHANGELOG.md` v0.1.0 section and create
+  runtimes. Exercised by two dry runs, then by the v0.1.0 tag.
+- 🚧 Prove package digest reproducibility on each target. All three cells pass
+  the *within-run* gate: each packages the same build twice and fails on
+  disagreeing digests. Reproducibility **across** runs and machines is still
+  ungated — the Linux archive did hash identically across two runs from
+  different commits, but Windows and macOS did not, and the cause is
+  uninvestigated. See [releases/v0.1.0.md](../releases/v0.1.0.md).
+- ✅ Finalize the `CHANGELOG.md` v0.1.0 section and create
   `docs/releases/v0.1.0.md` only when the tag exists.
-- ⬜ Publish a draft release for human review; publishing remains a human action.
+- 🚧 Publish a draft release for human review; publishing remains a human
+  action. The v0.1.0 draft is assembled and awaiting that review.
 
 ### Real-asset confidence
 
