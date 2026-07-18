@@ -6,6 +6,13 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows packages now rebuild byte-identically: MSVC compiles, archives, and
+  links with `/Brepro`, so object files, `gaussianCore.lib` members, the PE
+  header, and the debug directory no longer embed wall-clock build time. Two
+  fully clean local build+package cycles produce the same archive digest.
+
 ### Changed
 
 - Consolidated the development policy across the documentation: the phased

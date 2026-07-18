@@ -43,8 +43,13 @@ target_include_directories(gaussianCore
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
         "$<INSTALL_INTERFACE:include>")
 
+# /Brepro: MSVC stamps wall-clock times into object files and archive-member
+# headers, so two builds of identical sources hash differently. The packaged
+# gaussianCore.lib is covered by the release digest-reproducibility gate and
+# must not embed build time; lib.exe needs the flag separately from cl.exe.
 if(MSVC)
-    target_compile_options(gaussianCore PRIVATE /utf-8)
+    target_compile_options(gaussianCore PRIVATE /utf-8 /Brepro)
+    set_target_properties(gaussianCore PROPERTIES STATIC_LIBRARY_OPTIONS /Brepro)
 endif()
 
 include(GNUInstallDirs)

@@ -27,7 +27,8 @@ Never use an unqualified “M1” for SOG work.
 ## Status at a glance
 
 - M0-M4 are implemented and verified locally on Windows with OpenUSD 26.05.
-- The first hosted Windows/macOS/Linux CI run and a tagged release remain open.
+- Hosted Windows/macOS/Linux CI is observed and v0.1.0 is tagged; publishing
+  the draft release is a pending human action.
 - M5 (`gaussian-spz`) is the next format milestone after release stabilization.
 - glTF/GLB requires an ADR; SOG remains later composition work.
 - The standing investment order after release stabilization is fixed by the

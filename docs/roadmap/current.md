@@ -31,9 +31,15 @@ observed rather than merely declared.
   roundtrip PLY fixture but not its adjacent `.golden.usda`, and the bundle
   manifest has no golden declaration. This is an upstream packaging/test seam;
   see [dogfooding report 01](../reports/ost/01-2026-07-18-v0.18.0-bootstrap.md).
-- ⬜ Exercise the extracted package from a clean directory outside the worktree.
-- ⬜ Verify manual OpenUSD activation on Windows in addition to the supported
-  `ost plugin run <package>` path.
+- ✅ Exercise the extracted package from a clean directory outside the worktree.
+  Observed 2026-07-19 on Windows: manifest-verified extraction, then
+  `ost plugin run <extracted-root>` opened the ASCII, binary, and degree-1 SH
+  fixtures with the plugin DLL resolved from the extracted tree. See
+  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md).
+- ✅ Verify manual OpenUSD activation on Windows in addition to the supported
+  `ost plugin run <package>` path. Observed 2026-07-19 for both a `usdcat` host
+  and a plain Python host; the working requirements are recorded in
+  [INSTALL.md](../guides/INSTALL.md#manual-package-activation).
 
 Done when: an extracted package opens the binary and ASCII fixtures without a
 build-tree path, and every intended package-origin verification level has a
@@ -48,10 +54,13 @@ real gate or a documented versioned exception.
   runtimes. Exercised by two dry runs, then by the v0.1.0 tag.
 - 🚧 Prove package digest reproducibility on each target. All three cells pass
   the *within-run* gate: each packages the same build twice and fails on
-  disagreeing digests. Reproducibility **across** runs and machines is still
-  ungated — the Linux archive did hash identically across two runs from
-  different commits, but Windows and macOS did not, and the cause is
-  uninvestigated. See [releases/v0.1.0.md](../releases/v0.1.0.md).
+  disagreeing digests. The Windows across-run cause is now identified and fixed:
+  MSVC embedded wall-clock timestamps in objects, archive members, the PE
+  header, and the debug directory; `/Brepro` removes them, and two fully clean
+  local build+package cycles now hash identically. Remaining: observe the fixed
+  behavior across two hosted Windows runs, and investigate the macOS across-run
+  difference (suspected Mach-O `LC_UUID`/timestamp analog). See
+  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md).
 - ✅ Finalize the `CHANGELOG.md` v0.1.0 section and create
   `docs/releases/v0.1.0.md` only when the tag exists.
 - 🚧 Publish a draft release for human review; publishing remains a human

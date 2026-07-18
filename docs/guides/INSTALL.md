@@ -1,7 +1,9 @@
 # Building and installing USD 3DGS Plugins
 
-The project has not published a tagged release yet. The currently verified
-paths are an OpenStrata source build and a locally generated OpenStrata package.
+The first tagged release is v0.1.0; publishing its draft release page is a
+pending human action. The verified paths are an OpenStrata source build, a
+locally generated OpenStrata package, and manual activation of an extracted
+package on Windows.
 Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
 before reusing a binary package: OpenUSD plugin binaries must match the target
 platform, compiler ABI, OpenUSD build, and Python ABI.
@@ -80,8 +82,26 @@ After extracting the target-matching archive:
 
 On Windows, use `;` as the path separator; Linux and macOS use `:`. Python hosts
 on Windows may need `os.add_dll_directory()` for the extracted `lib` directory.
-Using `ost plugin run <extracted-package>` is the verified path because OST
-composes the environment from the package manifest.
+
+This path is verified on Windows: with `PXR_PLUGINPATH_NAME` pointing at the
+extracted `plugin/resources/gaussian-ply` and the runtime's `bin` and `lib`
+directories on `PATH`, both `usdcat` and a plain Python host opened the
+packaged fixtures with no `ost` involvement. Two observations from that run:
+
+- `usdcat` embeds Python, so the matching Python runtime DLL
+  (`python313.dll` for this target) must also be resolvable, or `usdcat`
+  exits immediately with no output.
+- The generated `plugInfo.json` records an absolute `LibraryPath` after
+  extraction is scanned, so the observed host did not additionally need the
+  extracted `lib` directory on the loader path, and the Python host needed no
+  `os.add_dll_directory()` call. Keep both in place when scripting the generic
+  procedure; they are the documented contract for hosts that resolve
+  differently.
+
+`ost plugin run <extracted-package>` remains the recommended path because OST
+composes the environment from the package manifest. Outside a workspace, pass
+the target and profile explicitly, for example
+`ost plugin run <extracted-root> --target cy2026 --profile usd -- usdcat <fixture>`.
 
 ## Plain CMake build
 
@@ -109,6 +129,9 @@ passed all three CTest entries.
   failed to load.
 - **The library fails to load**: the package target does not match the host
   OpenUSD/ABI, or the extracted `lib` directory is not on the loader path.
+- **`usdcat` exits immediately with no output**: the OpenUSD tools embed
+  Python; the matching Python DLL (`python313.dll` for cy2026 targets) is not
+  resolvable by the dynamic loader.
 - **A normal mesh PLY is rejected**: expected. The bundle recognizes only the
   documented Gaussian dialect.
 - **The stage opens but nothing is drawn**: the USD data contract is available,
