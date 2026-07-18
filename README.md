@@ -3,6 +3,13 @@
 OpenUSD plugins for [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
 assets.
 
+<p align="center">
+  <img src="docs/assets/usd3dgs_with_hdparticlefield.gif" alt="Imported Gaussian PLY in usdview" width="700" />
+  <br>
+  <p align="center"><i>A Gaussian PLY imported by this plugin and displayed in usdview by a Hydra
+  renderer that supports the OpenUSD particle-field Gaussian schema.</i></p>
+</p>
+
 This repository is an OpenUSD plugin **workspace**: it separates
 format-independent Gaussian modelling from format-specific import into
 independently buildable, independently testable components. It currently ships
