@@ -14,11 +14,16 @@ against the old one.
 
 Subcommands:
 
-  guard   Enforce the machine-checkable half of the release gate in
-          docs/releases/README.md: tag, VERSION, and every bundle manifest
-          agree, and CHANGELOG.md carries a finalized section.
-  matrix  Emit the release job matrix as JSON.
-  notes   Render docs/contributing/RELEASE_NOTES_TEMPLATE.md for the tag.
+  guard        Enforce the machine-checkable half of the release gate in
+               docs/releases/README.md: tag, VERSION, every bundle manifest,
+               openstrata.toml, and every bundle CMake project version agree,
+               and CHANGELOG.md carries a finalized section.
+  matrix       Emit the release job matrix as JSON.
+  notes        Render docs/contributing/RELEASE_NOTES_TEMPLATE.md for the tag.
+  set-version  Rewrite every declared release-version location from one
+               input, making VERSION-by-way-of-this-command the single
+               source. Library component versions (libs/*) are deliberately
+               independent and untouched.
 
 `--allow-unreleased` relaxes the changelog half for the workflow_dispatch
 dry run, which exercises the whole lane before the changelog is finalized.
@@ -37,6 +42,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CI_MANIFEST = REPO_ROOT / "openstrata.ci.yaml"
 VERSION_FILE = REPO_ROOT / "VERSION"
+PROJECT_MANIFEST = REPO_ROOT / "openstrata.toml"
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
 NOTES_TEMPLATE = REPO_ROOT / "docs" / "contributing" / "RELEASE_NOTES_TEMPLATE.md"
 
@@ -93,6 +99,24 @@ def _bundle_manifests() -> list[Path]:
             if manifest.is_file() and (entry / "CMakeLists.txt").is_file():
                 manifests.append(manifest)
     return manifests
+
+
+def _project_manifest_version() -> str:
+    match = re.search(
+        r'^version\s*=\s*"([^"]+)"',
+        PROJECT_MANIFEST.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
+    return match.group(1) if match else ""
+
+
+def _cmake_project_version(cmakelists: Path) -> str:
+    match = re.search(
+        r"^\s*VERSION\s+(\d+\.\d+\.\d+)\s*$",
+        cmakelists.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
+    return match.group(1) if match else ""
 
 
 def changelog_section(version: str, allow_unreleased: bool) -> tuple[str, str]:
@@ -165,14 +189,30 @@ def cmd_guard(args: argparse.Namespace) -> int:
                 f"VERSION declares {declared!r} but the tag says {version!r}"
             )
 
+    project_version = _project_manifest_version()
+    if project_version != version:
+        problems.append(
+            f"openstrata.toml declares version {project_version!r} "
+            f"but the release version is {version!r}"
+        )
+
     for manifest_path in _bundle_manifests():
         with manifest_path.open(encoding="utf-8") as handle:
             manifest = yaml.safe_load(handle)
         bundle_version = str(manifest.get("plugin", {}).get("version", ""))
+        rel = manifest_path.relative_to(REPO_ROOT).as_posix()
         if bundle_version != version:
-            rel = manifest_path.relative_to(REPO_ROOT).as_posix()
             problems.append(
                 f"{rel} declares plugin.version {bundle_version!r} "
+                f"but the release version is {version!r}"
+            )
+        cmake_version = _cmake_project_version(
+            manifest_path.parent / "CMakeLists.txt")
+        if cmake_version != version:
+            cmake_rel = (manifest_path.parent / "CMakeLists.txt").relative_to(
+                REPO_ROOT).as_posix()
+            problems.append(
+                f"{cmake_rel} declares project VERSION {cmake_version!r} "
                 f"but the release version is {version!r}"
             )
 
@@ -280,6 +320,46 @@ def cmd_notes(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_set_version(args: argparse.Namespace) -> int:
+    version = args.version
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise GateError(
+            f"{version!r} is not a version; expected MAJOR.MINOR.PATCH")
+
+    def rewrite(path: Path, pattern: str, replacement: str) -> None:
+        text = path.read_text(encoding="utf-8")
+        updated, count = re.subn(
+            pattern, replacement, text, count=1, flags=re.MULTILINE)
+        if count != 1:
+            rel = path.relative_to(REPO_ROOT).as_posix()
+            raise GateError(f"{rel}: version declaration not found")
+        if updated != text:
+            path.write_text(updated, encoding="utf-8", newline="\n")
+            print(f"set {path.relative_to(REPO_ROOT).as_posix()} -> {version}")
+
+    VERSION_FILE.write_text(version + "\n", encoding="utf-8", newline="\n")
+    print(f"set VERSION -> {version}")
+    rewrite(
+        PROJECT_MANIFEST,
+        r'^version\s*=\s*"[^"]+"',
+        f'version = "{version}"',
+    )
+    for manifest_path in _bundle_manifests():
+        rewrite(
+            manifest_path,
+            r"^(\s*version:\s*)\S+$",
+            rf"\g<1>{version}",
+        )
+        rewrite(
+            manifest_path.parent / "CMakeLists.txt",
+            r"^(\s*VERSION\s+)\d+\.\d+\.\d+\s*$",
+            rf"\g<1>{version}",
+        )
+    print("library component versions under libs/ are independent; "
+          "bump them only on their own API changes")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -300,6 +380,12 @@ def main(argv: list[str] | None = None) -> int:
     notes.add_argument("--allow-unreleased", action="store_true")
     notes.add_argument("--output")
     notes.set_defaults(func=cmd_notes)
+
+    set_version = subparsers.add_parser(
+        "set-version",
+        help="rewrite every declared release-version location")
+    set_version.add_argument("version", help="MAJOR.MINOR.PATCH")
+    set_version.set_defaults(func=cmd_set_version)
 
     args = parser.parse_args(argv)
     try:
