@@ -6,8 +6,8 @@ Release records are history and are not rewritten after publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
-| v0.2.0 | 2026-07-19 | [v0.2.0.md](v0.2.0.md) — production-ready Graphdeco PLY import; draft pending human review |
-| v0.1.0 | 2026-07-19 | [v0.1.0.md](v0.1.0.md) — first tagged release; draft pending human review |
+| v0.2.0 | 2026-07-19 | [v0.2.0.md](v0.2.0.md) — production-ready Graphdeco PLY import; published 2026-07-19 |
+| v0.1.0 | 2026-07-19 | [v0.1.0.md](v0.1.0.md) — first tagged release; published 2026-07-19 |
 
 Create a record only once its tag exists: it pins the tagged commit, the
 consumed runtime digests, and the published artifact checksums, none of which

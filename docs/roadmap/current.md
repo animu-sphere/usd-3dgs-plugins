@@ -1,134 +1,135 @@
 # Current
 
-The active milestone is closing out the first tagged release; the next
-development target is **v0.2.0 — production-ready Graphdeco PLY import**,
-defined in the [release plan](release-plan.md). M0-M4 implementation detail is
-already complete and recorded in the
-[delivery history](../reports/delivery-history.md).
+The active development target is **v0.3.0 — SPZ import**, defined in the
+[release plan](release-plan.md): stabilize the post-v0.2.0 repository state,
+then prove that the common Gaussian import architecture supports a compressed
+second format through the existing
+`GaussianCloudData -> GaussianLayerWriter` pipeline. v0.1.0 and v0.2.0 are
+tagged and published; their completed milestone detail is recorded in the
+[delivery history](../reports/delivery-history.md) and the
+[release records](../releases/README.md). In the qualified sequences of the
+[roadmap README](README.md), v0.3.0 delivers delivery milestone M5
+(`gaussian-spz`) and opens format Phase 2.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
-## v0.1 release stabilization 🚧
+## Carried over from v0.1/v0.2 stabilization
 
-*Goal: turn the locally green Gaussian PLY vertical slice into an observed,
-portable, documented release across the declared support matrix.*
+Release-engineering items that remain live across releases:
 
-### Hosted support evidence
-
-- ✅ Run the generated Windows 2022, macOS 15 arm64, and Ubuntu 24.04 PR cells.
-  All three pass; first observed on PR #1.
-- ✅ Record compiler/runtime/package digests from those runs in the first
-  release record. See [releases/v0.1.0.md](../releases/v0.1.0.md).
-- ⬜ Decide whether Windows remains capped at OST L4 or can run the same L5
-  golden gate as macOS/Linux. Local Windows L5 passes; the cap is inherited from
-  the reference workspace's hosted multiline-USDA line-ending finding.
-
-Done when: every row in
-[SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md) is
-observed rather than merely declared.
-
-### Packaged-consumer closure
-
+- ⬜ Investigate the macOS across-run package digest difference (suspected
+  Mach-O `LC_UUID`/timestamp analog). Windows and Linux `tar.zst` archives are
+  byte-identical across hosted runs since v0.2.0; see
+  [releases/v0.2.0.md](../releases/v0.2.0.md) and
+  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md).
 - ⛔ Make package-origin L5 execute rather than skip. OST 0.18.0 packages the
   roundtrip PLY fixture but not its adjacent `.golden.usda`, and the bundle
   manifest has no golden declaration. This is an upstream packaging/test seam;
   see [dogfooding report 01](../reports/ost/01-2026-07-18-v0.18.0-bootstrap.md).
-- ✅ Exercise the extracted package from a clean directory outside the worktree.
-  Observed 2026-07-19 on Windows: manifest-verified extraction, then
-  `ost plugin run <extracted-root>` opened the ASCII, binary, and degree-1 SH
-  fixtures with the plugin DLL resolved from the extracted tree. See
-  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md).
-- ✅ Verify manual OpenUSD activation on Windows in addition to the supported
-  `ost plugin run <package>` path. Observed 2026-07-19 for both a `usdcat` host
-  and a plain Python host; the working requirements are recorded in
-  [INSTALL.md](../guides/INSTALL.md#manual-package-activation).
-
-Done when: an extracted package opens the binary and ASCII fixtures without a
-build-tree path, and every intended package-origin verification level has a
-real gate or a documented versioned exception.
-
-### Release hygiene
-
-- ✅ Add a tag-driven release workflow.
-  [release.yml](../../.github/workflows/release.yml), driven by
-  [scripts/release.py](../../scripts/release.py), derives its matrix from
-  `openstrata.ci.yaml` so the release and PR lanes cannot pin different
-  runtimes. Exercised by two dry runs, then by the v0.1.0 tag.
-- 🚧 Prove package digest reproducibility on each target. All three cells pass
-  the *within-run* gate: each packages the same build twice and fails on
-  disagreeing digests. The Windows across-run cause is now identified and fixed:
-  MSVC embedded wall-clock timestamps in objects, archive members, the PE
-  header, and the debug directory; `/Brepro` removes them, and two fully clean
-  local build+package cycles now hash identically. Observed on hosted runners
-  2026-07-19: the v0.2.0 dry run and tag run (same commit `7323f46`, separate
-  runners) produced byte-identical Windows and Linux `tar.zst` archives.
-  Remaining: investigate the macOS across-run difference (suspected Mach-O
-  `LC_UUID`/timestamp analog). See
-  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md)
-  and [releases/v0.2.0.md](../releases/v0.2.0.md).
-- ✅ Finalize the `CHANGELOG.md` v0.1.0 section and create
-  `docs/releases/v0.1.0.md` only when the tag exists.
-- 🚧 Publish a draft release for human review; publishing remains a human
-  action. The v0.1.0 draft is assembled and awaiting that review.
-
-### Real-asset confidence
-
-- ✅ Select at least one redistributable, provenance-recorded Gaussian PLY with
-  non-trivial SH degree and more than one Gaussian. Done 2026-07-19:
-  [tests/corpus/yashica-t4](../../plugins/gaussian-ply/tests/corpus/yashica-t4/PROVENANCE.md)
-  — an author-captured scene trained with Brush v0.3.0 (Apache-2.0), dedicated
-  CC0-1.0; SH degree 3, 8,192 Gaussians, derived deterministically by
-  `scripts/ply_subset.py` and covered by tolerance-based semantic tests.
-  Candidate large references remain Mip-NeRF 360 `garden` and `bicycle`,
-  pending the same review, and stay download-on-demand data in any case.
-- ✅ Record the design-policy baseline metrics (§12.1). Done 2026-07-19:
-  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md) covers six
-  assets from 3 to 5.83M Gaussians across Graphdeco, Brush, and Postshot
-  exports, measured with
-  [tools/benchmark_import.py](../../plugins/gaussian-ply/tools/benchmark_import.py).
-  (The temporary-USDA size metric no longer exists: the read path stopped
-  round-tripping through USDA text.)
-- ✅ Corpus and performance coverage: the 8,192-Gaussian corpus runs in the
-  normal integration test; larger references stay download-on-demand and are
-  measured on demand with the benchmark tool.
-
-No external trained asset enters the repository before license and provenance
-review.
-
-## v0.2.0 — production-ready Graphdeco PLY import 🚧
-
-*Goal: complete and stabilize Graphdeco PLY support before adding another
-format. Scope and completion criteria are in the
-[release plan](release-plan.md).*
-
-Implementation is complete on the v0.2.0 branch; the remaining step is the
-hosted release gate and tag:
-
-- ✅ Real-dataset baselines (P0) — tracked above under real-asset confidence.
-- ✅ Metadata-only reads (P1): `Read(metadataOnly=true)` authors the stage
-  contract from the header only; ~5 ms at any asset size.
-- ✅ Dialect compatibility documented with observed results
-  ([PLY_DIALECTS.md](../reference/PLY_DIALECTS.md)): Graphdeco `garden`
-  (5.83M), Brush (lexicographic `f_rest` order), Postshot; property-order
-  independence fixture-proven.
-- ✅ Degree-2/3 SH fixtures with exact coefficient assertions, a
-  multi-Gaussian asymmetric fixture, and malformed fixtures for every
-  header-layout diagnostic.
-- ✅ Stable diagnostic identifiers (`GSPLY-****`) with a machine-readable
-  catalog shipped in the plugin resources and cross-checked by tests.
-- ✅ File-format arguments `shDegree`, `opacityThreshold`, `scaleMultiplier`
-  with validated ranges and unit/integration tests.
-- ✅ Release-version single-sourcing: `scripts/release.py set-version`, with
-  drift enforced by the release guard.
-- ✅ Hosted PR cells green (PR #11), release dry run green, tag `v0.2.0`
-  pushed 2026-07-19 (`7323f46`), draft assembled — see
-  [releases/v0.2.0.md](../releases/v0.2.0.md).
-- 🚧 Publish the v0.2.0 draft; publishing remains a human action.
-
-## Documentation consistency 🚧
-
+- ⬜ Decide whether Windows remains capped at OST L4 or can run the same L5
+  golden gate as macOS/Linux. Local Windows L5 passes; the cap is inherited
+  from the reference workspace's hosted multiline-USDA line-ending finding.
 - ⬜ Add a lightweight link/language check to CI so public Markdown remains
   English and local links resolve.
-- ✅ Stable diagnostic codes shipped with v0.2.0; external tools can match on
-  `GSPLY-****` identifiers and the machine-readable catalog.
 
+## Post-v0.2.0 cleanup 🚧
+
+*Goal: bring the repository, documentation, and release state into a
+consistent post-v0.2.0 condition before SPZ work begins.*
+
+- ✅ v0.1.0 and v0.2.0 drafts reviewed and published 2026-07-19; release
+  records, roadmap, README, and changelog updated to the published state, and
+  v0.3.0 set as the active target.
+- ⬜ Document the `CanRead()` contract: it indicates plausible format
+  compatibility (extension and header shape), not complete asset validity.
+- ⬜ Triage defects found in real v0.2.0 usage into GitHub issues (suggested
+  labels: `v0.3.0`, `spz`, `bug`, `documentation`, `testing`, `release`).
+  Every accepted fix ships with a regression fixture or test where practical,
+  a stable diagnostic update when user-visible failure behavior changes, a
+  changelog entry, and confirmation that valid v0.2.0 behavior stays
+  compatible. Diagnostic codes shipped in v0.2.0 are never renumbered or
+  reused.
+- ⬜ Improve test reporting where failures are currently too coarse.
+- ⬜ Draft the v0.3.0 release-record skeleton early in development (the record
+  itself is created only once the tag exists, per the
+  [release-record policy](../releases/README.md)).
+
+## Shared model contract ⬜
+
+*Goal: document `GaussianCloudData` clearly enough for two independent
+decoders to target it consistently. Format-specific encodings (Graphdeco
+log-scales and opacity logits, SPZ quantized values) never enter the shared
+model.*
+
+- ⬜ Document the contract: coordinate system and axis assumptions, position
+  units, scale and opacity representation at the model boundary, quaternion
+  component order and normalization, SH degree and coefficient ordering,
+  array-length relationships to `gaussianCount`, and finite-value/range
+  validation requirements.
+- ⬜ Add shared invariant tests and confirm the PLY decoder conforms to the
+  documented contract.
+- ⬜ Decide which validation and math utilities are shared under `libs/` and
+  which stay format-specific.
+
+## SPZ container reader ⬜
+
+- ⬜ Identify the authoritative SPZ specification or reference implementation;
+  record supported versions, field encodings, and quantization rules; review
+  licenses; and decide whether to implement from the specification, vendor a
+  small dependency, or wrap a library. Undocumented binary layouts are not
+  guessed.
+- ⬜ Implement low-level reading separate from semantic conversion: signature
+  detection, version parsing, header/count/size validation with overflow-safe
+  buffer math, truncated-input detection, unsupported-version rejection, and
+  a metadata-only path. The reader constructs no USD objects.
+- ⬜ Add invalid-container fixtures.
+
+## SPZ semantic decoder ⬜
+
+- ⬜ Decode into `GaussianCloudData`: position/scale dequantization, rotation
+  decoding and normalization, opacity decoding, SH coefficient decoding with
+  degree inference or validation, finite-value and range checks, and shared
+  cloud validation — the same output invariants as `GaussianPlyDecoder`.
+- ⬜ Introduce the stable `GSPZ-****` diagnostic namespace with a
+  machine-readable catalog cross-checked by tests, distinguishing malformed,
+  unsupported, and internal failures.
+- ⬜ Add unit fixtures for each supported encoding case: minimum valid SPZ,
+  multiple records, each supported SH degree, quantization boundary values,
+  quaternion normalization, truncated input, invalid counts, unsupported
+  versions, and metadata-only reads.
+
+## USD integration ⬜
+
+- ⬜ Register the SPZ file-format plugin (`plugins/gaussian-spz`) and route
+  decoded data into `GaussianLayerWriter`. SPZ-specific USD prim construction
+  is not permitted; if SPZ turns out to require a parallel authoring path,
+  the release architecture is reconsidered before shipping.
+- ⬜ Confirm PLY and SPZ author the same stage hierarchy (`/Asset`,
+  `/Asset/Splat`), schema, metadata policy, stage metrics, and default-prim
+  behavior.
+- ⬜ Add Python/OpenUSD smoke tests.
+
+## Equivalence and real assets ⬜
+
+- ⬜ Create matching or derived PLY/SPZ fixture pairs and compare count, SH
+  degree, positions, scales, rotations, opacities, and DC and higher SH
+  coefficients with documented quantization-aware tolerances, plus the
+  authored hierarchy, schema, and metadata.
+- ⬜ Validate at least one legally redistributable SPZ asset with recorded
+  provenance: source, encoder and version, conversion command, license,
+  Gaussian count, SH degree, checksum, and expected import result.
+- ⬜ Record design-policy §12.1 baselines for SPZ (`CanRead`, metadata-only
+  read, full decode, stage open, flatten to USDC, peak memory), compared
+  against PLY where equivalent assets exist. The v0.3.0 performance bar is
+  avoiding architectural regressions (full-buffer copies, duplicate decoded
+  representations, repeated dequantization); streaming and GPU decoding stay
+  out of scope.
+
+## Release hardening ⬜
+
+- ⬜ The same gate v0.2.0 passed, now including the SPZ bundle: cross-platform
+  CI, packaging and SBOM, release guard, documentation review, dry run, tag,
+  draft release, and human publication review.
+- ⬜ Update the capability matrix, compatibility documents, and
+  build/install/usage guides to cover SPZ, including documented quantization
+  behavior, precision limits, and supported SPZ versions.

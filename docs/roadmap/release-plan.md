@@ -26,9 +26,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 
 | Version | Primary theme | Sequence mapping | Status |
 | --- | --- | --- | --- |
-| v0.1.0 | Initial PLY vertical slice | M0-M4 | ✅ tagged — [record](../releases/v0.1.0.md); draft publication pending |
-| v0.2.0 | Production-ready Graphdeco PLY import | Phase 1 stabilization | 🚧 implementation complete; awaiting hosted gate and tag |
-| v0.3.0 | SPZ import | M5, Phase 2 | ⬜ |
+| v0.1.0 | Initial PLY vertical slice | M0-M4 | ✅ tagged & published — [record](../releases/v0.1.0.md) |
+| v0.2.0 | Production-ready Graphdeco PLY import | Phase 1 stabilization | ✅ tagged & published — [record](../releases/v0.2.0.md) |
+| v0.3.0 | SPZ import | M5, Phase 2 | 🚧 current target |
 | v0.4.0 | Common Gaussian conversion layer | design policy §7.4 | ⬜ |
 | v0.5.0 | Expanded format compatibility | Phase 3, SOG M1 | ⬜ |
 | v0.6.0 | Import tooling and diagnostics | — | ⬜ |
@@ -40,6 +40,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 ## v0.2.0 — production-ready Graphdeco PLY import
 
 **Complete and stabilize PLY support before adding another format.**
+
+Shipped: tagged and published 2026-07-19 — see the
+[release record](../releases/v0.2.0.md).
 
 v0.1.0 already ships name-based property resolution, ASCII and binary
 little-endian input, unknown-property tolerance, and required-property
@@ -70,22 +73,58 @@ and editing workflows.
 
 ## v0.3.0 — SPZ import
 
-**Validate that the architecture supports a compressed format without
+**Stabilize the post-v0.2.0 repository state, then prove that the common
+Gaussian import architecture supports a compressed second format without
 duplicating the PLY-to-USD implementation.**
 
-This is M5 in the [milestone ladder](backlog.md#milestone-ladder): SPZ
-detection and version validation, dequantization of position, scale, rotation,
-opacity, and SH data, decoding into `GaussianCloudData`, and reuse of the same
-USD authoring path as PLY. SPZ support must not introduce a separate USD
-authoring implementation.
+This is M5 in the [milestone ladder](backlog.md#milestone-ladder) and the
+current development target; the task breakdown is in
+[current.md](current.md). Two workstreams, in order:
 
-Done when: supported SPZ files load through the plugin, PLY and SPZ produce
-structurally consistent stages, quantization behavior and limits are
-documented, and tolerance-aware equivalence fixtures cover valid and invalid
-inputs.
+1. **Post-v0.2.0 stabilization** — resolve documentation and release-state
+   inconsistencies left behind by v0.2.0, fix defects found in real usage,
+   document the `CanRead()` contract (plausible format compatibility, not
+   complete asset validity), improve too-coarse test reporting, and carry
+   the open release-engineering items forward. Fixes stay focused: PLY
+   support does not expand into undocumented or ambiguous dialects without
+   fixtures and an explicit compatibility decision.
+2. **SPZ import** — production-quality read-only support: reliable
+   detection, container-version and structural validation, dequantization of
+   position, scale, rotation, opacity, and SH data, decoding into
+   `GaussianCloudData`, and reuse of `GaussianLayerWriter`.
 
-Excluded: SPZ export, streaming decompression, GPU decoding, lossless
-round-trip guarantees.
+Architectural rules:
+
+- PLY and SPZ converge at `GaussianCloudData`; SPZ-specific USD prim
+  construction is not permitted. If SPZ turns out to require a parallel USD
+  authoring path, the release architecture is reconsidered before shipping.
+- Format-specific encodings stay out of the shared model: SPZ quantized
+  values are dequantized before entering it, exactly as Graphdeco log-scales
+  and opacity logits are converted today. The `GaussianCloudData` contract
+  is documented clearly enough for two independent decoders to target it
+  consistently.
+- SPZ parsing and dequantization live in a dedicated format-specific module
+  (`plugins/gaussian-spz`), mirroring the PLY reader/decoder/diagnostics
+  split; USD prim creation, layer authoring, renderer-specific behavior, and
+  PLY compatibility logic stay outside the decoder.
+- SPZ diagnostics get their own stable `GSPZ-****` namespace and
+  machine-readable catalog, following the `GSPLY-****` conventions.
+
+Done when: supported SPZ files open through the plugin; PLY and SPZ share the
+same `GaussianCloudData -> GaussianLayerWriter` path and equivalent assets
+produce structurally consistent stages; quantization behavior, precision
+limits, and supported SPZ versions are documented and covered by
+tolerance-aware equivalence fixtures; unsupported versions and malformed
+input fail with stable actionable diagnostics; and at least one
+provenance-recorded real SPZ asset is validated manually and automatically
+with design-policy §12.1 baselines recorded.
+
+Excluded: SPZ export, PLY export, lossless cross-format round-tripping, SOG,
+`.splat`, `.ksplat`, compressed SuperSplat PLY (unless formally specified and
+separately accepted), glTF/GLB Gaussian extensions, renderer and Hydra work,
+editing, animation, LOD, network streaming, GPU-native decoding, a general
+conversion CLI (small internal validation or fixture tools excepted), and
+public decoder-API guarantees beyond what the plugin needs.
 
 ## v0.4.0 — common Gaussian conversion layer
 
@@ -250,7 +289,8 @@ a reviewed third-party dependency and license list.
 
 ## Immediate focus
 
-The current development target is **v0.2.0**, entered once the v0.1
-carry-over in [current.md](current.md) closes. It stays focused on making
-Graphdeco PLY support complete, robust, tested, and documented; SPZ and other
-formats begin only after the v0.2.0 completion criteria are met.
+The current development target is **v0.3.0 — SPZ import**, entered with the
+v0.2.0 tag and publication on 2026-07-19. Work starts with post-v0.2.0
+stabilization and the shared-model contract before any SPZ decoding lands;
+the task breakdown is in [current.md](current.md). v0.4.0 and later begin
+only after the v0.3.0 completion criteria are met.
