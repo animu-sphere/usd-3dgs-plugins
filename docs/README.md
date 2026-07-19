@@ -12,7 +12,7 @@ workspace contract wins; structural changes must update that contract first.
 | Category | Answers | Start here |
 | --- | --- | --- |
 | [architecture/](architecture/) | How the workspace is structured and which dependency directions are legal. | [WORKSPACE.md](architecture/WORKSPACE.md) |
-| [guides/](guides/) | How to build, test, package, and install the plugin. | [INSTALL.md](guides/INSTALL.md) |
+| [guides/](guides/) | How to build, test, package, and install the plugin. | [BUILDING.md](guides/BUILDING.md), [INSTALL.md](guides/INSTALL.md) |
 | [reference/](reference/) | What is supported and how source data maps to USD. | [CAPABILITY_MATRIX.md](reference/CAPABILITY_MATRIX.md) |
 | [roadmap/](roadmap/) | What remains incomplete and what comes next. | [README.md](roadmap/README.md) |
 | [releases/](releases/) | Immutable records for tagged releases. | [README.md](releases/README.md) |

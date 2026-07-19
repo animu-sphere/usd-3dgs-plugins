@@ -4,10 +4,48 @@ All notable user-visible changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 semantic versioning for tagged releases.
 
-## [Unreleased]
+## [0.2.0] - 2026-07-19
+
+Production-ready Graphdeco PLY import: the release-plan Phase 1
+stabilization theme.
+
+### Added
+
+- Metadata-only reads: `Read(metadataOnly=true)` authors the `/Asset`
+  scaffold, stage metrics, and header-derived Gaussian count and SH degree
+  without decoding vertex data (~5 ms at any asset size).
+- File-format arguments `shDegree` (cap the imported SH degree, 0-3),
+  `opacityThreshold` (drop Gaussians below a decoded-opacity threshold,
+  0-1), and `scaleMultiplier` (rescale linear scales, > 0), each validated
+  with stable diagnostics and covered by unit and integration tests.
+- Stable diagnostic identifiers: every error and warning starts with a
+  `[GSPLY-****]` code that is never renumbered or reused, with a
+  machine-readable catalog shipped in the plugin resources
+  (`diagnostics.json`) and cross-checked by tests.
+- Fixture coverage for degree-2 and degree-3 SH with exact coefficient
+  assertions, a three-Gaussian asymmetric fixture, a scrambled
+  property-order fixture, and malformed cases for every header-layout
+  diagnostic.
+- Documented dialect compatibility observed against real exporters
+  (`docs/reference/PLY_DIALECTS.md`): Graphdeco reference (Mip-NeRF 360
+  `garden`, 5.83M Gaussians), Brush (lexicographic `f_rest` declaration
+  order), Postshot, and the explicit unsupported-input table.
+- Design-policy §12.1 performance baselines
+  (`docs/reference/PERFORMANCE_BASELINES.md`) measured with the new
+  `tools/benchmark_import.py`, spanning 3 to 5.83M Gaussians.
+- Release-version single-sourcing: `scripts/release.py set-version`
+  rewrites every declared version location, and the release guard now fails
+  on drift in `openstrata.toml` and bundle CMake project versions.
+- `CONTRIBUTING.md` with the minimal development path, and
+  `docs/guides/BUILDING.md` carrying the full build/test surface.
 
 ### Fixed
 
+- Multi-million-Gaussian PLYs failed to load in v0.1.0: the read path
+  serialized the generated stage to USDA text and reparsed it, and the
+  multi-gigabyte round-trip failed at scale (observed with the 5.8M-splat
+  `garden` reference). The layer is now authored directly and transferred
+  without a text round-trip.
 - Windows packages now rebuild byte-identically: MSVC compiles, archives, and
   links with `/Brepro`, so object files, `gaussianCore.lib` members, the PE
   header, and the debug directory no longer embed wall-clock build time. Two
@@ -16,13 +54,12 @@ semantic versioning for tagged releases.
 ### Changed
 
 - Reduced read-path memory copies: PLY properties decode directly to `float`
-  instead of `double`, every intermediate representation (tinyPLY buffers,
-  property columns, the Gaussian cloud) is released as soon as the next one is
-  built, and the generated layer is transferred directly instead of being
-  serialized to USDA and reparsed. On a 696k-Gaussian SH-degree-3 capture this
-  cut peak commit memory from 8.05 GiB to 0.40 GiB and `Usd.Stage.Open` from
-  15.3 s to 1.9 s; authored stage content is unchanged apart from the layer
-  `doc` no longer embedding the round-trip provenance line. A missing or
+  instead of `double`, and every intermediate representation (tinyPLY
+  buffers, property columns, the Gaussian cloud) is released as soon as the
+  next one is built. On a 696k-Gaussian SH-degree-3 capture this cut peak
+  commit memory from 8.05 GiB to 0.40 GiB and `Usd.Stage.Open` from 15.3 s
+  to 1.9 s; authored stage content is unchanged apart from the layer `doc`
+  no longer embedding the round-trip provenance line. A missing or
   size-mismatched vertex property now reports which property is at fault
   instead of the generic non-finite-value error.
 - Consolidated the development policy across the documentation: the phased
@@ -30,6 +67,8 @@ semantic versioning for tagged releases.
   optimization order, the metadata-only read policy, the extent policy, the
   worker-thread `SdfChangeBlock` workaround record, and the reserved
   `gaussianUsd` authoring library.
+- Reworked the README around a quick start (what it does, what it reads, how
+  to run it); build, test, and release detail moved to the guides.
 
 ## [0.1.0] - 2026-07-19
 

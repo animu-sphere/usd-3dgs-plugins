@@ -40,17 +40,20 @@ post-1.0 work.
 This section is the core scope of [release plan](release-plan.md) v0.2.0 —
 production-ready Graphdeco PLY import.
 
-- ⬜ Document supported PLY dialects with observed compatibility results for
-  Graphdeco reference exports, SuperSplat-exported PLY, and other relevant
-  tools.
-- ⬜ Add degree-2 and degree-3 SH fixtures and exact coefficient assertions.
-- ⬜ Add multi-Gaussian fixtures with asymmetric scales and rotations.
-- ⬜ Decide and document any property aliases from measured ecosystem usage.
+- ✅ Document supported PLY dialects with observed compatibility results:
+  [PLY_DIALECTS.md](../reference/PLY_DIALECTS.md) records Graphdeco reference,
+  Brush, and Postshot results; SuperSplat's uncompressed layout is
+  fixture-covered pending a real export.
+- ✅ Add degree-2 and degree-3 SH fixtures and exact coefficient assertions.
+- ✅ Add multi-Gaussian fixtures with asymmetric scales and rotations.
+- ✅ Decide and document property aliases: none accepted; every observed
+  exporter uses canonical names (decision in PLY_DIALECTS.md).
 - ⬜ Investigate binary big-endian support; claim it only after a deterministic
   fixture passes on all supported platforms.
-- ⬜ Add explicit malformed cases for duplicate SH numeric indices, non-finite
+- ✅ Add explicit malformed cases for duplicate SH numeric indices, non-finite
   fields, unsupported list properties, overflowed scale, and mismatched counts.
-- ⬜ Add stable diagnostic identifiers and a machine-readable diagnostic catalog.
+- ✅ Add stable diagnostic identifiers and a machine-readable diagnostic
+  catalog (`GSPLY-****`; `plugin/resources/gaussian-ply/diagnostics.json`).
 
 ## Performance and loading
 
@@ -60,10 +63,15 @@ direct-to-`float` decoding, incremental release of parser and intermediate
 arrays, and direct layer authoring without the USDA round-trip — is complete
 and recorded in the [delivery history](../reports/delivery-history.md).
 
-- ⬜ Build a benchmark harness that separates file read, semantic decode, USD
-  authoring, and total stage-open time.
-- ⬜ Record peak resident memory and temporary allocation size.
-- ⬜ Implement metadata-only reads: `Read(metadataOnly=true)` should author the
+- 🚧 Benchmark harness:
+  [tools/benchmark_import.py](../../plugins/gaussian-ply/tools/benchmark_import.py)
+  measures the §12.1 end-to-end set (CanRead, metadata-only, stage open,
+  flatten, peak resident) per asset; the finer file-read / semantic-decode /
+  USD-authoring split remains v0.7.0 work.
+- ✅ Record peak resident memory (see
+  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md));
+  temporary allocation size remains unmeasured.
+- ✅ Implement metadata-only reads: `Read(metadataOnly=true)` authors the
   stage contract and header-derived metadata (Gaussian count, SH degree,
   source format) without decoding vertex data.
 - ⬜ Investigate memory mapping only after the benchmark identifies I/O or copy
