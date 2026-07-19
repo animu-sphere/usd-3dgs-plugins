@@ -42,6 +42,7 @@ endif()
 add_library(gaussianPlyDecoder STATIC
     src/io/PlyReader.cpp
     src/io/GaussianPlyDecoder.cpp
+    src/io/GaussianPlyImportOptions.cpp
     "${TINYPLY_ROOT}/tinyply.cpp")
 set_target_properties(gaussianPlyDecoder PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_features(gaussianPlyDecoder PUBLIC cxx_std_17)
@@ -99,7 +100,9 @@ openstrata_configure_plugin(
 
 openstrata_install_plugin_bundle(
     TARGET ${PLUGIN_NAME}
-    RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/gaussian-ply/plugInfo.json"
+    RESOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/gaussian-ply/plugInfo.json"
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/gaussian-ply/diagnostics.json"
     RESOURCE_DESTINATION "plugin/resources/gaussian-ply"
     MANIFESTS
         "${CMAKE_CURRENT_SOURCE_DIR}/openstrata.plugin.yaml"

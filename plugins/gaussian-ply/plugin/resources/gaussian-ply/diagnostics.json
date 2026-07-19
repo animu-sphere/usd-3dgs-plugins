@@ -1,0 +1,168 @@
+{
+    "schema": "gaussian-ply.diagnostics/v1",
+    "description": "Stable diagnostic identifiers emitted by the gaussian-ply plugin. Codes are never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[GSPLY-E003] ...\".",
+    "diagnostics": [
+        {
+            "code": "GSPLY-E001",
+            "severity": "error",
+            "summary": "The file is a valid PLY file but not a supported Gaussian Splatting dialect.",
+            "action": "Export the asset as a Graphdeco-style Gaussian PLY (scale_*, rot_*, opacity, f_dc_* vertex properties)."
+        },
+        {
+            "code": "GSPLY-E002",
+            "severity": "error",
+            "summary": "The vertex element declares zero particles.",
+            "action": "Provide a file containing at least one Gaussian."
+        },
+        {
+            "code": "GSPLY-E003",
+            "severity": "error",
+            "summary": "A required vertex property is missing.",
+            "action": "The message names the property; re-export with the full Graphdeco property set."
+        },
+        {
+            "code": "GSPLY-E004",
+            "severity": "error",
+            "summary": "A required or SH vertex property has an unsupported type (list or unknown scalar).",
+            "action": "Re-export with scalar numeric vertex properties."
+        },
+        {
+            "code": "GSPLY-E005",
+            "severity": "error",
+            "summary": "An f_rest_* property name is not a valid numeric SH index.",
+            "action": "Rename or remove the malformed property; indices must be plain non-negative integers."
+        },
+        {
+            "code": "GSPLY-E006",
+            "severity": "error",
+            "summary": "An SH property index is declared more than once.",
+            "action": "Remove the duplicate f_rest_* declaration."
+        },
+        {
+            "code": "GSPLY-E007",
+            "severity": "error",
+            "summary": "The f_rest_* indices are not contiguous from zero.",
+            "action": "Provide every index 0..N-1; gaps make the channel layout ambiguous."
+        },
+        {
+            "code": "GSPLY-E008",
+            "severity": "error",
+            "summary": "The f_rest_* property count is not divisible by three RGB channels.",
+            "action": "Provide 3*K rest properties for K rest coefficients per channel."
+        },
+        {
+            "code": "GSPLY-E009",
+            "severity": "error",
+            "summary": "The SH coefficient count does not correspond to a whole degree.",
+            "action": "Valid per-channel coefficient counts are 1, 4, 9, or 16 (degrees 0-3)."
+        },
+        {
+            "code": "GSPLY-E010",
+            "severity": "error",
+            "summary": "A position, scale, rotation, opacity, or DC value is non-finite or outside float range.",
+            "action": "Clean the asset; NaN or infinite source values are never imported."
+        },
+        {
+            "code": "GSPLY-E011",
+            "severity": "error",
+            "summary": "An SH rest coefficient is non-finite.",
+            "action": "Clean the asset; NaN or infinite source values are never imported."
+        },
+        {
+            "code": "GSPLY-E012",
+            "severity": "error",
+            "summary": "A log-space scale overflows when converted to linear space.",
+            "action": "The stored scale exponent is implausibly large; re-export or repair the asset."
+        },
+        {
+            "code": "GSPLY-E013",
+            "severity": "error",
+            "summary": "A rotation quaternion is invalid (non-finite).",
+            "action": "Clean the asset; near-zero quaternions are tolerated and replaced with identity (GSPLY-W002)."
+        },
+        {
+            "code": "GSPLY-E014",
+            "severity": "error",
+            "summary": "A vertex property is missing from the payload or its count does not match the vertex declaration.",
+            "action": "The file is inconsistent or truncated; re-export it."
+        },
+        {
+            "code": "GSPLY-E015",
+            "severity": "error",
+            "summary": "The PLY container itself could not be read.",
+            "action": "The wrapped message carries the parser detail; the file is unreadable, truncated, or not PLY."
+        },
+        {
+            "code": "GSPLY-E016",
+            "severity": "error",
+            "summary": "The decoded Gaussian cloud failed structural validation.",
+            "action": "Internal consistency check; report the asset if this occurs on a file other tools accept."
+        },
+        {
+            "code": "GSPLY-E100",
+            "severity": "error",
+            "summary": "An import entry point was called with a null output parameter.",
+            "action": "Programming error in the host, not a property of the asset."
+        },
+        {
+            "code": "GSPLY-E102",
+            "severity": "error",
+            "summary": "The in-memory USD stage for authoring could not be created.",
+            "action": "Indicates a broken USD environment rather than a broken asset."
+        },
+        {
+            "code": "GSPLY-E103",
+            "severity": "error",
+            "summary": "The /Asset or /Asset/Splat prim could not be defined.",
+            "action": "Indicates a broken USD environment rather than a broken asset."
+        },
+        {
+            "code": "GSPLY-E104",
+            "severity": "error",
+            "summary": "A Gaussian attribute could not be authored.",
+            "action": "Indicates a broken USD environment rather than a broken asset."
+        },
+        {
+            "code": "GSPLY-E105",
+            "severity": "error",
+            "summary": "The computed extent exceeds float range.",
+            "action": "Positions or scales are implausibly large; repair the asset or import with scaleMultiplier."
+        },
+        {
+            "code": "GSPLY-E201",
+            "severity": "error",
+            "summary": "A file-format argument has an invalid value.",
+            "action": "shDegree takes an integer in [0,3], opacityThreshold a number in [0,1], scaleMultiplier a finite number > 0."
+        },
+        {
+            "code": "GSPLY-E202",
+            "severity": "error",
+            "summary": "opacityThreshold removed every Gaussian in the file.",
+            "action": "Lower the threshold; an empty import is treated as an error, not an empty stage."
+        },
+        {
+            "code": "GSPLY-E203",
+            "severity": "error",
+            "summary": "Writing USD back to Gaussian PLY is unsupported.",
+            "action": "The plugin is read-only by design; see the write-support design policy."
+        },
+        {
+            "code": "GSPLY-W001",
+            "severity": "warning",
+            "summary": "Non-unit rotation quaternions were normalized during import.",
+            "action": "Informational; the count of affected Gaussians is included."
+        },
+        {
+            "code": "GSPLY-W002",
+            "severity": "warning",
+            "summary": "Zero-length rotation quaternions were replaced with identity.",
+            "action": "Informational; the count of affected Gaussians is included."
+        },
+        {
+            "code": "GSPLY-W003",
+            "severity": "warning",
+            "summary": "Unrecognized vertex properties were ignored.",
+            "action": "Informational; unknown properties are tolerated and skipped."
+        }
+    ]
+}
