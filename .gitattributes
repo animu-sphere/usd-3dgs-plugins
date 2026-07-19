@@ -14,3 +14,6 @@
 # Binary fixtures override the general PLY text policy.
 plugins/gaussian-ply/tests/fixtures/one-gaussian-binary-le.ply -text
 plugins/gaussian-ply/tests/fixtures/truncated-binary-le.ply -text
+
+# Corpus assets are always binary little-endian PLY.
+plugins/gaussian-ply/tests/corpus/**/*.ply -text

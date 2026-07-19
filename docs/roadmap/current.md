@@ -70,9 +70,14 @@ real gate or a documented versioned exception.
 
 ### Real-asset confidence
 
-- ⬜ Select at least one redistributable, provenance-recorded Gaussian PLY with
-  non-trivial SH degree and more than one Gaussian. Candidate large references
-  are Mip-NeRF 360 `garden` and `bicycle`, pending the same review.
+- ✅ Select at least one redistributable, provenance-recorded Gaussian PLY with
+  non-trivial SH degree and more than one Gaussian. Done 2026-07-19:
+  [tests/corpus/yashica-t4](../../plugins/gaussian-ply/tests/corpus/yashica-t4/PROVENANCE.md)
+  — an author-captured scene trained with Brush v0.3.0 (Apache-2.0), dedicated
+  CC0-1.0; SH degree 3, 8,192 Gaussians, derived deterministically by
+  `scripts/ply_subset.py` and covered by tolerance-based semantic tests.
+  Candidate large references remain Mip-NeRF 360 `garden` and `bicycle`,
+  pending the same review, and stay download-on-demand data in any case.
 - ⬜ Record the design-policy baseline metrics (§12.1): source size, Gaussian
   count, `CanRead()` and full `Read()` durations, peak resident memory,
   temporary USDA and generated USDC sizes, flattening duration, and time until
