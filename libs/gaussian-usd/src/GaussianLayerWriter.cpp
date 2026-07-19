@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "usd/GaussianLayerWriter.h"
+#include "openstrata/gs/usd/GaussianLayerWriter.h"
 
-#include "io/GaussianPlyDiagnostics.h"
+#include "openstrata/gs/GaussianDiagnostics.h"
 #include "openstrata/gs/GaussianMath.h"
 
 #include "pxr/base/gf/quatf.h"
@@ -30,8 +30,6 @@
 namespace openstrata::gs::usd {
 namespace {
 
-namespace diag = openstrata::gs::ply::diag;
-
 static_assert(sizeof(Float3) == sizeof(PXR_NS::GfVec3f) &&
         std::is_trivially_copyable_v<Float3>,
     "Float3 must be byte-compatible with GfVec3f for bulk copies");
@@ -56,7 +54,7 @@ PXR_NS::VtArray<PXR_NS::GfVec3f> TakeVec3fArray(std::vector<Float3>* source)
 void SetError(std::string* error, const char* code, const std::string& message)
 {
     if (error) {
-        *error = diag::Format(code, message);
+        *error = FormatDiagnostic(code, message);
     }
 }
 
@@ -65,6 +63,7 @@ void SetError(std::string* error, const char* code, const std::string& message)
 // /Asset/Splat particle-field prim with its SH degree. The caller must keep
 // the returned stage alive while it authors through the returned splat prim.
 bool AuthorScaffold(
+    const LayerWriterDiagnosticCodes& codes,
     std::size_t gaussianCount,
     int shDegree,
     const std::string& sourceFormat,
@@ -76,7 +75,7 @@ bool AuthorScaffold(
     PXR_NS::SdfLayerRefPtr layer = PXR_NS::SdfLayer::CreateAnonymous(".usda");
     PXR_NS::UsdStageRefPtr stage = PXR_NS::UsdStage::Open(layer);
     if (!stage) {
-        SetError(error, diag::kStageCreationFailed,
+        SetError(error, codes.stageCreationFailed,
             "Could not create an in-memory USD stage.");
         return false;
     }
@@ -89,7 +88,7 @@ bool AuthorScaffold(
     PXR_NS::UsdPrim asset =
         PXR_NS::UsdGeomXform::Define(stage, assetPath).GetPrim();
     if (!asset) {
-        SetError(error, diag::kScaffoldAuthoringFailed,
+        SetError(error, codes.scaffoldAuthoringFailed,
             "Could not define /Asset.");
         return false;
     }
@@ -106,12 +105,12 @@ bool AuthorScaffold(
     PXR_NS::UsdVolParticleField3DGaussianSplat splat =
         PXR_NS::UsdVolParticleField3DGaussianSplat::Define(stage, splatPath);
     if (!splat) {
-        SetError(error, diag::kScaffoldAuthoringFailed,
+        SetError(error, codes.scaffoldAuthoringFailed,
             "Could not define /Asset/Splat as a Gaussian particle field.");
         return false;
     }
     if (!splat.CreateRadianceSphericalHarmonicsDegreeAttr().Set(shDegree)) {
-        SetError(error, diag::kAttributeAuthoringFailed,
+        SetError(error, codes.attributeAuthoringFailed,
             "Could not author the Gaussian SH degree.");
         return false;
     }
@@ -131,13 +130,13 @@ bool GaussianLayerWriter::WriteToLayer(
     std::string* error) const
 {
     if (!outLayer) {
-        SetError(error, diag::kInternalError,
+        SetError(error, _codes.internalError,
             "Gaussian writer received a null layer output.");
         return false;
     }
     std::string validationError;
     if (!ValidateGaussianCloud(cloud, &validationError)) {
-        SetError(error, diag::kCloudValidationFailed, validationError);
+        SetError(error, _codes.cloudValidationFailed, validationError);
         return false;
     }
 
@@ -145,7 +144,7 @@ bool GaussianLayerWriter::WriteToLayer(
     PXR_NS::SdfLayerRefPtr layer;
     PXR_NS::UsdVolParticleField3DGaussianSplat splat;
     if (!AuthorScaffold(
-            cloud.gaussianCount, cloud.shDegree, sourceFormat,
+            _codes, cloud.gaussianCount, cloud.shDegree, sourceFormat,
             &stage, &layer, &splat, error)) {
         return false;
     }
@@ -174,7 +173,7 @@ bool GaussianLayerWriter::WriteToLayer(
         !splat.CreateScalesAttr().Set(scales) ||
         !splat.CreateOrientationsAttr().Set(rotations) ||
         !splat.CreateOpacitiesAttr().Set(opacities)) {
-        SetError(error, diag::kAttributeAuthoringFailed,
+        SetError(error, _codes.attributeAuthoringFailed,
             "Could not author a required Gaussian attribute.");
         return false;
     }
@@ -202,7 +201,7 @@ bool GaussianLayerWriter::WriteToLayer(
     std::vector<Float3>().swap(cloud.restCoefficients);
     if (!splat.CreateRadianceSphericalHarmonicsCoefficientsAttr().Set(
             coefficients)) {
-        SetError(error, diag::kAttributeAuthoringFailed,
+        SetError(error, _codes.attributeAuthoringFailed,
             "Could not author Gaussian SH coefficients.");
         return false;
     }
@@ -220,7 +219,7 @@ bool GaussianLayerWriter::WriteToLayer(
             std::max({s[0], s[1], s[2]}));
         if (!std::isfinite(radius) ||
             radius > std::numeric_limits<float>::max()) {
-            SetError(error, diag::kExtentOverflow,
+            SetError(error, _codes.extentOverflow,
                 "Gaussian extent exceeds float range.");
             return false;
         }
@@ -234,7 +233,7 @@ bool GaussianLayerWriter::WriteToLayer(
     }
     PXR_NS::VtArray<PXR_NS::GfVec3f> extent = {minimum, maximum};
     if (!splat.CreateExtentAttr().Set(extent)) {
-        SetError(error, diag::kAttributeAuthoringFailed,
+        SetError(error, _codes.attributeAuthoringFailed,
             "Could not author Gaussian extent.");
         return false;
     }
@@ -251,7 +250,7 @@ bool GaussianLayerWriter::WriteMetadataToLayer(
     std::string* error) const
 {
     if (!outLayer) {
-        SetError(error, diag::kInternalError,
+        SetError(error, _codes.internalError,
             "Gaussian writer received a null layer output.");
         return false;
     }
@@ -260,7 +259,7 @@ bool GaussianLayerWriter::WriteMetadataToLayer(
     PXR_NS::SdfLayerRefPtr layer;
     PXR_NS::UsdVolParticleField3DGaussianSplat splat;
     if (!AuthorScaffold(
-            gaussianCount, shDegree, sourceFormat,
+            _codes, gaussianCount, shDegree, sourceFormat,
             &stage, &layer, &splat, error)) {
         return false;
     }

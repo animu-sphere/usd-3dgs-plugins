@@ -31,6 +31,9 @@ endif()
 if(NOT TARGET openstrata::gaussianCore)
     find_package(gaussianCore CONFIG REQUIRED)
 endif()
+if(NOT TARGET openstrata::gaussianUsd)
+    find_package(gaussianUsd CONFIG REQUIRED)
+endif()
 
 set(TINYPLY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/tinyply")
 if(NOT EXISTS "${TINYPLY_ROOT}/tinyply.h")
@@ -62,8 +65,7 @@ endif()
 set(PLUGIN_NAME GaussianPlyFileFormat)
 
 add_library(${PLUGIN_NAME} SHARED
-    src/GaussianPlyFileFormat.cpp
-    src/usd/GaussianLayerWriter.cpp)
+    src/GaussianPlyFileFormat.cpp)
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 target_include_directories(${PLUGIN_NAME} PRIVATE
@@ -71,7 +73,8 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
     ${PXR_INCLUDE_DIRS})
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     gaussianPlyDecoder
-    openstrata::gaussianCore)
+    openstrata::gaussianCore
+    openstrata::gaussianUsd)
 if(MSVC)
     target_compile_options(${PLUGIN_NAME} PRIVATE /Brepro)
     target_link_options(${PLUGIN_NAME} PRIVATE /Brepro)

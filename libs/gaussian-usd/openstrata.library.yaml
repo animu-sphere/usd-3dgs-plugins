@@ -1,0 +1,7 @@
+schema: openstrata.library/v1alpha1
+library:
+  id: gaussianUsd
+  version: 0.3.0
+cmake:
+  package: gaussianUsd
+  target: openstrata::gaussianUsd

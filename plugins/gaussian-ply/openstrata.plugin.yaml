@@ -30,6 +30,8 @@ requires:
   libraries:
     - id: gaussianCore
       version: ">=0.1,<0.2"
+    - id: gaussianUsd
+      version: ">=0.3,<0.4"
 usd:
   # Where this bundle's plugInfo.json lives, relative to the bundle root.
   plug_info: plugin/resources/gaussian-ply/plugInfo.json
