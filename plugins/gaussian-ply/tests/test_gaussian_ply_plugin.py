@@ -187,6 +187,19 @@ def load_catalog():
         assert entry.get("severity") in ("error", "warning"), entry
         assert entry.get("summary"), entry
         assert entry.get("action"), entry
+
+    # The catalog and the codes the source can emit must agree exactly, in
+    # both directions: a code defined in GaussianPlyDiagnostics.h but absent
+    # from the catalog would ship undocumented, and a catalog entry no source
+    # constant emits is dead. Negative fixtures alone cannot catch either
+    # (authoring-failure codes have no file-triggerable fixture).
+    header = (pathlib.Path(__file__).parents[1]
+              / "src" / "io" / "GaussianPlyDiagnostics.h")
+    header_codes = set(
+        re.findall(r'"(GSPLY-[EW]\d{3})"', header.read_text(encoding="utf-8")))
+    assert header_codes == set(codes), (
+        f"header-only: {header_codes - set(codes)}, "
+        f"catalog-only: {set(codes) - header_codes}")
     return set(codes)
 
 

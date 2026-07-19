@@ -34,10 +34,10 @@ inline constexpr const char* kCloudValidationFailed = "GSPLY-E016";
 inline constexpr const char* kInternalError = "GSPLY-E100";
 
 // USD authoring errors.
-inline constexpr const char* kStageCreationFailed = "GSPLY-E102";
-inline constexpr const char* kScaffoldAuthoringFailed = "GSPLY-E103";
-inline constexpr const char* kAttributeAuthoringFailed = "GSPLY-E104";
-inline constexpr const char* kExtentOverflow = "GSPLY-E105";
+inline constexpr const char* kStageCreationFailed = "GSPLY-E101";
+inline constexpr const char* kScaffoldAuthoringFailed = "GSPLY-E102";
+inline constexpr const char* kAttributeAuthoringFailed = "GSPLY-E103";
+inline constexpr const char* kExtentOverflow = "GSPLY-E104";
 
 // File-format entry-point errors.
 inline constexpr const char* kInvalidFormatArgument = "GSPLY-E201";

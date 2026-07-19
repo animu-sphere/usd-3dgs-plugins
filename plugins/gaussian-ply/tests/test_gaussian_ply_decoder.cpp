@@ -338,6 +338,37 @@ void TestImportOptionApplication()
     }
 
     {
+        // Capping to an intermediate degree with several Gaussians exercises
+        // the in-place forward compaction: every Gaussian past the first has
+        // its kept coefficients moved down from i * oldRest to i * newRest.
+        // A synthetic degree-2 cloud keeps the expected values obvious.
+        gs::GaussianCloudData cloud;
+        cloud.gaussianCount = 2;
+        cloud.shDegree = 2;
+        const std::size_t oldRest = cloud.CoefficientsPerGaussian() - 1;
+        cloud.restCoefficients.resize(cloud.gaussianCount * oldRest);
+        for (std::size_t i = 0; i < cloud.gaussianCount; ++i) {
+            for (std::size_t c = 0; c < oldRest; ++c) {
+                const float base = 100.0f * i + c;
+                cloud.restCoefficients[i * oldRest + c] =
+                    {base, base + 0.25f, base + 0.5f};
+            }
+        }
+        gs::ply::GaussianPlyImportOptions options;
+        options.shDegree = 1;
+        CHECK(gs::ply::ApplyImportOptions(options, &cloud, &error));
+        CHECK(cloud.shDegree == 1);
+        CHECK(cloud.restCoefficients.size() == 6);
+        for (std::size_t i = 0; i < 2; ++i) {
+            for (std::size_t c = 0; c < 3; ++c) {
+                const float base = 100.0f * i + c;
+                CHECK(CloseF3(cloud.restCoefficients[i * 3 + c],
+                    base, base + 0.25f, base + 0.5f));
+            }
+        }
+    }
+
+    {
         gs::GaussianCloudData cloud;
         CHECK(decoder.Decode(
             Fixture("three-gaussian-binary-le.ply"), &cloud, nullptr, &error));

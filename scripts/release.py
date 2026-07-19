@@ -111,6 +111,8 @@ def _project_manifest_version() -> str:
 
 
 def _cmake_project_version(cmakelists: Path) -> str:
+    if not cmakelists.is_file():
+        return ""
     match = re.search(
         r"^\s*VERSION\s+(\d+\.\d+\.\d+)\s*$",
         cmakelists.read_text(encoding="utf-8"),
@@ -327,15 +329,17 @@ def cmd_set_version(args: argparse.Namespace) -> int:
             f"{version!r} is not a version; expected MAJOR.MINOR.PATCH")
 
     def rewrite(path: Path, pattern: str, replacement: str) -> None:
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if not path.is_file():
+            raise GateError(f"{rel}: file not found")
         text = path.read_text(encoding="utf-8")
         updated, count = re.subn(
             pattern, replacement, text, count=1, flags=re.MULTILINE)
         if count != 1:
-            rel = path.relative_to(REPO_ROOT).as_posix()
             raise GateError(f"{rel}: version declaration not found")
         if updated != text:
             path.write_text(updated, encoding="utf-8", newline="\n")
-            print(f"set {path.relative_to(REPO_ROOT).as_posix()} -> {version}")
+            print(f"set {rel} -> {version}")
 
     VERSION_FILE.write_text(version + "\n", encoding="utf-8", newline="\n")
     print(f"set VERSION -> {version}")
@@ -345,9 +349,11 @@ def cmd_set_version(args: argparse.Namespace) -> int:
         f'version = "{version}"',
     )
     for manifest_path in _bundle_manifests():
+        # Match only a bare MAJOR.MINOR.PATCH so dependency pins elsewhere in
+        # the manifest (quoted ranges like ">=0.1,<0.2") can never be hit.
         rewrite(
             manifest_path,
-            r"^(\s*version:\s*)\S+$",
+            r"^(\s*version:\s*)\d+\.\d+\.\d+\s*$",
             rf"\g<1>{version}",
         )
         rewrite(

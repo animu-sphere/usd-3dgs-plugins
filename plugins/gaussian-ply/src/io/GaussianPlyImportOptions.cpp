@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <locale>
+#include <sstream>
 #include <string>
 
 namespace openstrata::gs::ply {
@@ -18,14 +20,19 @@ void SetError(std::string* error, const char* code, const std::string& message)
     }
 }
 
+// Host applications may set LC_NUMERIC (Qt-based DCCs commonly do), which
+// changes the decimal point strtof accepts; argument parsing must stay
+// locale-independent, so parse under the classic "C" locale explicitly.
 bool ParseFullFloat(const std::string& text, float* value)
 {
     if (text.empty()) {
         return false;
     }
-    char* end = nullptr;
-    const float parsed = std::strtof(text.c_str(), &end);
-    if (end != text.c_str() + text.size()) {
+    std::istringstream stream(text);
+    stream.imbue(std::locale::classic());
+    float parsed = 0.0f;
+    stream >> parsed;
+    if (stream.fail() || !stream.eof()) {
         return false;
     }
     *value = parsed;
