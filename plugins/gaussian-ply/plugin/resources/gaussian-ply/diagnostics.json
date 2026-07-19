@@ -105,25 +105,25 @@
             "action": "Programming error in the host, not a property of the asset."
         },
         {
-            "code": "GSPLY-E102",
+            "code": "GSPLY-E101",
             "severity": "error",
             "summary": "The in-memory USD stage for authoring could not be created.",
             "action": "Indicates a broken USD environment rather than a broken asset."
         },
         {
-            "code": "GSPLY-E103",
+            "code": "GSPLY-E102",
             "severity": "error",
             "summary": "The /Asset or /Asset/Splat prim could not be defined.",
             "action": "Indicates a broken USD environment rather than a broken asset."
         },
         {
-            "code": "GSPLY-E104",
+            "code": "GSPLY-E103",
             "severity": "error",
             "summary": "A Gaussian attribute could not be authored.",
             "action": "Indicates a broken USD environment rather than a broken asset."
         },
         {
-            "code": "GSPLY-E105",
+            "code": "GSPLY-E104",
             "severity": "error",
             "summary": "The computed extent exceeds float range.",
             "action": "Positions or scales are implausibly large; repair the asset or import with scaleMultiplier."
