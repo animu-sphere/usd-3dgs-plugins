@@ -2,6 +2,8 @@
 #include "GaussianPlyFileFormat.h"
 
 #include "io/GaussianPlyDecoder.h"
+#include "io/GaussianPlyDiagnostics.h"
+#include "io/GaussianPlyImportOptions.h"
 #include "openstrata/gs/GaussianCloudData.h"
 #include "usd/GaussianLayerWriter.h"
 
@@ -51,12 +53,58 @@ GaussianPlyFileFormat::Read(
     const std::string& resolvedPath,
     bool metadataOnly) const
 {
-    (void)metadataOnly;
+    namespace gsply = openstrata::gs::ply;
+
+    std::string error;
+    gsply::GaussianPlyImportOptions options;
+    if (!gsply::ParseImportOptions(
+            layer->GetFileFormatArguments(), &options, &error)) {
+        TF_RUNTIME_ERROR(
+            "gaussian-ply: failed to read '%s': %s",
+            resolvedPath.c_str(), error.c_str());
+        return false;
+    }
+
+    gsply::GaussianPlyDecoder decoder;
+    openstrata::gs::usd::GaussianLayerWriter writer;
+
+    // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached
+    // layer on a worker thread avoids observing that block, then the authored
+    // layer is moved into the caller's layer in one transfer without a USDA
+    // serialization and reparse round-trip.
+    SdfLayerRefPtr generated;
+
+    if (metadataOnly) {
+        // Header-only path (design policy §12.3): count and SH degree come
+        // from the vertex declaration; no vertex data is decoded. The count
+        // reported here is the source count — opacityThreshold filtering
+        // requires a full read and is not applied to metadata.
+        gsply::GaussianPlyMetadata metadata;
+        if (!decoder.DecodeMetadata(resolvedPath, &metadata, &error)) {
+            TF_RUNTIME_ERROR(
+                "gaussian-ply: failed to read '%s': %s",
+                resolvedPath.c_str(), error.c_str());
+            return false;
+        }
+        const int effectiveDegree =
+            gsply::EffectiveShDegree(options, metadata.shDegree);
+        auto task = std::async(std::launch::async, [&]() {
+            return writer.WriteMetadataToLayer(
+                metadata.gaussianCount, effectiveDegree,
+                "Gaussian Splatting PLY", &generated, &error);
+        });
+        if (!task.get()) {
+            TF_RUNTIME_ERROR(
+                "gaussian-ply: failed to author USD for '%s': %s",
+                resolvedPath.c_str(), error.c_str());
+            return false;
+        }
+        layer->TransferContent(generated);
+        return true;
+    }
 
     openstrata::gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
-    std::string error;
-    openstrata::gs::ply::GaussianPlyDecoder decoder;
     if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error)) {
         TF_RUNTIME_ERROR(
             "gaussian-ply: failed to read '%s': %s",
@@ -67,13 +115,15 @@ GaussianPlyFileFormat::Read(
         TF_WARN("gaussian-ply: %s", warning.c_str());
     }
 
-    // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached
-    // layer on a worker thread avoids observing that block, then the authored
-    // layer is moved into the caller's layer in one transfer without a USDA
-    // serialization and reparse round-trip. The writer consumes the cloud so
-    // its arrays are released as they are authored.
-    SdfLayerRefPtr generated;
-    openstrata::gs::usd::GaussianLayerWriter writer;
+    if (!gsply::ApplyImportOptions(options, &cloud, &error)) {
+        TF_RUNTIME_ERROR(
+            "gaussian-ply: failed to read '%s': %s",
+            resolvedPath.c_str(), error.c_str());
+        return false;
+    }
+
+    // The writer consumes the cloud so its arrays are released as they are
+    // authored.
     auto task = std::async(std::launch::async, [&]() {
         return writer.WriteToLayer(
             std::move(cloud), "Gaussian Splatting PLY", &generated, &error);
@@ -100,8 +150,11 @@ GaussianPlyFileFormat::WriteToFile(
     (void)filePath;
     (void)comment;
     (void)args;
-    TF_RUNTIME_ERROR(
-        "gaussian-ply is read-only; USD to Gaussian PLY writing is unsupported");
+    TF_RUNTIME_ERROR("%s",
+        openstrata::gs::ply::diag::Format(
+            openstrata::gs::ply::diag::kWriteUnsupported,
+            "gaussian-ply is read-only; USD to Gaussian PLY writing is "
+            "unsupported").c_str());
     return false;
 }
 
