@@ -59,10 +59,13 @@ real gate or a documented versioned exception.
   disagreeing digests. The Windows across-run cause is now identified and fixed:
   MSVC embedded wall-clock timestamps in objects, archive members, the PE
   header, and the debug directory; `/Brepro` removes them, and two fully clean
-  local build+package cycles now hash identically. Remaining: observe the fixed
-  behavior across two hosted Windows runs, and investigate the macOS across-run
-  difference (suspected Mach-O `LC_UUID`/timestamp analog). See
-  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md).
+  local build+package cycles now hash identically. Observed on hosted runners
+  2026-07-19: the v0.2.0 dry run and tag run (same commit `7323f46`, separate
+  runners) produced byte-identical Windows and Linux `tar.zst` archives.
+  Remaining: investigate the macOS across-run difference (suspected Mach-O
+  `LC_UUID`/timestamp analog). See
+  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md)
+  and [releases/v0.2.0.md](../releases/v0.2.0.md).
 - ✅ Finalize the `CHANGELOG.md` v0.1.0 section and create
   `docs/releases/v0.1.0.md` only when the tag exists.
 - 🚧 Publish a draft release for human review; publishing remains a human
@@ -117,8 +120,10 @@ hosted release gate and tag:
   with validated ranges and unit/integration tests.
 - ✅ Release-version single-sourcing: `scripts/release.py set-version`, with
   drift enforced by the release guard.
-- ⬜ Hosted PR cells green on the release branch, then tag `v0.2.0` and
-  publish the draft (human action).
+- ✅ Hosted PR cells green (PR #11), release dry run green, tag `v0.2.0`
+  pushed 2026-07-19 (`7323f46`), draft assembled — see
+  [releases/v0.2.0.md](../releases/v0.2.0.md).
+- 🚧 Publish the v0.2.0 draft; publishing remains a human action.
 
 ## Documentation consistency 🚧
 
