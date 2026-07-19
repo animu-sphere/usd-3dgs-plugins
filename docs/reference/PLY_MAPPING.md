@@ -1,8 +1,8 @@
 # Gaussian PLY mapping contract
 
 This is the normative mapping for the `gaussian-ply` bundle. It documents the
-canonical Graphdeco-style dialect accepted by v0.1 and the exact OpenUSD values
-it authors.
+canonical Graphdeco-style dialect and the exact OpenUSD values the plugin
+authors. Observed exporter coverage lives in [PLY_DIALECTS.md](PLY_DIALECTS.md).
 
 ## 1. Dialect signature
 
@@ -125,3 +125,36 @@ are ignored silently.
 
 List-valued required properties, duplicate numeric SH indices, malformed or
 truncated data, and invalid array lengths are errors.
+
+## 8. File-format arguments
+
+Optional import behavior is selected through standard USD file-format
+arguments (`Sdf.Layer.CreateIdentifier(path, args)`); defaults import the
+source unchanged.
+
+| Argument | Range | Behavior |
+| --- | --- | --- |
+| `shDegree` | integer `0..3` | Cap the imported SH degree at `min(source, requested)`; higher-order rest coefficients are dropped. Never upsamples. |
+| `opacityThreshold` | number `0..1` | Drop Gaussians whose decoded (sigmoid-mapped) opacity is below the threshold. Removing every Gaussian is an error, not an empty stage. |
+| `scaleMultiplier` | finite number `> 0` | Multiply decoded linear scales (applied before extent computation). |
+
+Invalid values fail the read with `GSPLY-E201`; unknown argument keys are
+ignored so hosts can add their own. `customData.gs` reflects the imported
+result (post-filter count, effective degree), not the source header.
+
+## 9. Metadata-only reads
+
+`Read(metadataOnly=true)` — for example
+`Sdf.Layer.OpenAsAnonymous(path, metadataOnly=True)` — authors the `/Asset`
+scaffold, stage metrics, `customData.gs`, and the SH degree attribute without
+decoding vertex data. The reported count is the source header count:
+`opacityThreshold` filtering requires a full read and is not applied. The
+cost is header-only (~5 ms regardless of asset size; see
+[performance baselines](PERFORMANCE_BASELINES.md)).
+
+## 10. Diagnostics
+
+Every error and warning starts with a stable bracketed identifier
+(`[GSPLY-E003] ...`). The machine-readable catalog ships with the plugin at
+`plugin/resources/gaussian-ply/diagnostics.json`; codes are never renumbered
+or reused.
