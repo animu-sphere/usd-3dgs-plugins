@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "io/GaussianPlyDecoder.h"
 
+#include "io/GaussianPlyDiagnostics.h"
 #include "io/PlyReader.h"
 #include "openstrata/gs/GaussianMath.h"
 
@@ -10,7 +11,6 @@
 #include <limits>
 #include <map>
 #include <set>
-#include <sstream>
 #include <utility>
 
 namespace openstrata::gs::ply {
@@ -70,6 +70,100 @@ bool ParseRestIndex(const std::string& name, std::size_t* index)
     }
 }
 
+void SetError(std::string* error, const char* code, const std::string& message)
+{
+    if (error) {
+        *error = diag::Format(code, message);
+    }
+}
+
+// Shared by Decode and DecodeMetadata: everything decidable from the header
+// alone — dialect detection, required-property presence and types, the
+// f_rest_* index layout, and the SH degree.
+bool ValidateHeaderLayout(
+    const PlyHeader& header,
+    std::map<std::size_t, std::string>* indexedRest,
+    int* shDegree,
+    std::string* error)
+{
+    const auto properties = PropertyMap(header);
+    const bool hasAnyGaussianProperty =
+        properties.find("scale_0") != properties.end() ||
+        properties.find("rot_0") != properties.end() ||
+        properties.find("opacity") != properties.end() ||
+        properties.find("f_dc_0") != properties.end();
+    if (!HasGaussianSignature(properties) && !hasAnyGaussianProperty) {
+        SetError(error, diag::kNotGaussianDialect,
+            "The file is a valid PLY file, but it is not a supported "
+            "Gaussian Splatting PLY dialect.");
+        return false;
+    }
+    if (header.vertexCount == 0) {
+        SetError(error, diag::kEmptyVertexElement,
+            "Gaussian PLY vertex element contains no particles.");
+        return false;
+    }
+
+    for (const std::string& name : RequiredProperties) {
+        const auto found = properties.find(name);
+        if (found == properties.end()) {
+            SetError(error, diag::kMissingRequiredProperty,
+                "Gaussian PLY is missing required property '" + name + "'.");
+            return false;
+        }
+        if (found->second->isList || found->second->type == PlyScalarType::Invalid) {
+            SetError(error, diag::kUnsupportedPropertyType,
+                "Gaussian PLY property '" + name +
+                "' is not a supported scalar type.");
+            return false;
+        }
+    }
+
+    for (const PlyPropertyDescription& property : header.vertexProperties) {
+        if (property.name.rfind("f_rest_", 0) != 0) {
+            continue;
+        }
+        std::size_t index = 0;
+        if (!ParseRestIndex(property.name, &index)) {
+            SetError(error, diag::kInvalidRestPropertyName,
+                "Gaussian PLY has invalid SH property '" + property.name + "'.");
+            return false;
+        }
+        if (property.isList || property.type == PlyScalarType::Invalid) {
+            SetError(error, diag::kUnsupportedPropertyType,
+                "Gaussian PLY SH property '" + property.name +
+                "' is not a supported scalar type.");
+            return false;
+        }
+        if (!indexedRest->emplace(index, property.name).second) {
+            SetError(error, diag::kDuplicateRestIndex,
+                "Gaussian PLY has duplicate SH property index " +
+                std::to_string(index) + ".");
+            return false;
+        }
+    }
+    for (std::size_t i = 0; i < indexedRest->size(); ++i) {
+        if (indexedRest->find(i) == indexedRest->end()) {
+            SetError(error, diag::kNonContiguousRestIndices,
+                "Gaussian PLY f_rest_* properties are not contiguous.");
+            return false;
+        }
+    }
+    if (indexedRest->size() % 3 != 0) {
+        SetError(error, diag::kRestCountNotRgb,
+            "Gaussian PLY SH property count is not divisible by RGB.");
+        return false;
+    }
+
+    const std::size_t coefficientsPerGaussian = indexedRest->size() / 3 + 1;
+    if (!InferShDegree(coefficientsPerGaussian, shDegree)) {
+        SetError(error, diag::kInvalidShDegree,
+            "Gaussian PLY SH property count does not form a valid degree.");
+        return false;
+    }
+    return true;
+}
+
 bool AllFinite(const std::vector<float>& column) noexcept
 {
     for (const float value : column) {
@@ -82,6 +176,7 @@ bool AllFinite(const std::vector<float>& column) noexcept
 
 void AddCountWarning(
     std::vector<std::string>* warnings,
+    const char* code,
     std::size_t count,
     const char* singular,
     const char* plural)
@@ -89,8 +184,8 @@ void AddCountWarning(
     if (!warnings || count == 0) {
         return;
     }
-    warnings->push_back(std::to_string(count) + " " +
-        (count == 1 ? singular : plural));
+    warnings->push_back(diag::Format(code,
+        std::to_string(count) + " " + (count == 1 ? singular : plural)));
 }
 
 } // namespace
@@ -108,6 +203,35 @@ bool GaussianPlyDecoder::CanRead(const std::string& path) const noexcept
     }
 }
 
+bool GaussianPlyDecoder::DecodeMetadata(
+    const std::string& path,
+    GaussianPlyMetadata* metadata,
+    std::string* error) const
+{
+    if (!metadata) {
+        SetError(error, diag::kInternalError,
+            "Gaussian decoder received a null metadata output.");
+        return false;
+    }
+
+    PlyHeader header;
+    std::string readerError;
+    if (!PlyReader().ReadHeader(path, &header, &readerError)) {
+        SetError(error, diag::kUnreadableContainer, readerError);
+        return false;
+    }
+
+    std::map<std::size_t, std::string> indexedRest;
+    int shDegree = 0;
+    if (!ValidateHeaderLayout(header, &indexedRest, &shDegree, error)) {
+        return false;
+    }
+
+    metadata->gaussianCount = header.vertexCount;
+    metadata->shDegree = shDegree;
+    return true;
+}
+
 bool GaussianPlyDecoder::Decode(
     const std::string& path,
     GaussianCloudData* cloud,
@@ -115,86 +239,25 @@ bool GaussianPlyDecoder::Decode(
     std::string* error) const
 {
     if (!cloud) {
-        if (error) *error = "Gaussian decoder received a null cloud output.";
+        SetError(error, diag::kInternalError,
+            "Gaussian decoder received a null cloud output.");
         return false;
     }
 
     PlyReader reader;
     PlyHeader header;
-    if (!reader.ReadHeader(path, &header, error)) {
+    std::string readerError;
+    if (!reader.ReadHeader(path, &header, &readerError)) {
+        SetError(error, diag::kUnreadableContainer, readerError);
         return false;
-    }
-    const auto properties = PropertyMap(header);
-    const bool hasAnyGaussianProperty =
-        properties.find("scale_0") != properties.end() ||
-        properties.find("rot_0") != properties.end() ||
-        properties.find("opacity") != properties.end() ||
-        properties.find("f_dc_0") != properties.end();
-    if (!HasGaussianSignature(properties) && !hasAnyGaussianProperty) {
-        if (error) {
-            *error = "The file is a valid PLY file, but it is not a supported "
-                "Gaussian Splatting PLY dialect.";
-        }
-        return false;
-    }
-    if (header.vertexCount == 0) {
-        if (error) *error = "Gaussian PLY vertex element contains no particles.";
-        return false;
-    }
-
-    for (const std::string& name : RequiredProperties) {
-        const auto found = properties.find(name);
-        if (found == properties.end()) {
-            if (error) *error = "Gaussian PLY is missing required property '" + name + "'.";
-            return false;
-        }
-        if (found->second->isList || found->second->type == PlyScalarType::Invalid) {
-            if (error) *error = "Gaussian PLY property '" + name +
-                "' is not a supported scalar type.";
-            return false;
-        }
     }
 
     std::map<std::size_t, std::string> indexedRest;
-    for (const PlyPropertyDescription& property : header.vertexProperties) {
-        if (property.name.rfind("f_rest_", 0) != 0) {
-            continue;
-        }
-        std::size_t index = 0;
-        if (!ParseRestIndex(property.name, &index)) {
-            if (error) *error = "Gaussian PLY has invalid SH property '" +
-                property.name + "'.";
-            return false;
-        }
-        if (property.isList || property.type == PlyScalarType::Invalid) {
-            if (error) *error = "Gaussian PLY SH property '" + property.name +
-                "' is not a supported scalar type.";
-            return false;
-        }
-        if (!indexedRest.emplace(index, property.name).second) {
-            if (error) *error = "Gaussian PLY has duplicate SH property index " +
-                std::to_string(index) + ".";
-            return false;
-        }
-    }
-    for (std::size_t i = 0; i < indexedRest.size(); ++i) {
-        if (indexedRest.find(i) == indexedRest.end()) {
-            if (error) *error = "Gaussian PLY f_rest_* properties are not contiguous.";
-            return false;
-        }
-    }
-    if (indexedRest.size() % 3 != 0) {
-        if (error) *error = "Gaussian PLY SH property count is not divisible by RGB.";
-        return false;
-    }
-
-    const std::size_t restPerChannel = indexedRest.size() / 3;
-    const std::size_t coefficientsPerGaussian = restPerChannel + 1;
     int shDegree = 0;
-    if (!InferShDegree(coefficientsPerGaussian, &shDegree)) {
-        if (error) *error = "Gaussian PLY SH property count does not form a valid degree.";
+    if (!ValidateHeaderLayout(header, &indexedRest, &shDegree, error)) {
         return false;
     }
+    const std::size_t restPerChannel = indexedRest.size() / 3;
 
     std::vector<std::string> requested = RequiredProperties;
     for (const auto& entry : indexedRest) {
@@ -202,7 +265,8 @@ bool GaussianPlyDecoder::Decode(
     }
 
     PlyDocument document;
-    if (!reader.Read(path, requested, &document, error)) {
+    if (!reader.Read(path, requested, &document, &readerError)) {
+        SetError(error, diag::kUnreadableContainer, readerError);
         return false;
     }
 
@@ -214,10 +278,9 @@ bool GaussianPlyDecoder::Decode(
         const auto found = document.vertexProperties.find(name);
         if (found == document.vertexProperties.end() ||
             found->second.size() != count) {
-            if (error) {
-                *error = "Gaussian PLY property '" + name +
-                    "' is missing or does not match the vertex count.";
-            }
+            SetError(error, diag::kPropertyCountMismatch,
+                "Gaussian PLY property '" + name +
+                "' is missing or does not match the vertex count.");
             return false;
         }
         *column = std::move(found->second);
@@ -239,7 +302,8 @@ bool GaussianPlyDecoder::Decode(
             return false;
         }
         if (!AllFinite(x) || !AllFinite(y) || !AllFinite(z)) {
-            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            SetError(error, diag::kNonFiniteValue,
+                "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
         result.positions.resize(count);
@@ -258,7 +322,8 @@ bool GaussianPlyDecoder::Decode(
             return false;
         }
         if (!AllFinite(scale0) || !AllFinite(scale1) || !AllFinite(scale2)) {
-            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            SetError(error, diag::kNonFiniteValue,
+                "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
         result.scales.resize(count);
@@ -266,7 +331,8 @@ bool GaussianPlyDecoder::Decode(
             if (!DecodeLogScale(
                     {scale0[row], scale1[row], scale2[row]},
                     &result.scales[row])) {
-                if (error) *error = "Gaussian PLY scale cannot be converted from log space.";
+                SetError(error, diag::kLogScaleOverflow,
+                    "Gaussian PLY scale cannot be converted from log space.");
                 return false;
             }
         }
@@ -287,7 +353,8 @@ bool GaussianPlyDecoder::Decode(
         }
         if (!AllFinite(rot0) || !AllFinite(rot1) ||
             !AllFinite(rot2) || !AllFinite(rot3)) {
-            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            SetError(error, diag::kNonFiniteValue,
+                "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
         result.rotations.resize(count);
@@ -297,7 +364,8 @@ bool GaussianPlyDecoder::Decode(
             if (!NormalizeQuaternion(
                     {rot0[row], rot1[row], rot2[row], rot3[row]},
                     &result.rotations[row], &identity, &changed)) {
-                if (error) *error = "Gaussian PLY contains an invalid quaternion.";
+                SetError(error, diag::kInvalidQuaternion,
+                    "Gaussian PLY contains an invalid quaternion.");
                 return false;
             }
             if (identity) {
@@ -314,7 +382,8 @@ bool GaussianPlyDecoder::Decode(
             return false;
         }
         if (!AllFinite(opacity)) {
-            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            SetError(error, diag::kNonFiniteValue,
+                "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
         result.opacities.resize(count);
@@ -333,7 +402,8 @@ bool GaussianPlyDecoder::Decode(
             return false;
         }
         if (!AllFinite(dc0) || !AllFinite(dc1) || !AllFinite(dc2)) {
-            if (error) *error = "Gaussian PLY contains a non-finite or out-of-range value.";
+            SetError(error, diag::kNonFiniteValue,
+                "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
         result.dcCoefficients.resize(count);
@@ -355,7 +425,8 @@ bool GaussianPlyDecoder::Decode(
             return false;
         }
         if (!AllFinite(red) || !AllFinite(green) || !AllFinite(blue)) {
-            if (error) *error = "Gaussian PLY contains an invalid SH coefficient.";
+            SetError(error, diag::kNonFiniteShCoefficient,
+                "Gaussian PLY contains an invalid SH coefficient.");
             return false;
         }
         for (std::size_t row = 0; row < count; ++row) {
@@ -380,16 +451,19 @@ bool GaussianPlyDecoder::Decode(
 
     std::string validationError;
     if (!ValidateGaussianCloud(result, &validationError)) {
-        if (error) *error = validationError;
+        SetError(error, diag::kCloudValidationFailed, validationError);
         return false;
     }
 
-    AddCountWarning(warnings, normalizedQuaternions,
+    AddCountWarning(warnings, diag::kQuaternionsNormalized,
+        normalizedQuaternions,
         "quaternion was normalized.", "quaternions were normalized.");
-    AddCountWarning(warnings, identityQuaternions,
+    AddCountWarning(warnings, diag::kQuaternionsReplaced,
+        identityQuaternions,
         "zero-length quaternion was replaced with identity.",
         "zero-length quaternions were replaced with identity.");
-    AddCountWarning(warnings, unknownProperties,
+    AddCountWarning(warnings, diag::kUnknownPropertiesIgnored,
+        unknownProperties,
         "unrecognized vertex property was ignored.",
         "unrecognized vertex properties were ignored.");
 
