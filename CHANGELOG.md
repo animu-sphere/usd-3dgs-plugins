@@ -15,6 +15,22 @@ read-only SPZ import through the shared `GaussianCloudData` pipeline
 - Documentation records v0.1.0 and v0.2.0 as tagged and published, tracks
   v0.3.0 as the active development target, and the README quick start now
   leads with the plain CMake build.
+- The USD authoring layer moved from `plugins/gaussian-ply/src/usd/` into the
+  shared `libs/gaussian-usd` library, so every format bundle authors Gaussian
+  stages through one implementation. Authored stage output and the
+  `GSPLY-****` diagnostic codes are unchanged; this is an internal
+  restructuring ahead of SPZ import.
+
+### Added
+
+- [Gaussian model contract](docs/reference/GAUSSIAN_MODEL_CONTRACT.md): the
+  normative, format-independent description of `GaussianCloudData` that every
+  decoder targets.
+- [SPZ format scope](docs/reference/SPZ_FORMAT.md): specification source,
+  licence review, and the accepted v0.3.0 scope — implement from the
+  specification, support SPZ versions 1-3, defer version 4.
+- A documented `CanRead()` contract (design policy §7.6): it reports plausible
+  format compatibility, not asset validity.
 
 ## [0.2.0] - 2026-07-19
 

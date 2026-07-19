@@ -14,7 +14,7 @@ Future component identities are reserved here but do not yet exist.
 | --- | --- | --- | --- |
 | `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | implemented | Detect and decode canonical Gaussian Splatting PLY and author a standard OpenUSD Gaussian layer. |
 | `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, and SH layout utilities. |
-| `gaussianUsd` | plain CMake/OpenStrata static library | reserved | Shared `GaussianCloudData` → OpenUSD schema authoring, extracted from `gaussian-ply` when a second importer would otherwise duplicate `GaussianLayerWriter`. |
+| `gaussianUsd` | plain CMake/OpenStrata static library | implemented | Shared `GaussianCloudData` → OpenUSD schema authoring. Extracted from `gaussian-ply` in v0.3.0, at the moment design policy §7.4 reserves for it: the SPZ bundle would otherwise duplicate `GaussianLayerWriter`. Diagnostic codes stay owned by the calling bundle. |
 | `gaussian-spz` | plugin bundle (`usd-fileformat`) | reserved | Decode SPZ through `GaussianCloudData` and the shared authoring contract. |
 | `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |
 | `gaussian-sog` | plugin bundle (`usd-fileformat`) | reserved | SOG decoding and, later, chunk/LOD composition. |
@@ -28,18 +28,20 @@ Allowed today:
 
 ```text
 gaussian-ply -> gaussianCore
+gaussian-ply -> gaussianUsd
 gaussian-ply -> tinyPLY (private, vendored parser implementation)
+gaussianUsd  -> gaussianCore
+gaussianUsd  -> OpenUSD
 ```
 
 Reserved future directions:
 
 ```text
 gaussian-spz  -> gaussianCore
+gaussian-spz  -> gaussianUsd
 gaussian-gltf -> gaussianCore
 gaussian-sog  -> gaussianCore
 any format bundle -> gaussianUsd
-gaussianUsd   -> gaussianCore
-gaussianUsd   -> OpenUSD
 ```
 
 Forbidden:
@@ -74,13 +76,16 @@ plugins/gaussian-ply/src/io/GaussianPlyDecoder.*
 libs/gaussian-core/
     format- and USD-independent Gaussian model/math
 
-plugins/gaussian-ply/src/usd/GaussianLayerWriter.*
-    OpenUSD schema authoring
+libs/gaussian-usd/
+    OpenUSD schema authoring, shared by every format bundle
 ```
 
-The writer moves into the reserved `gaussianUsd` library (`libs/gaussian-usd`)
-only when a second format consumer would otherwise duplicate it; it is not
-extracted before then. The core remains USD-independent either way.
+The writer was extracted into `libs/gaussian-usd` in v0.3.0, when the SPZ
+bundle became the second format consumer that would otherwise duplicate it.
+The core remains USD-independent. Because both bundles author through one
+implementation, the stage contract in §5 holds across formats by construction;
+the format-independent model they both target is documented in
+[GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md).
 
 ## 4. Root responsibilities
 
