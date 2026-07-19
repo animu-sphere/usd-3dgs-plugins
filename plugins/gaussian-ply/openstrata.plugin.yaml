@@ -38,6 +38,10 @@ tests:
     - tests/fixtures/one-gaussian-ascii.ply
     - tests/fixtures/one-gaussian-binary-le.ply
     - tests/fixtures/degree-1-sh.ply
+    - tests/fixtures/degree-2-sh.ply
+    - tests/fixtures/degree-3-sh.ply
+    - tests/fixtures/reordered-properties.ply
+    - tests/fixtures/three-gaussian-binary-le.ply
   roundtrip:
     - tests/fixtures/one-gaussian-ascii.ply
   negative:
@@ -45,3 +49,12 @@ tests:
     - tests/fixtures/missing-opacity.ply
     - tests/fixtures/truncated-binary-le.ply
     - tests/fixtures/out-of-range-double.ply
+    - tests/fixtures/empty-vertex.ply
+    - tests/fixtures/list-property.ply
+    - tests/fixtures/invalid-sh-name.ply
+    - tests/fixtures/duplicate-sh-index.ply
+    - tests/fixtures/non-contiguous-sh.ply
+    - tests/fixtures/sh-count-not-rgb.ply
+    - tests/fixtures/sh-invalid-degree.ply
+    - tests/fixtures/nan-opacity-binary-le.ply
+    - tests/fixtures/overflow-scale.ply

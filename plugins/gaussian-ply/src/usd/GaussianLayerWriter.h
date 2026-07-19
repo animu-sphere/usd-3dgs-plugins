@@ -5,6 +5,7 @@
 
 #include "pxr/usd/sdf/layer.h"
 
+#include <cstddef>
 #include <string>
 
 namespace openstrata::gs::usd {
@@ -17,6 +18,16 @@ class GaussianLayerWriter {
 public:
     bool WriteToLayer(
         GaussianCloudData&& cloud,
+        const std::string& sourceFormat,
+        PXR_NS::SdfLayerRefPtr* outLayer,
+        std::string* error = nullptr) const;
+
+    // Metadata-only authoring (design policy §12.3): the same /Asset and
+    // /Asset/Splat structure, stage metrics, custom data, and SH degree, with
+    // no per-Gaussian arrays and no extent.
+    bool WriteMetadataToLayer(
+        std::size_t gaussianCount,
+        int shDegree,
         const std::string& sourceFormat,
         PXR_NS::SdfLayerRefPtr* outLayer,
         std::string* error = nullptr) const;
