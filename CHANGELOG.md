@@ -4,6 +4,18 @@ All notable user-visible changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 semantic versioning for tagged releases.
 
+## [Unreleased]
+
+Development target: **v0.3.0 — SPZ import** — post-v0.2.0 stabilization plus
+read-only SPZ import through the shared `GaussianCloudData` pipeline
+([release plan](docs/roadmap/release-plan.md)).
+
+### Changed
+
+- Documentation records v0.1.0 and v0.2.0 as tagged and published, tracks
+  v0.3.0 as the active development target, and the README quick start now
+  leads with the plain CMake build.
+
 ## [0.2.0] - 2026-07-19
 
 Production-ready Graphdeco PLY import: the release-plan Phase 1

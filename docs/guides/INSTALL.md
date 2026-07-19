@@ -1,7 +1,8 @@
 # Building and installing USD 3DGS Plugins
 
-The first tagged release is v0.1.0; publishing its draft release page is a
-pending human action. The verified paths are an OpenStrata source build, a
+The latest tagged and published release is v0.2.0
+([release records](../releases/README.md)). The verified paths are an
+OpenStrata source build, a
 locally generated OpenStrata package, and manual activation of an extracted
 package on Windows.
 Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)

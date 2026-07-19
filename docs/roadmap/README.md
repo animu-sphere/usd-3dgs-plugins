@@ -9,8 +9,8 @@ Legend: 🚧 in progress · ⬜ not started · ⛔ blocked
 
 | Document | Contents |
 | --- | --- |
-| [release-plan.md](release-plan.md) | The versioned release sequence (v0.2.0 → v1.0.0) with per-release themes and completion criteria. |
-| [current.md](current.md) | The release-stabilization milestone and active carry-over work. |
+| [release-plan.md](release-plan.md) | The versioned release sequence (v0.1.0 → v1.0.0) with per-release themes and completion criteria. |
+| [current.md](current.md) | The active v0.3.0 task breakdown and carry-over work. |
 | [backlog.md](backlog.md) | Ordered but unscheduled format and cross-cutting work. |
 
 ## Sequences
@@ -28,21 +28,21 @@ Never use an unqualified “M1” for SOG work.
 
 ## Status at a glance
 
-- M0-M4 are implemented and verified locally on Windows with OpenUSD 26.05.
-- Hosted Windows/macOS/Linux CI is observed and v0.1.0 is tagged; publishing
-  the draft release is a pending human action.
-- The next tagged release target is **v0.2.0 — production-ready Graphdeco PLY
-  import** ([release-plan.md](release-plan.md)).
-- M5 (`gaussian-spz`, release plan v0.3.0) is the next format milestone after
-  v0.2.0 completes PLY stabilization.
+- v0.1.0 and v0.2.0 are tagged and published with immutable
+  [release records](../releases/README.md); completed milestone detail is in
+  the [delivery history](../reports/delivery-history.md).
+- The current development target is **v0.3.0 — SPZ import**
+  ([release-plan.md](release-plan.md)): post-v0.2.0 stabilization and the
+  shared `GaussianCloudData` contract first, then M5 (`gaussian-spz`).
+- M5 decodes SPZ into `GaussianCloudData` and reuses the PLY USD authoring
+  contract; a second USD authoring path is not permitted.
 - glTF/GLB requires an ADR; SOG remains later composition work.
 - The v0.9.0 rendering integration preview is delivered by the sibling project
   [hydra-merlin](https://github.com/animu-sphere/hydra-merlin); this
   repository stays renderer-neutral.
-- The standing investment order after release stabilization is fixed by the
-  [priority ladder](backlog.md#priority-ladder): real-dataset benchmarks first,
-  then metadata-only reads and peak-memory reduction, then dialect
-  documentation and SPZ, then bounds tightening and workaround removal.
+- Of the [priority ladder](backlog.md#priority-ladder), P0 (real-dataset
+  benchmarks) and P1 (metadata-only reads) shipped with v0.2.0; the active
+  investment is P2's SPZ importer, with P3 unscheduled.
 
 ## Quality bar
 

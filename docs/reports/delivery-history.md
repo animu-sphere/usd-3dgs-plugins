@@ -8,7 +8,8 @@ Windows against OpenUSD 26.05. The first tagged release is
 [v0.1.0](../releases/v0.1.0.md); later sections record post-tag stabilization
 work.
 
-Legend: ✅ completed locally
+Legend: ✅ completed (sections A-G locally on Windows; section H on hosted
+runners or GitHub)
 
 ## A. M0 — workspace bootstrap
 
@@ -99,9 +100,9 @@ Post-v0.1.0 work, exercised locally on Windows on 2026-07-19.
   (12 pass, 0 fail, 3 skip), package-origin (14 pass, 0 fail, 1 skip), and
   CTest (3/3) baselines are unchanged.
 
-Hosted observation of the reproducibility fix, the Windows L5 decision, the
-macOS across-run investigation, and the remaining release-stabilization items
-stay in [roadmap/current.md](../roadmap/current.md).
+The reproducibility fix was later observed on hosted runners (section H);
+the Windows L5 decision and the macOS across-run investigation stay in
+[roadmap/current.md](../roadmap/current.md).
 
 ## G. Read-path memory-copy reduction
 
@@ -137,3 +138,39 @@ OpenUSD 26.05.
   reports which property is missing or size-mismatched instead of the generic
   non-finite-value error. Rebuilt and re-ran after the fixes: ladder 12 pass /
   0 fail / 3 skip with 7 fixtures, CTest 2/2.
+
+## H. v0.1/v0.2 release stabilization — hosted evidence and the v0.2.0 release
+
+Work observed on hosted runners or on GitHub, closed with the v0.2.0
+publication on 2026-07-19.
+
+- ✅ Ran the generated Windows 2022, macOS 15 arm64, and Ubuntu 24.04 PR cells
+  (first observed on PR #1) and recorded compiler/runtime/package digests in
+  the [release records](../releases/README.md).
+- ✅ Exercised the extracted package from a clean directory outside the
+  worktree (manifest-verified extraction, `ost plugin run <extracted-root>`)
+  and verified manual OpenUSD activation on Windows for both a `usdcat` host
+  and a plain Python host
+  ([INSTALL.md](../guides/INSTALL.md#manual-package-activation)).
+- ✅ Added the tag-driven release lane
+  ([release.yml](../../.github/workflows/release.yml) driven by
+  [scripts/release.py](../../scripts/release.py)), deriving its matrix from
+  `openstrata.ci.yaml`; exercised by dry runs and the v0.1.0 and v0.2.0 tags.
+- ✅ Observed across-run package reproducibility on hosted runners: the v0.2.0
+  dry run and tag run (same commit `7323f46`, separate runners) produced
+  byte-identical Windows and Linux `tar.zst` archives, the first hosted
+  confirmation of the `/Brepro` fix. macOS remains open, tracked in
+  [roadmap/current.md](../roadmap/current.md).
+- ✅ Selected and committed the CC0-1.0
+  [yashica-t4 corpus](../../plugins/gaussian-ply/tests/corpus/yashica-t4/PROVENANCE.md)
+  (author-captured, Brush v0.3.0, SH degree 3, 8,192 Gaussians, deterministic
+  derivation via `scripts/ply_subset.py`) and recorded the design-policy
+  §12.1 baselines across six assets from 3 to 5.83M Gaussians
+  ([PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md)).
+- ✅ Shipped v0.2.0 — production-ready Graphdeco PLY import: metadata-only
+  reads, file-format arguments, stable `GSPLY-****` diagnostics with a
+  machine-readable catalog, degree-2/3 and malformed fixtures, observed
+  dialect compatibility, and release-version single-sourcing. PR cells green
+  on PR #11, dry run green, tagged 2026-07-19 (`7323f46`).
+- ✅ Reviewed and published the v0.1.0 and v0.2.0 GitHub releases 2026-07-19;
+  both [release records](../releases/README.md) record the published state.

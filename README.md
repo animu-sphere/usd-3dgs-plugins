@@ -40,9 +40,19 @@ Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
 
 ## Quick start
 
-Requirements: [OpenStrata](https://github.com/animu-sphere/open-strata)
-`ost` 0.18.0, OpenUSD `>=26.05,<27.0`, a C++17 compiler. (No `ost`? The repo
-also builds with plain CMake — see [BUILDING.md](docs/guides/BUILDING.md).)
+Requirements: OpenUSD `>=26.05,<27.0` and a C++17 compiler. Build and test
+with plain CMake against any OpenUSD 26.05 installation:
+
+```sh
+cmake --preset default -DCMAKE_PREFIX_PATH=/path/to/openusd
+cmake --build --preset default
+ctest --test-dir build/default --output-on-failure
+```
+
+The repo is dual-mode: with
+[OpenStrata](https://github.com/animu-sphere/open-strata) `ost` 0.18.0 the
+same tree gets the full verification ladder, packaging, and viewer tooling —
+see [BUILDING.md](docs/guides/BUILDING.md):
 
 ```sh
 ost runtime pull cy2026 --profile usd
@@ -67,9 +77,11 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-v0.1.0 is tagged; the current target is **v0.2.0 — production-ready Graphdeco
-PLY import** ([release plan](docs/roadmap/release-plan.md)). SPZ and further
-formats are sequenced after PLY stabilizes. Releases are tag-driven,
+v0.2.0 — production-ready Graphdeco PLY import — is tagged and published;
+the current target is **v0.3.0 — SPZ import**: stabilize the post-v0.2.0
+repository state, then add read-only SPZ import through the same
+`GaussianCloudData` pipeline as PLY
+([release plan](docs/roadmap/release-plan.md)). Releases are tag-driven,
 digest-reproducible, and published as drafts for human review
 ([release records](docs/releases/README.md)).
 
