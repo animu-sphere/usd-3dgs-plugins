@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "io/GaussianPlyDecoder.h"
 #include "io/GaussianPlyImportOptions.h"
+#include "openstrata/gs/GaussianMath.h"
 
 #include <cmath>
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace gs = openstrata::gs;
 
@@ -380,10 +383,92 @@ void TestImportOptionApplication()
     }
 }
 
+// Asserts the invariants GAUSSIAN_MODEL_CONTRACT.md requires of *any* decoder,
+// independent of the source format. ValidateGaussianCloud is the shared gate,
+// but it is a backstop the writer calls: these checks additionally pin the
+// properties the contract states in prose, so a decoder change that silently
+// starts emitting log-scales, opacity logits, unnormalized quaternions, or
+// channel-major SH is caught here rather than in a viewer.
+//
+// When gaussian-spz lands it runs this same set against its own fixtures.
+void CheckCloudContract(const gs::GaussianCloudData& cloud, const char* label)
+{
+    std::string error;
+    if (!gs::ValidateGaussianCloud(cloud, &error)) {
+        std::cerr << label << ": shared validation failed: " << error << '\n';
+        ++failures;
+        return;
+    }
+
+    const std::size_t count = cloud.gaussianCount;
+    CHECK(count > 0);
+    CHECK(cloud.positions.size() == count);
+    CHECK(cloud.scales.size() == count);
+    CHECK(cloud.rotations.size() == count);
+    CHECK(cloud.opacities.size() == count);
+    CHECK(cloud.dcCoefficients.size() == count);
+
+    // §3: coefficient count includes DC, so rest holds one fewer per Gaussian.
+    const std::size_t perGaussian = cloud.CoefficientsPerGaussian();
+    CHECK(perGaussian ==
+        static_cast<std::size_t>((cloud.shDegree + 1) * (cloud.shDegree + 1)));
+    CHECK(cloud.restCoefficients.size() == count * (perGaussian - 1));
+
+    for (std::size_t i = 0; i < count; ++i) {
+        // §3: scales are linear and strictly positive, never log-encoded.
+        const gs::Float3& scale = cloud.scales[i];
+        CHECK(scale.x > 0.0f && scale.y > 0.0f && scale.z > 0.0f);
+        CHECK(std::isfinite(scale.x) && std::isfinite(scale.y) &&
+              std::isfinite(scale.z));
+
+        // §3: opacity is already through sigmoid, never a logit.
+        CHECK(cloud.opacities[i] >= 0.0f && cloud.opacities[i] <= 1.0f);
+
+        // §3: quaternions reach the model normalized.
+        const gs::Quaternion& q = cloud.rotations[i];
+        const float norm = std::sqrt(
+            q.real * q.real + q.i * q.i + q.j * q.j + q.k * q.k);
+        CHECK(Close(norm, 1.0f, 1.0e-4f));
+
+        CHECK(std::isfinite(cloud.positions[i].x) &&
+              std::isfinite(cloud.positions[i].y) &&
+              std::isfinite(cloud.positions[i].z));
+    }
+}
+
+void TestContractConformance()
+{
+    // Every fixture the bundle considers valid, across encodings, SH degrees,
+    // property orderings, and Gaussian counts.
+    const char* kValidFixtures[] = {
+        "one-gaussian-ascii.ply",
+        "one-gaussian-binary-le.ply",
+        "degree-1-sh.ply",
+        "degree-2-sh.ply",
+        "degree-3-sh.ply",
+        "reordered-properties.ply",
+        "three-gaussian-binary-le.ply",
+    };
+
+    for (const char* fixture : kValidFixtures) {
+        gs::GaussianCloudData cloud;
+        std::vector<std::string> warnings;
+        std::string error;
+        gs::ply::GaussianPlyDecoder decoder;
+        if (!decoder.Decode(Fixture(fixture), &cloud, &warnings, &error)) {
+            std::cerr << fixture << ": decode failed: " << error << '\n';
+            ++failures;
+            continue;
+        }
+        CheckCloudContract(cloud, fixture);
+    }
+}
+
 } // namespace
 
 int main()
 {
+    TestContractConformance();
     TestDegreeZero("one-gaussian-ascii.ply");
     TestDegreeZero("one-gaussian-binary-le.ply");
     TestShLayout();

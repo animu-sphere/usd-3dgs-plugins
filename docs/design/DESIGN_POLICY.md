@@ -317,6 +317,38 @@ is reproduced on OpenUSD 26.05, the verified runtime. Every OpenUSD upgrade
 must re-evaluate whether direct detached-stage authoring has become safe so
 the workaround can be removed; the roadmap tracks this follow-up.
 
+### 7.6 `CanRead()` contract
+
+`CanRead()` answers one question: *is this file plausibly one this bundle
+handles?* It is a cheap routing decision, not a validation pass.
+
+It must:
+
+- check the file extension and the container's structural signature — for PLY,
+  a readable header with the Gaussian property shape;
+- read no more than the header, so it stays cheap on large assets;
+- be `noexcept` in effect: any parse failure returns `false` rather than
+  propagating.
+
+It must **not**:
+
+- decode or validate per-Gaussian data;
+- guarantee that a subsequent `Read()` succeeds.
+
+The consequence is deliberate and must stay documented for users:
+**`CanRead()` returning `true` does not mean the asset is valid.** A file with
+a well-formed header and truncated, non-finite, or internally inconsistent
+body passes `CanRead()` and then fails `Read()` with a specific diagnostic.
+That is the intended division of labor — `CanRead()` selects the plugin,
+diagnostics explain the failure — and it is why a failing import reports a
+`GSPLY-****`/`GSPZ-****` code rather than USD reporting no plugin was found.
+
+The inverse is a stricter promise: `CanRead()` returning `false` means this
+bundle will not attempt the file at all, so a format whose signature check is
+too narrow silently disowns assets it could have read. New dialects are
+therefore accepted by widening the signature deliberately, with a fixture, not
+by loosening it until something loads.
+
 ## 8. PLY scope
 
 The required v0.1 encodings are:

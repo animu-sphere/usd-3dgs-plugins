@@ -40,8 +40,9 @@ consistent post-v0.2.0 condition before SPZ work begins.*
 - ✅ v0.1.0 and v0.2.0 drafts reviewed and published 2026-07-19; release
   records, roadmap, README, and changelog updated to the published state, and
   v0.3.0 set as the active target.
-- ⬜ Document the `CanRead()` contract: it indicates plausible format
-  compatibility (extension and header shape), not complete asset validity.
+- ✅ Documented the `CanRead()` contract as design policy §7.6: it indicates
+  plausible format compatibility (extension and header shape), not complete
+  asset validity, and a too-narrow signature silently disowns readable assets.
 - ⬜ Triage defects found in real v0.2.0 usage into GitHub issues (suggested
   labels: `v0.3.0`, `spz`, `bug`, `documentation`, `testing`, `release`).
   Every accepted fix ships with a regression fixture or test where practical,
@@ -54,30 +55,43 @@ consistent post-v0.2.0 condition before SPZ work begins.*
   itself is created only once the tag exists, per the
   [release-record policy](../releases/README.md)).
 
-## Shared model contract ⬜
+## Shared model contract 🚧
 
 *Goal: document `GaussianCloudData` clearly enough for two independent
 decoders to target it consistently. Format-specific encodings (Graphdeco
 log-scales and opacity logits, SPZ quantized values) never enter the shared
 model.*
 
-- ⬜ Document the contract: coordinate system and axis assumptions, position
-  units, scale and opacity representation at the model boundary, quaternion
-  component order and normalization, SH degree and coefficient ordering,
-  array-length relationships to `gaussianCount`, and finite-value/range
-  validation requirements.
-- ⬜ Add shared invariant tests and confirm the PLY decoder conforms to the
-  documented contract.
+- ✅ Documented the contract in
+  [GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md):
+  coordinate system and axis assumptions, position units, scale and opacity
+  representation at the model boundary, quaternion component order and
+  normalization, SH degree and coefficient ordering, array-length
+  relationships to `gaussianCount`, and finite-value/range validation.
+- ✅ Extracted `libs/gaussian-usd` (design policy §7.4) so PLY and SPZ author
+  through one `GaussianLayerWriter`. Authoring diagnostic codes are injected
+  by the calling bundle, so the `GSPLY-E1xx` spellings released in v0.2.0 are
+  unchanged and SPZ can pass `GSPZ-****` through the same path.
+- ✅ Added contract-conformance tests: `gaussianUsd_writer_unit` pins each
+  authoring failure to its injected code, and the PLY decoder suite asserts the
+  documented invariants (linear positive scales, opacity in `[0,1]`,
+  normalized quaternions, Gaussian-major SH, array lengths) across every valid
+  fixture. `gaussian-spz` runs the same set against its own fixtures.
 - ⬜ Decide which validation and math utilities are shared under `libs/` and
   which stay format-specific.
 
-## SPZ container reader ⬜
+## SPZ container reader 🚧
 
-- ⬜ Identify the authoritative SPZ specification or reference implementation;
-  record supported versions, field encodings, and quantization rules; review
-  licenses; and decide whether to implement from the specification, vendor a
-  small dependency, or wrap a library. Undocumented binary layouts are not
-  guessed.
+- ✅ Identified the specification and recorded scope decisions in
+  [SPZ_FORMAT.md](../reference/SPZ_FORMAT.md): Niantic's MIT-licensed
+  documented format; **implement from the specification** (a vendored decoder
+  cannot express the required malformed/unsupported/internal distinction), and
+  **support versions 1-3 in v0.3.0** with v4 deferred to v0.5.0 and rejected
+  by a specific unsupported-version diagnostic.
+- ⬜ Implement low-level reading separate from semantic conversion: signature
+  detection, version parsing, header/count/size validation with overflow-safe
+  buffer math, truncated-input detection, unsupported-version rejection, and
+  a metadata-only path. The reader constructs no USD objects.
 - ⬜ Implement low-level reading separate from semantic conversion: signature
   detection, version parsing, header/count/size validation with overflow-safe
   buffer math, truncated-input detection, unsupported-version rejection, and
