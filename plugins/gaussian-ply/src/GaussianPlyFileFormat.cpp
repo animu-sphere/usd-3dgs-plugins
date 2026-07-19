@@ -69,14 +69,21 @@ GaussianPlyFileFormat::Read(
     // The shared writer reports authoring failures under this bundle's own
     // stable codes, so the GSPLY-E1xx spellings released in v0.2.0 are
     // unchanged by the move into gaussianUsd.
-    const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes{
-        gsply::diag::kInternalError,
-        gsply::diag::kCloudValidationFailed,
-        gsply::diag::kStageCreationFailed,
-        gsply::diag::kScaffoldAuthoringFailed,
-        gsply::diag::kAttributeAuthoringFailed,
-        gsply::diag::kExtentOverflow,
-    };
+    //
+    // Assigned by name rather than positionally: the struct is six pointers of
+    // one type, so a positional list lets a swapped pair compile silently and
+    // emit the wrong stable code to users. Named assignment makes that
+    // mistake impossible instead of leaving it to be caught in review.
+    static const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes = [] {
+        openstrata::gs::usd::LayerWriterDiagnosticCodes codes;
+        codes.internalError = gsply::diag::kInternalError;
+        codes.cloudValidationFailed = gsply::diag::kCloudValidationFailed;
+        codes.stageCreationFailed = gsply::diag::kStageCreationFailed;
+        codes.scaffoldAuthoringFailed = gsply::diag::kScaffoldAuthoringFailed;
+        codes.attributeAuthoringFailed = gsply::diag::kAttributeAuthoringFailed;
+        codes.extentOverflow = gsply::diag::kExtentOverflow;
+        return codes;
+    }();
     const openstrata::gs::usd::GaussianLayerWriter writer(kWriterCodes);
 
     // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached

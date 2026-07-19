@@ -29,6 +29,9 @@ read-only SPZ import through the shared `GaussianCloudData` pipeline
 - [SPZ format scope](docs/reference/SPZ_FORMAT.md): specification source,
   licence review, and the accepted v0.3.0 scope — implement from the
   specification, support SPZ versions 1-3, defer version 4.
+- A shared model-contract checker in `gaussianCore`
+  (`openstrata/gs/testing/CloudContract.h`), so every decoder is held to the
+  same code rather than to a per-bundle copy of it.
 - A documented `CanRead()` contract (design policy §7.6): it reports plausible
   format compatibility, not asset validity.
 

@@ -20,10 +20,14 @@ ost plugin package plugins/gaussian-ply
 src/GaussianPlyFileFormat.*    thin USD file-format entry point
 src/io/PlyReader.*             tinyPLY isolation and scalar conversion
 src/io/GaussianPlyDecoder.*    Gaussian property mapping and validation
-src/usd/GaussianLayerWriter.*  standard USD Gaussian schema authoring
 tests/                         C++ and Python integration coverage
 tools/generate_fixtures.py     deterministic binary fixture generator
 ```
+
+USD authoring is not here. It lives in the shared
+[`libs/gaussian-usd`](../../libs/gaussian-usd/) library, which every format
+bundle authors through; this bundle supplies only its own `GSPLY-****`
+diagnostic codes to it.
 
 The format is intentionally read-only. `WriteToFile` reports an unsupported
 operation; `WriteToString` delegates to USDA so imported layers remain

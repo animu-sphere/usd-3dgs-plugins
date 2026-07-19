@@ -14,8 +14,14 @@ namespace openstrata::gs::usd {
 // the calling format bundle (GSPLY-**** for PLY, GSPZ-**** for SPZ) rather
 // than by this shared library: the writer is one implementation, but a user
 // sees the code of the format they actually imported, and codes released by a
-// bundle are never renumbered or reused. Every member must be a non-null
-// string literal with static storage duration.
+// bundle are never renumbered or reused. Every member must be a string literal
+// with static storage duration.
+//
+// Assign the members **by name**, not through a positional initializer list:
+// these are six pointers of one type, so a swapped pair compiles silently and
+// emits the wrong stable code to users. A null member is not undefined
+// behavior — the diagnostic degrades to a placeholder code — but it is a bug,
+// because the code is the part a user quotes in a report.
 struct LayerWriterDiagnosticCodes {
     // Null output parameter — internal pipeline misuse, not file content.
     const char* internalError = nullptr;

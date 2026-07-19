@@ -20,4 +20,12 @@ if(_usd_root)
     set_tests_properties(gaussianUsd_writer_unit PROPERTIES
         ENVIRONMENT_MODIFICATION
             "PATH=path_list_prepend:${_usd_root}/bin;PATH=path_list_prepend:${_usd_root}/lib")
+else()
+    # Without this the test fails at load time with a bare "the application
+    # could not start" and no indication that the cause is a build-time path
+    # heuristic rather than the test itself.
+    message(WARNING
+        "gaussianUsd: could not derive the OpenUSD root from pxr_DIR "
+        "('${pxr_DIR}'), so gaussianUsd_writer_unit runs without the SDK on "
+        "its library and plugin search paths and will likely fail to load.")
 endif()
