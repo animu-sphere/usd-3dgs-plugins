@@ -5,7 +5,7 @@
 #include "io/GaussianPlyDiagnostics.h"
 #include "io/GaussianPlyImportOptions.h"
 #include "openstrata/gs/GaussianCloudData.h"
-#include "usd/GaussianLayerWriter.h"
+#include "openstrata/gs/usd/GaussianLayerWriter.h"
 
 #include "pxr/base/tf/diagnostic.h"
 #include "pxr/base/tf/registryManager.h"
@@ -66,7 +66,18 @@ GaussianPlyFileFormat::Read(
     }
 
     gsply::GaussianPlyDecoder decoder;
-    openstrata::gs::usd::GaussianLayerWriter writer;
+    // The shared writer reports authoring failures under this bundle's own
+    // stable codes, so the GSPLY-E1xx spellings released in v0.2.0 are
+    // unchanged by the move into gaussianUsd.
+    const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes{
+        gsply::diag::kInternalError,
+        gsply::diag::kCloudValidationFailed,
+        gsply::diag::kStageCreationFailed,
+        gsply::diag::kScaffoldAuthoringFailed,
+        gsply::diag::kAttributeAuthoringFailed,
+        gsply::diag::kExtentOverflow,
+    };
+    const openstrata::gs::usd::GaussianLayerWriter writer(kWriterCodes);
 
     // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached
     // layer on a worker thread avoids observing that block, then the authored

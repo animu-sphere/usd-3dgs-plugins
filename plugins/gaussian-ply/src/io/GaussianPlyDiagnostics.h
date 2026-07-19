@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "openstrata/gs/GaussianDiagnostics.h"
+
 #include <string>
 
 // Stable diagnostic identifiers for every error and warning this plugin can
@@ -50,16 +52,11 @@ inline constexpr const char* kQuaternionsReplaced = "GSPLY-W002";
 inline constexpr const char* kUnknownPropertiesIgnored = "GSPLY-W003";
 
 // Every diagnostic message starts with its bracketed code so text consumers
-// and machine consumers see one stable spelling: "[GSPLY-E003] ...".
+// and machine consumers see one stable spelling: "[GSPLY-E003] ...". The
+// joining itself lives in gaussianCore so it cannot drift between bundles.
 inline std::string Format(const char* code, const std::string& message)
 {
-    std::string result;
-    result.reserve(message.size() + 16);
-    result += '[';
-    result += code;
-    result += "] ";
-    result += message;
-    return result;
+    return openstrata::gs::FormatDiagnostic(code, message);
 }
 
 } // namespace openstrata::gs::ply::diag

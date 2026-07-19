@@ -45,6 +45,10 @@ if(NOT pxr_FOUND)
     find_package(pxr CONFIG REQUIRED)
 endif()
 
+# gaussianUsd depends on OpenUSD, so it is added after the resolution above and
+# flows down to every bundle that authors Gaussian stages.
+add_subdirectory("libs/gaussian-usd")
+
 # `CONFIGURE_DEPENDS` makes the build re-glob and reconfigure when a bundle is
 # added or removed, so a later `cmake --build` picks up new `ost plugin new`
 # bundles without a manual reconfigure.
