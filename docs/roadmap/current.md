@@ -76,7 +76,8 @@ model.*
   authoring failure to its injected code, and the PLY decoder suite asserts the
   documented invariants (linear positive scales, opacity in `[0,1]`,
   normalized quaternions, Gaussian-major SH, array lengths) across every valid
-  fixture. `gaussian-spz` runs the same set against its own fixtures.
+  fixture. The checker itself lives in `gaussianCore`, so `gaussian-spz` will
+  run the same code against its own fixtures rather than a copy of it.
 - ⬜ Decide which validation and math utilities are shared under `libs/` and
   which stay format-specific.
 
@@ -92,10 +93,9 @@ model.*
   detection, version parsing, header/count/size validation with overflow-safe
   buffer math, truncated-input detection, unsupported-version rejection, and
   a metadata-only path. The reader constructs no USD objects.
-- ⬜ Implement low-level reading separate from semantic conversion: signature
-  detection, version parsing, header/count/size validation with overflow-safe
-  buffer math, truncated-input detection, unsupported-version rejection, and
-  a metadata-only path. The reader constructs no USD objects.
+- ⬜ Decide the SPZ `CanRead()` strategy: the container signature sits behind
+  the gzip member, so header-only detection under design policy §7.6 needs an
+  explicit approach ([SPZ_FORMAT.md](../reference/SPZ_FORMAT.md) §6).
 - ⬜ Add invalid-container fixtures.
 
 ## SPZ semantic decoder ⬜

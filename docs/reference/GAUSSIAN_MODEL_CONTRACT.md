@@ -36,10 +36,13 @@ violation.
 
 ## 2. Coordinate system, axes, and units
 
-**The model carries source-native axes and units. It does not define a
-canonical world frame, and decoders do not infer or correct one.** Automatic
-coordinate-system inference is an explicit non-goal
-([DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §20).
+**The model carries source-native units and defines exactly one reference
+frame. A decoder never *infers* a frame from the data; it applies the fixed
+conversion its format's documented convention requires, or none.** Automatic
+coordinate-system inference — deducing an asset's orientation by inspecting
+it — remains an explicit non-goal
+([DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §20). A per-format constant
+conversion is not inference.
 
 Positions are local-space centers in the source asset's own units. The authored
 `upAxis = "Y"` and `metersPerUnit = 1` are **importer defaults, not

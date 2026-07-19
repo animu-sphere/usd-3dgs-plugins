@@ -13,7 +13,7 @@ Future component identities are reserved here but do not yet exist.
 | Identity | Kind | Status | Responsibility |
 | --- | --- | --- | --- |
 | `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | implemented | Detect and decode canonical Gaussian Splatting PLY and author a standard OpenUSD Gaussian layer. |
-| `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, and SH layout utilities. |
+| `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, SH layout utilities, diagnostic message formatting, and the test-only model-contract checker every decoder is held to. |
 | `gaussianUsd` | plain CMake/OpenStrata static library | implemented | Shared `GaussianCloudData` → OpenUSD schema authoring. Extracted from `gaussian-ply` in v0.3.0, at the moment design policy §7.4 reserves for it: the SPZ bundle would otherwise duplicate `GaussianLayerWriter`. Diagnostic codes stay owned by the calling bundle. |
 | `gaussian-spz` | plugin bundle (`usd-fileformat`) | reserved | Decode SPZ through `GaussianCloudData` and the shared authoring contract. |
 | `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |

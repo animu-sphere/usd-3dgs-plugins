@@ -76,8 +76,9 @@ Recorded from the specification for implementation; every one of these is
 confirmed against a real file before the decoder is considered done, and any
 correction is made here first.
 
-- Magic `0x5053474e`; gzip-compressed payload detectable by the `0x1f 0x8b`
-  member header.
+- The file is gzip as a whole: it begins with the `0x1f 0x8b` member header,
+  and the magic `0x5053474e` is the first field of the *decompressed* stream,
+  not of the file. Detection has to account for that (see §6).
 - Header fields are little-endian: magic, version, point count, SH degree,
   fractional bits, flags, reserved.
 - Positions: 24-bit fixed-point signed integers; the fractional-bit count comes
@@ -115,3 +116,10 @@ fixtures, which would otherwise disagree on sign in two axes.
   decision rather than a silent truncation.
 - Identify a legally redistributable SPZ asset with recorded provenance for the
   corpus, per the release criteria.
+- Decide the `CanRead()` strategy. The container magic sits *inside* the gzip
+  member, not at file offset 0, so the header-only rule of design policy §7.6
+  has no signature to read directly. The two candidates are accepting on
+  extension plus the `0x1f 0x8b` gzip marker — which claims every gzip file
+  with the right extension, the over-broad direction §7.6 warns about — or
+  inflating only the first header-sized block. This must be settled before the
+  reader is written, not discovered during it.

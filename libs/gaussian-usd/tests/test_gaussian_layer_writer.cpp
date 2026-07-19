@@ -4,6 +4,7 @@
 #include "pxr/usd/sdf/layer.h"
 
 #include <iostream>
+#include <limits>
 #include <string>
 
 namespace gs = openstrata::gs;
@@ -18,10 +19,18 @@ int failures = 0;
         ++failures; \
     } } while (false)
 
-// Distinct sentinels per member. LayerWriterDiagnosticCodes is six pointers of
-// the same type initialized positionally by each bundle, so a swapped pair
-// would compile silently and emit the wrong stable code to users. These tests
-// pin each failure to the member it must come from.
+// Distinct sentinels per member, so each test pins a failure to the exact
+// member it must come from rather than merely observing that some code was
+// emitted.
+//
+// Three of the six members are reachable from a unit test: internalError,
+// cloudValidationFailed, and extentOverflow. The remaining three
+// (stageCreationFailed, scaffoldAuthoringFailed, attributeAuthoringFailed)
+// fire only when OpenUSD itself fails to create a stage, define a prim, or set
+// an attribute, which cannot be provoked without injecting a failing USD
+// implementation. They are left uncovered deliberately: the call sites are
+// assigned by name at each bundle, which is what removes the swap hazard the
+// covered members are additionally tested for.
 constexpr gs::usd::LayerWriterDiagnosticCodes kCodes{
     "TEST-INTERNAL",
     "TEST-VALIDATION",
@@ -77,6 +86,40 @@ void TestInvalidCloudReportsValidationError()
     CHECK(!layer);
 }
 
+// The three-sigma extent bound is computed in double and rejected when it
+// leaves float range. A scale of FLT_MAX is finite and strictly positive, so
+// it passes shared validation and reaches the extent loop, where 3 * FLT_MAX
+// does not fit back into a float.
+void TestExtentOverflowReportsExtentError()
+{
+    const gs::usd::GaussianLayerWriter writer(kCodes);
+    gs::GaussianCloudData cloud = MakeValidCloud();
+    const float huge = std::numeric_limits<float>::max();
+    cloud.scales[0] = {huge, huge, huge};
+
+    PXR_NS::SdfLayerRefPtr layer;
+    std::string error;
+    CHECK(!writer.WriteToLayer(std::move(cloud), "test", &layer, &error));
+    CHECK(StartsWith(error, "[TEST-EXTENT] "));
+    CHECK(!layer);
+}
+
+// A null code would otherwise be appended to a std::string, which is undefined
+// behavior. The diagnostic path must degrade to a visible placeholder instead:
+// it runs only when something has already gone wrong.
+void TestMissingCodeDoesNotCrash()
+{
+    gs::usd::LayerWriterDiagnosticCodes incomplete;
+    incomplete.cloudValidationFailed = "TEST-VALIDATION";
+    // internalError deliberately left null.
+    const gs::usd::GaussianLayerWriter writer(incomplete);
+
+    std::string error;
+    CHECK(!writer.WriteToLayer(MakeValidCloud(), "test", nullptr, &error));
+    CHECK(StartsWith(error, "["));
+    CHECK(error.find("null layer output") != std::string::npos);
+}
+
 // The success paths must author a layer and leave the error untouched.
 void TestValidCloudAuthorsLayer()
 {
@@ -100,6 +143,8 @@ int main()
 {
     TestNullLayerReportsInternalError();
     TestInvalidCloudReportsValidationError();
+    TestExtentOverflowReportsExtentError();
+    TestMissingCodeDoesNotCrash();
     TestValidCloudAuthorsLayer();
 
     if (failures != 0) {
