@@ -1,8 +1,20 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
-find_dependency(gaussianCore)
-find_dependency(pxr)
+
+# Both dependencies are guarded because a consumer has usually resolved them
+# already: every bundle does its own `if(NOT pxr_FOUND) find_package(pxr)`
+# before requiring this library. pxrConfig.cmake is not re-entrant — running it
+# a second time aborts trying to re-create the imported TBB::tbb target — so an
+# unguarded find_dependency() breaks exactly the standalone `ost plugin build`
+# path this file exists to serve. The guards keep a bare
+# `find_package(gaussianUsd)` working too.
+if(NOT TARGET openstrata::gaussianCore)
+    find_dependency(gaussianCore)
+endif()
+if(NOT pxr_FOUND)
+    find_dependency(pxr)
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/gaussianUsdTargets.cmake")
 check_required_components(gaussianUsd)
