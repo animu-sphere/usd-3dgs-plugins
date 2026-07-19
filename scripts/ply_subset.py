@@ -204,7 +204,7 @@ def main() -> None:
     }
     provenance_path = args.out.with_suffix(args.out.suffix + ".provenance.json")
     provenance_path.write_text(json.dumps(provenance, indent=2) + "\n",
-                               encoding="ascii")
+                               encoding="ascii", newline="\n")
 
     print(f"{args.out}: {len(selected)} of {n} gaussians, "
           f"{len(out_blob)} bytes, SH degree {header.sh_degree()}")
