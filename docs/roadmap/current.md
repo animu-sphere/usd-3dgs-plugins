@@ -78,36 +78,52 @@ real gate or a documented versioned exception.
   `scripts/ply_subset.py` and covered by tolerance-based semantic tests.
   Candidate large references remain Mip-NeRF 360 `garden` and `bicycle`,
   pending the same review, and stay download-on-demand data in any case.
-- ⬜ Record the design-policy baseline metrics (§12.1): source size, Gaussian
-  count, `CanRead()` and full `Read()` durations, peak resident memory,
-  temporary USDA and generated USDC sizes, flattening duration, and time until
-  the stage is inspectable in `usdview`.
-- ⬜ Add it as an opt-in corpus/performance test unless its size is appropriate
-  for normal CI.
+- ✅ Record the design-policy baseline metrics (§12.1). Done 2026-07-19:
+  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md) covers six
+  assets from 3 to 5.83M Gaussians across Graphdeco, Brush, and Postshot
+  exports, measured with
+  [tools/benchmark_import.py](../../plugins/gaussian-ply/tools/benchmark_import.py).
+  (The temporary-USDA size metric no longer exists: the read path stopped
+  round-tripping through USDA text.)
+- ✅ Corpus and performance coverage: the 8,192-Gaussian corpus runs in the
+  normal integration test; larger references stay download-on-demand and are
+  measured on demand with the benchmark tool.
 
 No external trained asset enters the repository before license and provenance
 review.
 
-## Next: v0.2.0 — production-ready Graphdeco PLY import ⬜
+## v0.2.0 — production-ready Graphdeco PLY import 🚧
 
 *Goal: complete and stabilize Graphdeco PLY support before adding another
 format. Scope and completion criteria are in the
 [release plan](release-plan.md).*
 
-Work begins once the v0.1 carry-over above closes, drawing on the
-[PLY compatibility](backlog.md#ply-compatibility) and
-[performance](backlog.md#performance-and-loading) backlogs in priority-ladder
-order: real-dataset baselines (P0, tracked above under real-asset confidence),
-metadata-only reads (P1), documented dialect compatibility with degree-2/3 SH
-and additional malformed fixtures (P2), stable diagnostic identifiers, and the
-first file-format arguments (`shDegree`, `opacityThreshold`,
-`scaleMultiplier`), each gated on clear behavior and automated tests.
+Implementation is complete on the v0.2.0 branch; the remaining step is the
+hosted release gate and tag:
+
+- ✅ Real-dataset baselines (P0) — tracked above under real-asset confidence.
+- ✅ Metadata-only reads (P1): `Read(metadataOnly=true)` authors the stage
+  contract from the header only; ~5 ms at any asset size.
+- ✅ Dialect compatibility documented with observed results
+  ([PLY_DIALECTS.md](../reference/PLY_DIALECTS.md)): Graphdeco `garden`
+  (5.83M), Brush (lexicographic `f_rest` order), Postshot; property-order
+  independence fixture-proven.
+- ✅ Degree-2/3 SH fixtures with exact coefficient assertions, a
+  multi-Gaussian asymmetric fixture, and malformed fixtures for every
+  header-layout diagnostic.
+- ✅ Stable diagnostic identifiers (`GSPLY-****`) with a machine-readable
+  catalog shipped in the plugin resources and cross-checked by tests.
+- ✅ File-format arguments `shDegree`, `opacityThreshold`, `scaleMultiplier`
+  with validated ranges and unit/integration tests.
+- ✅ Release-version single-sourcing: `scripts/release.py set-version`, with
+  drift enforced by the release guard.
+- ⬜ Hosted PR cells green on the release branch, then tag `v0.2.0` and
+  publish the draft (human action).
 
 ## Documentation consistency 🚧
 
 - ⬜ Add a lightweight link/language check to CI so public Markdown remains
   English and local links resolve.
-- ⬜ Add stable diagnostic codes before external tools begin depending on the
-  current free-text messages; this is desirable for v0.1 but not required for
-  the semantic vertical slice.
+- ✅ Stable diagnostic codes shipped with v0.2.0; external tools can match on
+  `GSPLY-****` identifiers and the machine-readable catalog.
 

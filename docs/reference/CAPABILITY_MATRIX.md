@@ -24,16 +24,17 @@ This table describes the current tree. Planned capabilities belong in the
 | Scale | supported | stable finite `exp(scale_*)` conversion |
 | Rotation | supported | scalar-first quaternion normalization; zero becomes identity with warning |
 | Opacity | supported | numerically stable sigmoid to `[0,1]` |
-| SH degree 0 | supported | DC-only fixture |
-| SH degree 1 | supported | channel-major rest-coefficient reconstruction fixture |
-| Higher valid SH degrees | supported by general mapping | degree inferred from square coefficient count; expand fixture corpus before release |
-| Real 139,410-Gaussian degree-3 sample | locally verified | external cactus sample opened as `ParticleField3DGaussianSplat`; not vendored pending license/provenance review |
-| Missing/non-contiguous SH data | supported rejection | semantic decoder rejects invalid layouts |
+| SH degrees 0-3 | supported | exact-coefficient fixtures at every degree; corpus assets at degree 3 |
+| Property declaration order | supported | name-based resolution; scrambled-order fixture and Brush's lexicographic `f_rest` order both decode identically |
+| Real trained assets | supported | committed 8,192-Gaussian corpus (Brush, CC0); locally verified against Graphdeco `garden` (5.83M), Postshot cactus series (up to 1.94M) — see [PLY_DIALECTS.md](PLY_DIALECTS.md) and [PERFORMANCE_BASELINES.md](PERFORMANCE_BASELINES.md) |
+| Missing/non-contiguous SH data | supported rejection | malformed fixtures for every header-layout diagnostic |
 | Non-finite semantic values | supported rejection | core and decoder validation |
 | Unknown extra properties | supported | ignored with one aggregated warning; common `nx/ny/nz` placeholders are silent |
-| Property aliases | unsupported | canonical Graphdeco names only |
+| Property aliases | unsupported | canonical Graphdeco names only; decision recorded in [PLY_DIALECTS.md](PLY_DIALECTS.md) |
 | Arbitrary point-cloud/mesh PLY | unsupported | rejected as non-Gaussian |
-| Metadata-only read | unsupported | `Read(metadataOnly=true)` performs a full decode; header-only reads are a planned improvement tracked in the roadmap |
+| Metadata-only read | supported | `Read(metadataOnly=true)` authors the stage contract from the header only (~5 ms at any size) |
+| File-format arguments | supported | `shDegree`, `opacityThreshold`, `scaleMultiplier` with validated ranges and tests |
+| Stable diagnostics | supported | `GSPLY-E***`/`GSPLY-W***` codes with a machine-readable catalog shipped in the plugin resources |
 
 ## USD authoring
 

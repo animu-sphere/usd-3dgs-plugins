@@ -27,7 +27,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | Version | Primary theme | Sequence mapping | Status |
 | --- | --- | --- | --- |
 | v0.1.0 | Initial PLY vertical slice | M0-M4 | ✅ tagged — [record](../releases/v0.1.0.md); draft publication pending |
-| v0.2.0 | Production-ready Graphdeco PLY import | Phase 1 stabilization | ⬜ current development target |
+| v0.2.0 | Production-ready Graphdeco PLY import | Phase 1 stabilization | 🚧 implementation complete; awaiting hosted gate and tag |
 | v0.3.0 | SPZ import | M5, Phase 2 | ⬜ |
 | v0.4.0 | Common Gaussian conversion layer | design policy §7.4 | ⬜ |
 | v0.5.0 | Expanded format compatibility | Phase 3, SOG M1 | ⬜ |
