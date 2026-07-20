@@ -1,15 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Measure the design-policy 12.1 import baselines for one Gaussian PLY.
+"""Measure the design-policy 12.1 import baselines for one Gaussian asset.
 
 Run one asset per process: peak resident memory is a process-lifetime
 figure, so batching assets in one interpreter would attribute the largest
 asset's peak to every later row.
 
-    python benchmark_import.py <asset.ply> [--json]
+    python benchmark_import.py <asset.ply|asset.spz> [--json]
 
-The environment must expose OpenUSD python modules and the gaussian-ply
-plugin (PYTHONPATH / PXR_PLUGINPATH_NAME), exactly like the integration
-test. Requires only the standard library.
+The measured path is the `SdfFileFormat` seam, which is identical for every
+bundle, so this tool is format-agnostic: the file format is resolved from the
+asset's extension. Comparing formats therefore means comparing rows produced
+by one implementation, not two benchmarks that might drift apart.
+
+The environment must expose OpenUSD python modules and the plugin under test
+(PYTHONPATH / PXR_PLUGINPATH_NAME), exactly like the integration test.
+Requires only the standard library.
 """
 
 from __future__ import annotations
@@ -78,13 +83,15 @@ def main() -> int:
         Plug.Registry().RegisterPlugins(plugin_path.split(os.pathsep))
 
     asset = args.asset.resolve()
+    extension = asset.suffix.lstrip(".").lower()
     result: dict[str, object] = {
         "asset": str(asset),
+        "extension": extension,
         "source_bytes": asset.stat().st_size,
     }
 
-    file_format = Sdf.FileFormat.FindByExtension("ply")
-    assert file_format, "PLY file format is not registered"
+    file_format = Sdf.FileFormat.FindByExtension(extension)
+    assert file_format, f"no file format is registered for .{extension}"
 
     if hasattr(file_format, "CanRead"):
         start = time.perf_counter()
@@ -97,6 +104,7 @@ def main() -> int:
     gs = metadata_layer.GetPrimAtPath("/Asset").customData.get("gs", {})
     result["gaussian_count"] = int(gs.get("gaussianCount", 0))
     result["sh_degree"] = int(gs.get("shDegree", -1))
+    result["source_format"] = str(gs.get("sourceFormat", ""))
     del metadata_layer
 
     start = time.perf_counter()
@@ -120,7 +128,8 @@ def main() -> int:
     else:
         count = result["gaussian_count"]
         print(f"{asset.name}: {count:,} Gaussians, "
-              f"SH degree {result['sh_degree']}")
+              f"SH degree {result['sh_degree']} "
+              f"({result['source_format']})")
         print(f"  source           {result['source_bytes'] / 2**20:8.1f} MiB")
         if "can_read_seconds" in result:
             print(f"  CanRead          {result['can_read_seconds']*1e3:8.1f} ms")

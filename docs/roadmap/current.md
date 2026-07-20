@@ -51,9 +51,13 @@ consistent post-v0.2.0 condition before SPZ work begins.*
   compatible. Diagnostic codes shipped in v0.2.0 are never renumbered or
   reused.
 - ⬜ Improve test reporting where failures are currently too coarse.
-- ⬜ Draft the v0.3.0 release-record skeleton early in development (the record
+- ✅ Drafted the v0.3.0 release-record skeleton as
+  [releases/v0.3.0-draft.md](../releases/v0.3.0-draft.md): objective,
+  shipped capabilities, compatibility, and known limitations written now;
+  tag, commit, digests, and artifact checksums left as `TBD`. Deliberately
+  *not* named `v0.3.0.md` and not added to the records table — the record
   itself is created only once the tag exists, per the
-  [release-record policy](../releases/README.md)).
+  [release-record policy](../releases/README.md).
 
 ## Shared model contract 🚧
 
@@ -175,11 +179,32 @@ model.*
   representations, repeated dequantization); streaming and GPU decoding stay
   out of scope.
 
-## Release hardening ⬜
+## Release hardening 🚧
 
-- ⬜ The same gate v0.2.0 passed, now including the SPZ bundle: cross-platform
+- 🚧 The same gate v0.2.0 passed, now including the SPZ bundle: cross-platform
   CI, packaging and SBOM, release guard, documentation review, dry run, tag,
   draft release, and human publication review.
+  - ✅ `openstrata.ci.yaml` declares three `gaussian-spz` source cells
+    mirroring the `gaussian-ply` ones (same pinned runtime digests, same
+    platform/profile, Windows capped at L4). `.github/workflows/ost-source-ci.yml`
+    regenerated with `ost ci generate github --force` — 6 cells, purely
+    additive. `scripts/release.py matrix` derives the release lane from the
+    same cells, so both lanes moved together and now report 6.
+  - ✅ Verified locally before declaring the cells: `ost plugin test
+    plugins/gaussian-spz --up-to 5` is OK (11 pass, 0 fail, 4 skip).
+  - ⬜ Packaging and SBOM for the SPZ bundle, dry run, tag, draft release.
+- ⬜ **L5 goldens are not portable across runners** (upstream OST seam, found
+  2026-07-20). `ost plugin test` flattens the roundtrip fixture *without*
+  `--skipSourceFileComment`, so the golden `.usda` embeds the flattening
+  machine's absolute path in a multiline `doc = """Generated from Composed
+  Stage of root layer <abs path>"""` block. The committed
+  `one-gaussian-ascii.ply.golden.usda` therefore carries a `C:\dev\...` path
+  and cannot match a hosted runner's checkout. `gaussian-spz` deliberately
+  keeps `roundtrip: []` rather than inherit that: declaring one would have
+  made the new macOS/Linux cells fail on every run. This is the same family as
+  the Windows L4 cap ("hosted multiline-USDA line-ending finding") and the
+  package-origin L5 skip. Resolve upstream — a normalized or path-stripped
+  golden comparison — before L5 can be a real release gate for either bundle.
 - ⬜ Update the capability matrix, compatibility documents, and
   build/install/usage guides to cover SPZ, including documented quantization
   behavior, precision limits, and supported SPZ versions.

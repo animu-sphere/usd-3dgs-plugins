@@ -58,7 +58,7 @@ in the [delivery history](../reports/delivery-history.md) and
 allocation size remains unmeasured.
 
 - 🚧 Benchmark harness:
-  [tools/benchmark_import.py](../../plugins/gaussian-ply/tools/benchmark_import.py)
+  [scripts/benchmark_import.py](../../scripts/benchmark_import.py)
   measures the §12.1 end-to-end set (CanRead, metadata-only, stage open,
   flatten, peak resident) per asset; the finer file-read / semantic-decode /
   USD-authoring split remains v0.7.0 work.
