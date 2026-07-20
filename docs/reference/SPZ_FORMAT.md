@@ -145,9 +145,13 @@ The accepted behavior:
   reporting that no plugin was found.
 - A `0x1f 0x8b` gzip signature alone is *not* enough (that is the over-broad
   direction §7.6 warns about): the reader inflates only the first four
-  decompressed bytes — bounded over a 64 KiB file prefix, retrying against
-  the whole file when oversized gzip header fields or stored-block padding
-  make the prefix inconclusive — and compares them against the magic.
+  decompressed bytes — bounded over a 64 KiB file prefix, retrying once over
+  a 1 MiB prefix when oversized gzip header fields or stored-block padding
+  make the first attempt inconclusive — and compares them against the magic.
+  Routing runs against arbitrary files, so `CanRead()` never reads an
+  unbounded amount: a file whose magic is not reachable within the retry
+  bound is declined. `ReadHeader()` and `Read()`, which run only on files
+  already routed here, do fall back to the whole file.
 - Header fields beyond the magic (version, count, SH degree) are deliberately
   *not* validated in `CanRead()`: a defective SPZ file is still an SPZ file,
   and §7.6 assigns the explanation to `Read()`'s diagnostics, not to a silent
@@ -165,3 +169,10 @@ The accepted behavior:
   rather than a silent truncation.
 - Identify a legally redistributable SPZ asset with recorded provenance for the
   corpus, per the release criteria.
+- Decide whether the import pipeline needs an overall decompressed-size policy
+  for hostile inputs. Container memory is bounded by DEFLATE's inherent 1032:1
+  expansion over the file size (the payload additionally by the declared-count
+  plausibility check; extension records have no declared size to check), which
+  still lets a small crafted file demand gigabytes. Whether to cap that is a
+  host-application policy question, not a container fact — revisit alongside
+  the semantic decoder.
