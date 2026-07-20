@@ -46,8 +46,8 @@ This table describes the current tree. Planned capabilities belong in the
 | Scale (8-bit log) | supported | `exp(byte/16 - 10)`, strictly positive |
 | Rotation first-three (v1/v2) and smallest-three (v3) | supported | per-version fixtures pin reconstruction and normalization |
 | Opacity (8-bit) | supported | `byte/255`, already in `[0,1]` |
-| DC and SH rest (8-bit quantized) | supported | dequantized with the channel-inner-to-Gaussian-major transpose |
-| SH degrees 0-3 | supported | fixtures per degree; degree 4 reported unsupported (`GSPZ-E011`), not malformed |
+| DC and SH rest (8-bit quantized) | supported | dequantized directly into the model's Gaussian-major RGB triples (no transpose needed) |
+| SH degrees 0-3 | supported | decoder fixtures at degrees 0, 1, and 3; degree 4 reported unsupported (`GSPZ-E011`), not malformed |
 | RUB→RDF reference-frame conversion | supported | position/quaternion/SH sign flips verified through the decoder and USD |
 | Extension records, antialiased flag | supported (ignored) | preserved by the reader, ignored by the decoder with warnings `GSPZ-W001`/`W002` |
 | Real trained SPZ assets | unverified | no committed corpus asset or PLY/SPZ equivalence pair yet (v0.3.0 remaining work) |

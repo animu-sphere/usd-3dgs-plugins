@@ -206,6 +206,7 @@ def main():
     catalog_codes = load_catalog()
 
     check_stage_contract("decode-degree1-v2.spz", 2, 1)
+    check_stage_contract("decode-degree3-v2.spz", 2, 3)
     check_stage_contract("decode-v1.spz", 1, 0)
     check_stage_contract("decode-v3.spz", 1, 0)
     check_stage_contract("minimal-v1.spz", 1, 0)

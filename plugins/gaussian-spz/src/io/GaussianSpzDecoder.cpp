@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,6 +46,14 @@ constexpr float kShFlipRubToRdf[15] = {
     -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
     +1.0f,
 };
+
+// The table is indexed by rest coefficient up to the model's maximum degree,
+// so raising kModelMaxShDegree without extending it would read out of bounds.
+static_assert(
+    std::size(kShFlipRubToRdf) ==
+        (kModelMaxShDegree + 1) * (kModelMaxShDegree + 1) - 1,
+    "kShFlipRubToRdf must cover every rest coefficient the shared model "
+    "carries; extend it when kModelMaxShDegree changes.");
 
 void SetError(std::string* error, const char* code, const std::string& message)
 {
@@ -347,9 +356,9 @@ bool GaussianSpzDecoder::Decode(
         for (std::size_t i = 0; i < count; ++i) {
             for (std::size_t coefficient = 0; coefficient < restDims;
                  ++coefficient) {
-                // Channel is the inner axis in the stream; the model wants
-                // Gaussian-major RGB triples, so the transpose is only a
-                // stride change.
+                // SPZ already orders the stream by Gaussian, then coefficient,
+                // with the channel innermost — the model's own layout — so
+                // this is a copy plus the sign flip, not a transpose.
                 const unsigned char* rgb =
                     stored + (i * restDims + coefficient) * 3;
                 const float flip = kShFlipRubToRdf[coefficient];
