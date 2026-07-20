@@ -39,9 +39,17 @@ read-only SPZ import through the shared `GaussianCloudData` pipeline
   layout (rejected with a specific unsupported-version diagnostic), gzip
   member framing, overflow-safe header and size validation, truncation,
   corruption, and trailing-data detection, a metadata-only header path, and
-  the stable `GSPZ-****` container diagnostic catalog. Semantic decoding into
-  `GaussianCloudData` is not wired yet, so opening an `.spz` stage still
-  fails — now with container-level diagnostics instead of no plugin at all.
+  the stable `GSPZ-****` container diagnostic catalog.
+- Read-only SPZ import: opening an `.spz` file authors a Gaussian Splatting
+  USD stage. The decoder dequantizes positions (v1 float16, v2/v3 24-bit
+  fixed point), 8-bit log scales and opacity, per-version rotations
+  (first-three and smallest-three), and spherical harmonics, converts SPZ's
+  right-up-back frame into the model's right-down-front reference frame, and
+  authors through the shared `gaussianUsd` writer — so PLY and SPZ produce the
+  identical stage hierarchy, schema, and metadata. SH degree 4 is reported as
+  unsupported (not malformed); the mapping and the reference quantization
+  constants are documented in
+  [SPZ mapping](docs/reference/SPZ_MAPPING.md).
 - Vendored miniz 3.0.2 (MIT) for the raw-DEFLATE decompression and CRC32
   behind the SPZ container reader; the gzip framing itself is parsed by the
   reader so container diagnostics keep their required granularity.

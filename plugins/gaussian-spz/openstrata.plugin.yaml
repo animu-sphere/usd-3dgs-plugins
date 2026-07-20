@@ -30,18 +30,23 @@ requires:
   libraries:
     - id: gaussianCore
       version: ">=0.1,<0.2"
+    - id: gaussianUsd
+      version: ">=0.3,<0.4"
 usd:
   # Where this bundle's plugInfo.json lives, relative to the bundle root.
   plug_info: plugin/resources/gaussian-spz/plugInfo.json
 tests:
-  # Smoke and roundtrip stay empty until the semantic decoder and the
-  # GaussianLayerWriter routing land: in this development snapshot Read()
-  # deliberately fails after container validation, so only expected-to-fail
-  # fixtures are meaningful through the plugin. The container reader's
-  # positive coverage lives in tests/test_gaussian_spz_reader.cpp.
-  smoke: []
+  smoke:
+    - tests/fixtures/decode-degree1-v2.spz
+    - tests/fixtures/decode-v1.spz
+    - tests/fixtures/decode-v3.spz
+    - tests/fixtures/minimal-v1.spz
+    - tests/fixtures/minimal-v2.spz
+    - tests/fixtures/minimal-v3.spz
   roundtrip: []
   negative:
+    - tests/fixtures/decode-degree4-v2.spz
+    - tests/fixtures/decode-nonfinite-v1.spz
     - tests/fixtures/not-spz.spz
     - tests/fixtures/gzip-not-spz.spz
     - tests/fixtures/plaintext-v4.spz

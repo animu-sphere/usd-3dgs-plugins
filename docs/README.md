@@ -31,7 +31,9 @@ workspace contract wins; structural changes must update that contract first.
 - [reference/CAPABILITY_MATRIX.md](reference/CAPABILITY_MATRIX.md) describes
   what the current tree implements, not what it intends to implement later.
 - [reference/PLY_MAPPING.md](reference/PLY_MAPPING.md) is the normative source
-  property-to-USD mapping for `gaussian-ply`.
+  property-to-USD mapping for `gaussian-ply`;
+  [reference/SPZ_MAPPING.md](reference/SPZ_MAPPING.md) is its counterpart for
+  `gaussian-spz`.
 
 ## Component documentation
 
@@ -40,5 +42,6 @@ Component-specific usage stays with the component:
 | Component | Documentation |
 | --- | --- |
 | `gaussian-ply` | [plugin README](../plugins/gaussian-ply/README.md) |
+| `gaussian-spz` | [plugin README](../plugins/gaussian-spz/README.md) |
 | `gaussianCore` | [library README](../libs/gaussian-core/README.md) |
 

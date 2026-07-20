@@ -60,12 +60,31 @@ Not supported or not verified:
 - multiple Gaussian clouds in one source;
 - streaming, partial reads, or memory mapping.
 
+## SPZ input contract
+
+Supported:
+
+- SPZ container versions 1, 2, and 3 (gzip-wrapped, single stream);
+- position, scale, rotation (first-three and smallest-three), opacity, and
+  spherical harmonics dequantization with the documented RUB→RDF conversion;
+- SH degrees 0-3;
+- metadata-only reads from the container header.
+
+Not supported or not verified:
+
+- SPZ version 4 (ZSTD) — rejected with the unsupported-version diagnostic;
+- SH degree 4 — rejected as unsupported (the shared model carries 0-3);
+- real trained SPZ corpus assets and PLY/SPZ equivalence — not yet committed;
+- writing or exporting SPZ;
+- streaming, partial reads, or memory mapping.
+
 ## Output contract
 
-The bundle is a read-only shared-library `SdfFileFormat` plugin. It authors one
-`ParticleField3DGaussianSplat` under `/Asset/Splat`; `/Asset` is the default
-prim. The output contract is described in
-[PLY_MAPPING.md](PLY_MAPPING.md).
+Both bundles are read-only shared-library `SdfFileFormat` plugins. Each authors
+one `ParticleField3DGaussianSplat` under `/Asset/Splat`; `/Asset` is the default
+prim. The output contract is described in [PLY_MAPPING.md](PLY_MAPPING.md) and,
+for SPZ, [SPZ_MAPPING.md](SPZ_MAPPING.md); the authored stage is identical
+because both author through the shared `gaussianUsd` writer.
 
 This repository supplies data interoperability, not a renderer. Visible splat
 rendering depends on the active Hydra implementation.

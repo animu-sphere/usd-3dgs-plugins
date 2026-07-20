@@ -18,13 +18,18 @@ TF_DECLARE_PUBLIC_TOKENS(GaussianSpzFileFormatTokens, GAUSSIANSPZ_FILE_FORMAT_TO
 
 /// Read-only SdfFileFormat for Niantic SPZ Gaussian Splatting assets.
 /// Container reading lives in io/SpzReader.*; semantic decoding into
-/// GaussianCloudData and authoring through the shared GaussianLayerWriter
-/// are the remaining v0.3.0 workstreams, so Read() currently reports the
-/// container verdict and then fails explicitly.
+/// GaussianCloudData lives in io/GaussianSpzDecoder.*; USD authoring routes
+/// through the shared libs/gaussian-usd GaussianLayerWriter, so PLY and SPZ
+/// author the identical stage hierarchy, schema, and metadata by construction.
 class GaussianSpzFileFormat : public SdfFileFormat {
 public:
     bool CanRead(const std::string& file) const override;
     bool Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const override;
+    bool WriteToFile(
+        const SdfLayer& layer,
+        const std::string& filePath,
+        const std::string& comment = std::string(),
+        const FileFormatArguments& args = FileFormatArguments()) const override;
     bool WriteToString(
         const SdfLayer& layer,
         std::string* str,

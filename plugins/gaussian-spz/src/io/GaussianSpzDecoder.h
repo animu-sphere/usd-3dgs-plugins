@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: Apache-2.0
+#pragma once
+
+#include "openstrata/gs/GaussianCloudData.h"
+
+#include <cstddef>
+#include <string>
+#include <vector>
+
+namespace openstrata::gs::spz {
+
+// Header-derivable facts about an SPZ asset, available without decompressing
+// the attribute streams (design policy §12.3).
+struct GaussianSpzMetadata {
+    std::size_t gaussianCount = 0;
+    int shDegree = 0;
+};
+
+// Semantic decoding of an SPZ v1-v3 container into the format-independent
+// GaussianCloudData: position/scale dequantization, rotation decoding and
+// normalization, opacity decoding, SH dequantization, and the RUB→RDF
+// reference-frame conversion. Container concerns (signature, gzip framing,
+// truncation, size math) stay in SpzReader; this class consumes its packed
+// document. The exact mapping is docs/reference/SPZ_MAPPING.md.
+class GaussianSpzDecoder {
+public:
+    bool CanRead(const std::string& path) const noexcept;
+
+    // Validates the header and derives count and SH degree without touching
+    // the attribute streams. SH degree 4 fails here the same way it fails in
+    // Decode(): a metadata read must not promise a decode that would be
+    // rejected.
+    bool DecodeMetadata(
+        const std::string& path,
+        GaussianSpzMetadata* metadata,
+        std::string* error = nullptr) const;
+
+    bool Decode(
+        const std::string& path,
+        GaussianCloudData* cloud,
+        std::vector<std::string>* warnings = nullptr,
+        std::string* error = nullptr) const;
+};
+
+} // namespace openstrata::gs::spz

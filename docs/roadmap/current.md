@@ -114,30 +114,43 @@ model.*
   `tests/test_gaussian_spz_reader.cpp` pinning every fixture to its exact
   diagnostic code.
 
-## SPZ semantic decoder ⬜
+## SPZ semantic decoder ✅
 
-- ⬜ Decode into `GaussianCloudData`: position/scale dequantization, rotation
-  decoding and normalization, opacity decoding, SH coefficient decoding with
-  degree inference or validation, finite-value and range checks, and shared
-  cloud validation — the same output invariants as `GaussianPlyDecoder`.
-- ⬜ Introduce the stable `GSPZ-****` diagnostic namespace with a
-  machine-readable catalog cross-checked by tests, distinguishing malformed,
-  unsupported, and internal failures.
-- ⬜ Add unit fixtures for each supported encoding case: minimum valid SPZ,
-  multiple records, each supported SH degree, quantization boundary values,
-  quaternion normalization, truncated input, invalid counts, unsupported
-  versions, and metadata-only reads.
+- ✅ Decode into `GaussianCloudData` (`plugins/gaussian-spz/src/io/GaussianSpzDecoder.*`):
+  position dequantization (v1 float16, v2/v3 24-bit fixed point), 8-bit
+  log-scale and opacity decoding, per-version rotation decoding
+  (first-three and smallest-three) with normalization, DC and rest SH
+  dequantization with the channel-inner-to-Gaussian-major transpose, the
+  RUB→RDF reference-frame conversion, finite-value checks, and shared cloud
+  validation — the same output invariants as `GaussianPlyDecoder`. The exact
+  mapping and the reference constants are pinned in
+  [SPZ_MAPPING.md](../reference/SPZ_MAPPING.md).
+- ✅ Extended the stable `GSPZ-****` catalog with the decoding, authoring, and
+  entry-point codes (`E011`-`E013`, `E101`-`E104`, `E201`, `W001`-`W002`);
+  `diagnostics.json` is cross-checked against the source constants in both
+  directions by the Python smoke test. Malformed / unsupported / internal
+  failures stay distinct: SH degree 4 is unsupported (`E011`), not malformed.
+- ✅ Added decoder fixtures generated deterministically by
+  `tools/generate_fixtures.py` (known Gaussians encoded through the reference
+  quantization formulas) and `tests/test_gaussian_spz_decoder.cpp`, pinning the
+  RUB→RDF conversion, the per-coefficient SH flip signs, both rotation
+  encodings, unsupported degree 4, and non-finite float16 positions. The
+  highest-risk paths (rotation reconstruction, SH ordering) are checked as an
+  encode→decode inverse, not against re-derived formulas.
 
-## USD integration ⬜
+## USD integration ✅
 
-- ⬜ Register the SPZ file-format plugin (`plugins/gaussian-spz`) and route
-  decoded data into `GaussianLayerWriter`. SPZ-specific USD prim construction
-  is not permitted; if SPZ turns out to require a parallel authoring path,
-  the release architecture is reconsidered before shipping.
-- ⬜ Confirm PLY and SPZ author the same stage hierarchy (`/Asset`,
-  `/Asset/Splat`), schema, metadata policy, stage metrics, and default-prim
-  behavior.
-- ⬜ Add Python/OpenUSD smoke tests.
+- ✅ The SPZ file-format plugin routes decoded data through the shared
+  `GaussianLayerWriter` under this bundle's own stable authoring codes; no
+  SPZ-specific USD prim construction exists. `Read()` and metadata-only reads
+  both author, and the read-only `WriteToFile` path fails with `GSPZ-E201`.
+- ✅ PLY and SPZ author the same stage hierarchy (`/Asset`, `/Asset/Splat`),
+  schema, metadata policy, stage metrics, and default-prim behavior by
+  construction — one writer, differing only in the `sourceFormat` string.
+- ✅ Added `tests/test_gaussian_spz_plugin.py`: opens SPZ stages through
+  OpenUSD, asserts the shared stage contract and the known decoded values
+  (including the axis flip and SH layout seen through USD), the metadata-only
+  path, and every negative fixture's exact diagnostic code.
 
 ## Equivalence and real assets ⬜
 
