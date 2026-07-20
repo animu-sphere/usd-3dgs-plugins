@@ -51,13 +51,13 @@ consistent post-v0.2.0 condition before SPZ work begins.*
   compatible. Diagnostic codes shipped in v0.2.0 are never renumbered or
   reused.
 - ⬜ Improve test reporting where failures are currently too coarse.
-- ✅ Drafted the v0.3.0 release-record skeleton as
-  [releases/v0.3.0-draft.md](../releases/v0.3.0-draft.md): objective,
-  shipped capabilities, compatibility, and known limitations written now;
-  tag, commit, digests, and artifact checksums left as `TBD`. Deliberately
-  *not* named `v0.3.0.md` and not added to the records table — the record
-  itself is created only once the tag exists, per the
-  [release-record policy](../releases/README.md).
+- ✅ Drafted the v0.3.0 release-record skeleton early, kept it as
+  `v0.3.0-draft.md` until the tag existed, then promoted it to
+  [releases/v0.3.0.md](../releases/v0.3.0.md) with the tagged commit,
+  hosted-run links, and published artifact checksums filled in. Drafting early
+  made tag time a transcription job; not renaming early kept the
+  [release-record policy](../releases/README.md) intact — the record pins the
+  tagged commit, and the record lives inside that commit.
 
 ## Shared model contract 🚧
 
@@ -214,9 +214,15 @@ model.*
     `ost plugin test plugins/gaussian-spz --from-package --up-to 5` is OK
     (14 pass, 0 fail, 1 skip — the skip is the ⛔ package-origin L5 item
     above). The `gaussian-ply` bundle packages identically at 0.3.0.
-  - ⬜ Hosted dry run (`workflow_dispatch` on `release.yml`), tag, draft
-    release. The dry run is the last gate item that has not been observed for
-    v0.3.0; everything it enforces has passed locally.
+  - ✅ Hosted dry run, tag, draft release, all on 2026-07-20. The
+    `workflow_dispatch` dry run passed first
+    ([run 29741537174](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/29741537174)),
+    then `v0.3.0` was tagged at `80fad96` and
+    [run 29741754978](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/29741754978)
+    assembled the draft — 6 cells green, packaging digest-reproducible within
+    each run.
+  - ⬜ Human publication review of the draft release. This is deliberately not
+    automated; the lane stops at `gh release create --draft`.
 - ℹ️ **Golden `.usda` files are portable despite embedding an absolute path.**
   `ost plugin test` flattens the roundtrip fixture *without*
   `--skipSourceFileComment`, so the golden carries a multiline
