@@ -28,10 +28,35 @@ def gzip_member(
     body: bytes | None = None,
     crc: int | None = None,
     isize: int | None = None,
+    extra: bytes | None = None,
+    name: bytes | None = None,
+    comment: bytes | None = None,
+    fhcrc: bool | int = False,
 ) -> bytes:
-    """A single gzip member: fixed header, raw-DEFLATE body, CRC32+ISIZE
-    trailer. `body`, `crc`, and `isize` overrides build damaged members."""
-    header = bytes([0x1F, 0x8B, 0x08, 0x00, 0, 0, 0, 0, 0x00, 0xFF])
+    """A single gzip member: header, raw-DEFLATE body, CRC32+ISIZE trailer.
+    `body`, `crc`, and `isize` overrides build damaged members; `extra`,
+    `name`, `comment`, and `fhcrc` populate the optional RFC 1952 header
+    fields (`fhcrc=True` stores the correct CRC16, an int stores that
+    value verbatim)."""
+    flg = 0x00
+    if extra is not None:
+        flg |= 0x04
+    if name is not None:
+        flg |= 0x08
+    if comment is not None:
+        flg |= 0x10
+    if fhcrc is not False:
+        flg |= 0x02
+    header = bytes([0x1F, 0x8B, 0x08, flg, 0, 0, 0, 0, 0x00, 0xFF])
+    if extra is not None:
+        header += struct.pack("<H", len(extra)) + extra
+    if name is not None:
+        header += name + b"\x00"
+    if comment is not None:
+        header += comment + b"\x00"
+    if fhcrc is not False:
+        value = zlib.crc32(header) & 0xFFFF if fhcrc is True else fhcrc
+        header += struct.pack("<H", value)
     if body is None:
         body = deflate(data)
     if crc is None:
@@ -88,6 +113,14 @@ def valid_fixtures() -> None:
     # follow the attribute streams inside the decompressed stream.
     write("extensions-v2.spz", gzip_member(
         spz_stream(2, 1, 0, flags=0x03) + b"EXTBYTES"))
+    # Every optional RFC 1952 header field at once, with a correct CRC16.
+    write("header-fields-v2.spz", gzip_member(
+        spz_stream(2, 1, 0), extra=b"XTRA", name=b"fixture.spz",
+        comment=b"generated fixture", fhcrc=True))
+    # An FNAME longer than the 64 KiB CanRead prefix: the first bounded
+    # attempt is inconclusive and the single 1 MiB retry must resolve it.
+    write("long-fname-v2.spz", gzip_member(
+        spz_stream(2, 1, 0), name=b"n" * 70_000))
 
 
 def invalid_fixtures() -> None:
@@ -139,6 +172,9 @@ def invalid_fixtures() -> None:
     write("bad-crc-v2.spz", gzip_member(
         minimal, crc=(zlib.crc32(minimal) ^ 0xFF) & 0xFFFFFFFF))
     write("bad-isize-v2.spz", gzip_member(minimal, isize=len(minimal) ^ 0xFF))
+
+    # A wrong FHCRC over an otherwise valid member: damaged header (E004).
+    write("bad-fhcrc-v2.spz", gzip_member(minimal, fhcrc=0xBEEF))
 
     # Trailing data both inside the decompressed stream (without the
     # extensions flag) and after the gzip member.

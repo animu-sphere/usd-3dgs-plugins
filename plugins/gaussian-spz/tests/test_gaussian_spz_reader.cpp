@@ -132,6 +132,29 @@ void TestHighDegreeShSizing(const char* fixture, int degree, std::size_t shBytes
     CHECK(document.payload.size() == 19 + shBytes);
 }
 
+// Optional RFC 1952 header fields (FEXTRA, FNAME, FCOMMENT, FHCRC) must be
+// skipped — and the FHCRC verified — without disturbing the streams behind
+// them. The long-FNAME fixture pushes the magic past the 64 KiB CanRead
+// prefix, so it also pins the bounded one-retry path.
+void TestGzipHeaderFields()
+{
+    const gsspz::SpzReader reader;
+    for (const char* fixture : {"header-fields-v2.spz", "long-fname-v2.spz"}) {
+        const std::string path = Fixture(fixture);
+        CHECK(reader.CanRead(path));
+
+        gsspz::SpzHeader header;
+        std::string error;
+        CHECK(reader.ReadHeader(path, &header, &error));
+        CHECK(header.pointCount == 1);
+
+        gsspz::SpzPackedDocument document;
+        CHECK(reader.Read(path, &document, &error));
+        CHECK(document.payload.size() == 19);
+        CHECK(PayloadMatchesPattern(document));
+    }
+}
+
 void TestExtensionsPreserved()
 {
     const gsspz::SpzReader reader;
@@ -205,6 +228,7 @@ void TestCanRead()
 
     CHECK(!reader.CanRead(Fixture("not-spz.spz")));
     CHECK(!reader.CanRead(Fixture("gzip-not-spz.spz")));
+    CHECK(!reader.CanRead(Fixture("bad-fhcrc-v2.spz")));
     CHECK(!reader.CanRead(Fixture("short-stream.spz")));
     CHECK(!reader.CanRead(Fixture("corrupt-deflate.spz")));
     CHECK(!reader.CanRead(Fixture("truncated-gzip-header.spz")));
@@ -231,6 +255,7 @@ int main()
     TestMultiPointShLayout();
     TestHighDegreeShSizing("degree3-v2.spz", 3, 45);
     TestHighDegreeShSizing("degree4-v2.spz", 4, 72);
+    TestGzipHeaderFields();
     TestExtensionsPreserved();
 
     TestReadFailure("not-spz.spz", gsspz::diag::kNotSpzContainer);
@@ -254,6 +279,7 @@ int main()
     TestReadFailure("corrupt-deflate.spz", gsspz::diag::kCorruptContainer);
     TestReadFailure("bad-crc-v2.spz", gsspz::diag::kCorruptContainer);
     TestReadFailure("bad-isize-v2.spz", gsspz::diag::kCorruptContainer);
+    TestReadFailure("bad-fhcrc-v2.spz", gsspz::diag::kMalformedContainer);
     TestReadFailure(
         "trailing-decompressed-v2.spz", gsspz::diag::kTrailingData);
     TestReadFailure(

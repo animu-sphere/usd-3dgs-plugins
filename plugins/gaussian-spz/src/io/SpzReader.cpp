@@ -38,9 +38,17 @@ constexpr std::uint32_t kMaxPointCount = 0x7fffffff;
 constexpr std::uint64_t kMaxDeflateExpansion = 1032;
 // CanRead and metadata reads first try a bounded prefix of the file. If the
 // gzip header or the 16 decompressed header bytes do not fit (oversized
-// FEXTRA/FNAME fields, adversarial stored-block padding), they retry with the
-// whole file rather than misreporting.
+// FEXTRA/FNAME fields, adversarial stored-block padding), ReadHeader retries
+// with the whole file rather than misreporting; CanRead retries with the
+// larger bound below, because routing runs against arbitrary files and must
+// never read an unbounded amount of them.
 constexpr std::size_t kPrefixLimit = 64 * 1024;
+// A genuine SPZ materializes its magic within a few dozen compressed bytes;
+// only pathological gzip header fields push it out further. One mebibyte is
+// orders of magnitude beyond any of those seen in practice, so a file whose
+// magic is still not reachable within it is declined by CanRead rather than
+// decompressed in full during format resolution.
+constexpr std::size_t kCanReadRetryLimit = 1024 * 1024;
 
 void SetError(std::string* error, const char* code, const std::string& message)
 {
@@ -198,6 +206,17 @@ GzipParse ParseGzipHeader(
     if ((flg & 0x02) != 0) { // FHCRC
         if (!need(pos + 2)) {
             return short_("The gzip header CRC field is truncated.");
+        }
+        // RFC 1952: the two least significant bytes of the CRC32 of the
+        // header bytes preceding this field.
+        const std::uint32_t computed = static_cast<std::uint32_t>(
+            mz_crc32(MZ_CRC32_INIT, data.data(), pos)) & 0xffffu;
+        const std::uint32_t stored =
+            static_cast<std::uint32_t>(data[pos]) |
+            (static_cast<std::uint32_t>(data[pos + 1]) << 8);
+        if (computed != stored) {
+            return fail("The gzip header CRC16 does not match the header "
+                "bytes.");
         }
         pos += 2;
     }
@@ -519,12 +538,13 @@ bool SpzReader::CanRead(const std::string& path) const noexcept
             return false;
         }
         // The prefix was inconclusive (oversized gzip header fields or
-        // stored-block padding before the magic); retry with the whole file.
-        if (!LoadFile(path, std::numeric_limits<std::size_t>::max(),
-                      &data, &fileSize, nullptr)) {
+        // stored-block padding before the magic); retry once with the larger
+        // bound. Still inconclusive past that means the file is declined
+        // here rather than read in full during format resolution.
+        if (!LoadFile(path, kCanReadRetryLimit, &data, &fileSize, nullptr)) {
             return false;
         }
-        return CanReadBuffer(data, true);
+        return CanReadBuffer(data, data.size() >= fileSize);
     } catch (...) {
         return false;
     }

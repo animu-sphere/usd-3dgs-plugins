@@ -106,8 +106,10 @@ model.*
   claimed for the specific unsupported-version diagnostic; gzip inputs
   identified by a bounded partial decompression of the magic only, with
   header-field validation deliberately left to `Read()`.
-- ✅ Added container fixtures: 7 valid (versions 1-3, multi-point SH sizing,
-  spec-max degree 4, extension records) and 19 invalid, generated
+- ✅ Added container fixtures: 9 valid (versions 1-3, multi-point SH sizing,
+  spec-max degree 4, extension records, optional gzip header fields with a
+  verified FHCRC, an FNAME long enough to force the bounded `CanRead()`
+  retry) and 20 invalid, generated
   deterministically by `plugins/gaussian-spz/tools/generate_fixtures.py`, with
   `tests/test_gaussian_spz_reader.cpp` pinning every fixture to its exact
   diagnostic code.

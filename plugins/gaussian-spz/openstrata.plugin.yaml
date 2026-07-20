@@ -59,5 +59,6 @@ tests:
     - tests/fixtures/corrupt-deflate.spz
     - tests/fixtures/bad-crc-v2.spz
     - tests/fixtures/bad-isize-v2.spz
+    - tests/fixtures/bad-fhcrc-v2.spz
     - tests/fixtures/trailing-decompressed-v2.spz
     - tests/fixtures/trailing-after-member-v2.spz
