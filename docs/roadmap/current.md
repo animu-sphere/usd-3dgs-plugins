@@ -81,7 +81,7 @@ model.*
 - ⬜ Decide which validation and math utilities are shared under `libs/` and
   which stay format-specific.
 
-## SPZ container reader 🚧
+## SPZ container reader ✅
 
 - ✅ Identified the specification and recorded scope decisions in
   [SPZ_FORMAT.md](../reference/SPZ_FORMAT.md): Niantic's MIT-licensed
@@ -89,14 +89,28 @@ model.*
   cannot express the required malformed/unsupported/internal distinction), and
   **support versions 1-3 in v0.3.0** with v4 deferred to v0.5.0 and rejected
   by a specific unsupported-version diagnostic.
-- ⬜ Implement low-level reading separate from semantic conversion: signature
-  detection, version parsing, header/count/size validation with overflow-safe
-  buffer math, truncated-input detection, unsupported-version rejection, and
-  a metadata-only path. The reader constructs no USD objects.
-- ⬜ Decide the SPZ `CanRead()` strategy: the container signature sits behind
-  the gzip member, so header-only detection under design policy §7.6 needs an
-  explicit approach ([SPZ_FORMAT.md](../reference/SPZ_FORMAT.md) §6).
-- ⬜ Add invalid-container fixtures.
+- ✅ Implemented low-level reading separate from semantic conversion
+  (`plugins/gaussian-spz/src/io/SpzReader.*`): signature detection for both
+  container generations, gzip member framing parsed in-repo (vendored miniz
+  supplies raw DEFLATE and CRC32 only), header validation, overflow-safe
+  size math with a DEFLATE-expansion plausibility bound, truncation /
+  corruption / trailing-data detection, unsupported-version rejection, and a
+  metadata-only header path. The reader constructs no USD objects and emits
+  the `GSPZ-E0**` container series of the stable diagnostic catalog.
+  Implementing from the specification surfaced three errors in the recorded
+  container facts (attribute ordering, v1 float16 positions, per-version
+  rotation encodings), corrected in [SPZ_FORMAT.md](../reference/SPZ_FORMAT.md)
+  §4 first.
+- ✅ Decided the SPZ `CanRead()` strategy
+  ([SPZ_FORMAT.md](../reference/SPZ_FORMAT.md) §6): plaintext v4 magic
+  claimed for the specific unsupported-version diagnostic; gzip inputs
+  identified by a bounded partial decompression of the magic only, with
+  header-field validation deliberately left to `Read()`.
+- ✅ Added container fixtures: 7 valid (versions 1-3, multi-point SH sizing,
+  spec-max degree 4, extension records) and 19 invalid, generated
+  deterministically by `plugins/gaussian-spz/tools/generate_fixtures.py`, with
+  `tests/test_gaussian_spz_reader.cpp` pinning every fixture to its exact
+  diagnostic code.
 
 ## SPZ semantic decoder ⬜
 

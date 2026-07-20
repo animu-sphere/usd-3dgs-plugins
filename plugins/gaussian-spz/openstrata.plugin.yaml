@@ -1,0 +1,63 @@
+# OpenStrata plugin bundle manifest.
+# A plugin is a self-describing bundle, not a bare shared library: this file is
+# the contract `ost plugin inspect|build|doctor|test` resolve against.
+manifest:
+  schema: openstrata.plugin/v1alpha1
+plugin:
+  name: gaussian-spz
+  version: 0.3.0
+  kind: usd-fileformat
+# SPDX license for this plugin's own code. Surfaced by `ost plugin inspect` and
+# recorded in the package manifest. Change it to match your project's license.
+license: Apache-2.0
+notices:
+  - THIRD_PARTY_NOTICES.md
+runtime:
+  # The OpenUSD version range this plugin tolerates. The runtime supplies the
+  # certified point within it.
+  # ParticleField3DGaussianSplat is part of OpenUSD 26.05's usdVol schema.
+  openusd: ">=26.05,<27.0"
+  # Source bundles do not hard-code C++ ABI; `ost plugin doctor` compares the
+  # resolved target/runtime ABI when a built or packaged manifest records one.
+  # To pin it, `cxx_abi` accepts a scalar (`msvc143`), the `inherit` sentinel
+  # (defer to the runtime), or a per-OS map for a cross-platform bundle:
+  #   cxx_abi: { windows: msvc143, linux: libstdcxx, macos: libcxx }
+  cxx_abi: inherit
+provides:
+  - usd-fileformat:spz
+requires:
+  capabilities: [usd-stage-read]
+  libraries:
+    - id: gaussianCore
+      version: ">=0.1,<0.2"
+usd:
+  # Where this bundle's plugInfo.json lives, relative to the bundle root.
+  plug_info: plugin/resources/gaussian-spz/plugInfo.json
+tests:
+  # Smoke and roundtrip stay empty until the semantic decoder and the
+  # GaussianLayerWriter routing land: in this development snapshot Read()
+  # deliberately fails after container validation, so only expected-to-fail
+  # fixtures are meaningful through the plugin. The container reader's
+  # positive coverage lives in tests/test_gaussian_spz_reader.cpp.
+  smoke: []
+  roundtrip: []
+  negative:
+    - tests/fixtures/not-spz.spz
+    - tests/fixtures/gzip-not-spz.spz
+    - tests/fixtures/plaintext-v4.spz
+    - tests/fixtures/plaintext-v2.spz
+    - tests/fixtures/version-0.spz
+    - tests/fixtures/version-5.spz
+    - tests/fixtures/empty-points-v2.spz
+    - tests/fixtures/huge-count-v2.spz
+    - tests/fixtures/sh-degree-5-v2.spz
+    - tests/fixtures/count-exceeds-stream-v2.spz
+    - tests/fixtures/truncated-gzip-header.spz
+    - tests/fixtures/short-stream.spz
+    - tests/fixtures/truncated-payload-v2.spz
+    - tests/fixtures/truncated-deflate-v2.spz
+    - tests/fixtures/corrupt-deflate.spz
+    - tests/fixtures/bad-crc-v2.spz
+    - tests/fixtures/bad-isize-v2.spz
+    - tests/fixtures/trailing-decompressed-v2.spz
+    - tests/fixtures/trailing-after-member-v2.spz

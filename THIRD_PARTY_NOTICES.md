@@ -15,3 +15,17 @@ Upstream notice:
 
 Authored by Dimitri Diakopoulos. The complete upstream notice is retained at
 the top of `third_party/tinyply/tinyply.h` and in the vendored README.
+
+## miniz 3.0.2
+
+- Project: <https://github.com/richgel999/miniz>
+- Vendored from: release archive `miniz-3.0.2.zip`
+  (SHA-256 `ada38db0b703a56d3dd6d57bf84a9c5d664921d870d8fea4db153979fb5332c5`)
+- Files: `third_party/miniz/miniz.h`, `miniz.c`, upstream `LICENSE`,
+  `readme.md`, and `ChangeLog.md`
+- License: MIT
+
+miniz provides the raw-DEFLATE decompression and CRC32 used by the
+`gaussian-spz` container reader; the gzip member framing itself is parsed in
+this repository. The complete MIT license text is retained at
+`third_party/miniz/LICENSE`.

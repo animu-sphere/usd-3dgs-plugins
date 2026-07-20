@@ -1,0 +1,72 @@
+{
+    "schema": "gaussian-spz.diagnostics/v1",
+    "description": "Stable diagnostic identifiers emitted by the gaussian-spz plugin. Codes are never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[GSPZ-E003] ...\".",
+    "diagnostics": [
+        {
+            "code": "GSPZ-E001",
+            "severity": "error",
+            "summary": "The file is not an SPZ container: it has neither a gzip member whose decompressed stream starts with the SPZ magic nor a plaintext SPZ magic.",
+            "action": "Provide a file exported as Niantic SPZ. If the file came from another tool, verify it was not renamed from a different format."
+        },
+        {
+            "code": "GSPZ-E002",
+            "severity": "error",
+            "summary": "The SPZ header declares zero Gaussians.",
+            "action": "Provide a file containing at least one Gaussian."
+        },
+        {
+            "code": "GSPZ-E003",
+            "severity": "error",
+            "summary": "The SPZ container version is not supported by this release. Supported container versions are 1-3; version 4 (the ZSTD container) is planned for a later release.",
+            "action": "Re-export the asset as SPZ version 1-3, or wait for version 4 support."
+        },
+        {
+            "code": "GSPZ-E004",
+            "severity": "error",
+            "summary": "The container structure is malformed: a damaged gzip member header, a decompressed stream shorter than the SPZ header, or a plaintext layout no SPZ version defines.",
+            "action": "Re-export the asset; the file does not follow the documented SPZ container layout."
+        },
+        {
+            "code": "GSPZ-E005",
+            "severity": "error",
+            "summary": "The declared Gaussian count is outside the representable range.",
+            "action": "The count exceeds the format maximum (2147483647) or is not addressable on this platform; re-export the asset with a valid count."
+        },
+        {
+            "code": "GSPZ-E006",
+            "severity": "error",
+            "summary": "The declared spherical-harmonics degree is outside the specification range 0-4.",
+            "action": "Re-export the asset with a supported SH degree."
+        },
+        {
+            "code": "GSPZ-E007",
+            "severity": "error",
+            "summary": "The container is truncated: the compressed stream ends before the declared attribute streams are complete.",
+            "action": "The file was cut short in transfer or storage; obtain a complete copy."
+        },
+        {
+            "code": "GSPZ-E008",
+            "severity": "error",
+            "summary": "The container is corrupt: the DEFLATE stream is not decodable, or the gzip CRC32/length trailer does not match the decompressed data.",
+            "action": "The file's bytes were altered; obtain an intact copy."
+        },
+        {
+            "code": "GSPZ-E009",
+            "severity": "error",
+            "summary": "Unexpected trailing data: decompressed bytes follow the attribute streams without the extensions flag, or bytes follow the gzip member.",
+            "action": "Re-export the asset; appended data is not part of the documented container layout."
+        },
+        {
+            "code": "GSPZ-E010",
+            "severity": "error",
+            "summary": "The file could not be opened or read.",
+            "action": "Check that the path exists, is a regular file, and is readable."
+        },
+        {
+            "code": "GSPZ-E100",
+            "severity": "error",
+            "summary": "Internal misuse of the import pipeline (null output parameters). Not reachable from file content.",
+            "action": "Report a bug against usd-3dgs-plugins with the reproduction."
+        }
+    ]
+}

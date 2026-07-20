@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "GaussianSpzFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/@OPENSTRATA_PLUGIN_LIBRARY_PREFIX@GaussianSpzFileFormat@CMAKE_SHARED_LIBRARY_SUFFIX@",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "GaussianSpzFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "GaussianSpz File Format",
+                        "extensions": ["spz"],
+                        "formatId": "spz",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}
