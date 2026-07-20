@@ -18,6 +18,7 @@ from pxr import Plug, Sdf, Tf, Usd, UsdGeom
 
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
+CORPUS = pathlib.Path(__file__).parent / "corpus"
 CATALOG = (pathlib.Path(__file__).parents[1]
            / "plugin" / "resources" / "gaussian-spz" / "diagnostics.json")
 
@@ -197,6 +198,89 @@ def load_catalog():
     return set(codes)
 
 
+def check_corpus_asset(spz_path):
+    """Tolerance-based semantic checks for a real SPZ corpus asset.
+
+    Real assets have no hand-checkable golden values; the expected count and
+    SH degree come from the asset's provenance record, and the attribute
+    values are checked for semantic validity rather than exact content.
+    """
+    provenance_path = spz_path.with_suffix(spz_path.suffix + ".provenance.json")
+    assert provenance_path.exists(), f"missing provenance for {spz_path.name}"
+    provenance = json.loads(provenance_path.read_text(encoding="ascii"))
+    expected_count = provenance["output"]["gaussian_count"]
+    expected_degree = provenance["output"]["sh_degree"]
+
+    stage = Usd.Stage.Open(str(spz_path))
+    assert stage, f"failed to open {spz_path.name}"
+    assert stage.GetDefaultPrim().GetPath() == Sdf.Path("/Asset")
+    assert UsdGeom.GetStageUpAxis(stage) == UsdGeom.Tokens.y
+    assert close(UsdGeom.GetStageMetersPerUnit(stage), 1.0)
+
+    asset = stage.GetPrimAtPath("/Asset")
+    metadata = asset.GetCustomData().get("gs", {})
+    assert metadata.get("sourceFormat") == "Gaussian Splatting SPZ", metadata
+    assert metadata.get("gaussianCount") == expected_count, metadata
+    assert metadata.get("shDegree") == expected_degree, metadata
+
+    splat = stage.GetPrimAtPath("/Asset/Splat")
+    assert splat and splat.GetTypeName() == "ParticleField3DGaussianSplat", splat
+    positions = splat.GetAttribute("positions").Get()
+    scales = splat.GetAttribute("scales").Get()
+    orientations = splat.GetAttribute("orientations").Get()
+    opacities = splat.GetAttribute("opacities").Get()
+    coefficients = splat.GetAttribute(
+        "radiance:sphericalHarmonicsCoefficients").Get()
+    assert (len(positions) == len(scales) == len(orientations)
+            == len(opacities) == expected_count), spz_path.name
+    assert len(coefficients) == expected_count * (expected_degree + 1) ** 2
+
+    assert all(math.isfinite(c) for p in positions for c in p)
+    assert all(math.isfinite(c) for v in coefficients for c in v)
+    # exp() of the quantized log scale is always positive; alpha is a byte
+    # scaled by 1/255, so unlike the PLY sigmoid it does reach 0 and 1.
+    assert all(c > 0.0 and math.isfinite(c) for s in scales for c in s)
+    assert all(0.0 <= o <= 1.0 for o in opacities)
+    for q in orientations:
+        norm = math.sqrt(q.GetReal() ** 2 + sum(c * c for c in q.GetImaginary()))
+        assert close(norm, 1.0, 1.0e-3), q
+
+    extent = splat.GetAttribute("extent").Get()
+    assert len(extent) == 2
+    low, high = extent
+    assert all(low[i] <= high[i] for i in range(3)), extent
+    epsilon = 1.0e-4
+    for p in positions:
+        assert all(low[i] - epsilon <= p[i] <= high[i] + epsilon
+                   for i in range(3)), (p, extent)
+
+    # The crop recorded in the provenance record bounds the SPZ-native
+    # positions; the stage is authored in RDF, which negates Y and Z. Checking
+    # the authored positions against the flipped box proves the derivation and
+    # the frame flip agree, and would catch a corpus asset regenerated with
+    # other arguments. The check is on positions, not on extent: extent is a
+    # conservative three-sigma bound that legitimately overruns the crop by the
+    # splat radius.
+    aabb = provenance["derivation"]["aabb"]
+    if aabb is not None:
+        native_low, native_high = aabb[:3], aabb[3:]
+        bounds = [(native_low[0], native_high[0]),
+                  (-native_high[1], -native_low[1]),
+                  (-native_high[2], -native_low[2])]
+        quantum = 2.0 ** -provenance["source"]["fractional_bits"]
+        for p in positions:
+            assert all(lo - quantum <= p[axis] <= hi + quantum
+                       for axis, (lo, hi) in enumerate(bounds)), (
+                spz_path.name, p, aabb)
+
+    # The metadata-only path must agree with the provenance record without
+    # decoding the payload.
+    layer = Sdf.Layer.OpenAsAnonymous(str(spz_path), metadataOnly=True)
+    gs = layer.GetPrimAtPath("/Asset").customData.get("gs", {})
+    assert gs.get("gaussianCount") == expected_count, gs
+    assert gs.get("shDegree") == expected_degree, gs
+
+
 def main():
     plugin_path = os.environ.get("PXR_PLUGINPATH_NAME")
     if plugin_path:
@@ -216,7 +300,12 @@ def main():
     check_metadata_only()
     check_negative_fixtures(catalog_codes)
 
-    print("gaussian-spz integration tests: OK")
+    corpus_assets = sorted(CORPUS.glob("*/*.spz")) if CORPUS.is_dir() else []
+    for spz_path in corpus_assets:
+        check_corpus_asset(spz_path)
+
+    print("gaussian-spz integration tests: OK "
+          f"({len(corpus_assets)} corpus assets)")
     return 0
 
 

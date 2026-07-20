@@ -152,15 +152,22 @@ model.*
   (including the axis flip and SH layout seen through USD), the metadata-only
   path, and every negative fixture's exact diagnostic code.
 
-## Equivalence and real assets ⬜
+## Equivalence and real assets 🚧
 
 - ⬜ Create matching or derived PLY/SPZ fixture pairs and compare count, SH
   degree, positions, scales, rotations, opacities, and DC and higher SH
   coefficients with documented quantization-aware tolerances, plus the
   authored hierarchy, schema, and metadata.
-- ⬜ Validate at least one legally redistributable SPZ asset with recorded
-  provenance: source, encoder and version, conversion command, license,
-  Gaussian count, SH degree, checksum, and expected import result.
+- ✅ Validated two legally redistributable SPZ assets with recorded
+  provenance: `yashica-t4` and `leica-sofort` under
+  `plugins/gaussian-spz/tests/corpus/`, CC0-1.0 author-captured Scaniverse
+  exports subset by `scripts/spz_subset.py --top-n 8192 --aabb=…` to 8,192
+  Gaussians (~195 KB each), with source and output checksums, SPZ version,
+  SH degree, and crop parameters in each `*.provenance.json`. The smoke test
+  discovers `corpus/*/*.spz` and checks the decoded stage semantically. The
+  producer traits these real exports revealed — a 10,242-point far-field
+  icosphere at alpha 253, and an out-of-range gzip `OS` byte — are recorded
+  in [SPZ_FORMAT.md §8](../reference/SPZ_FORMAT.md).
 - ⬜ Record design-policy §12.1 baselines for SPZ (`CanRead`, metadata-only
   read, full decode, stage open, flatten to USDC, peak memory), compared
   against PLY where equivalent assets exist. The v0.3.0 performance bar is

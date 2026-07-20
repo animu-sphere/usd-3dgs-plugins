@@ -1,0 +1,41 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "yashica_t4.spz",
+    "sha256": "46c8258dc96583dbe628fb5d24058b1828bb105c22ed456298b8685981facbff",
+    "bytes": 1185360,
+    "payload_sha256": "81b121c81411ce4dfc67b8c3a6ed2d664fd5b118c8630ee33fb2b6bdb8c4b0c2",
+    "payload_bytes": 3562384,
+    "gaussian_count": 55662,
+    "sh_degree": 3,
+    "spz_version": 2,
+    "fractional_bits": 12,
+    "spz_flags": 1
+  },
+  "derivation": {
+    "tool": "scripts/spz_subset.py",
+    "selection": "aabb filter in the SPZ-native RUB frame, then top-N quantized alpha, original point order preserved",
+    "top_n": 8192,
+    "aabb": [
+      -0.25,
+      -0.25,
+      -0.25,
+      0.25,
+      0.25,
+      0.25
+    ],
+    "candidates_after_aabb": 43444,
+    "compression_level": 9,
+    "date_utc": "2026-07-20"
+  },
+  "output": {
+    "file": "yashica-t4-top8192.spz",
+    "sha256": "91b235c9657316113cb9feff49e246927eb7a772132ea98461c445eef2343a09",
+    "bytes": 196682,
+    "payload_sha256": "69823784b3d80725b128cfce65951918f700e2ebcfd5b126e0dbd53ccc173518",
+    "payload_bytes": 524304,
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "spz_version": 2
+  }
+}

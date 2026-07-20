@@ -44,7 +44,7 @@ directly in `usdview` or any USD pipeline as OpenUSD 26.05's
 
 | Container | Status |
 | --- | --- |
-| SPZ versions 1-3 (gzip) | ✅ decoded and fixture-covered; real-asset corpus in progress |
+| SPZ versions 1-3 (gzip) | ✅ decoded, fixture-covered, and verified against a committed CC0 real-asset corpus |
 | SPZ version 4 (ZSTD) | ❌ rejected with a specific unsupported-version diagnostic |
 
 Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
@@ -93,8 +93,8 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 v0.2.0 — production-ready Graphdeco PLY import — is tagged and published;
 the current target is **v0.3.0 — SPZ import**. SPZ decoding and USD authoring
 are implemented and pass through the same `GaussianCloudData` pipeline as PLY;
-the remaining v0.3.0 work is a redistributable SPZ corpus asset, PLY/SPZ
-equivalence fixtures, performance baselines, and release hardening
+the remaining v0.3.0 work is PLY/SPZ equivalence fixtures, performance
+baselines, and release hardening
 ([current plan](docs/roadmap/current.md)). Releases are tag-driven,
 digest-reproducible, and published as drafts for human review
 ([release records](docs/releases/README.md)).

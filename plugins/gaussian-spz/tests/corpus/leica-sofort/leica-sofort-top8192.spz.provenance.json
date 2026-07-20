@@ -1,0 +1,41 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "leica_sofort.spz",
+    "sha256": "89894d8756ff4dbbf5d5a0050b71181310bd56cb9f831b4732b721a0b253be02",
+    "bytes": 3991056,
+    "payload_sha256": "90a1fab0f521352f1e5cd1a9197af0dd1503a85fc5394934e674950fd3f1f203",
+    "payload_bytes": 10969424,
+    "gaussian_count": 171397,
+    "sh_degree": 3,
+    "spz_version": 2,
+    "fractional_bits": 12,
+    "spz_flags": 1
+  },
+  "derivation": {
+    "tool": "scripts/spz_subset.py",
+    "selection": "aabb filter in the SPZ-native RUB frame, then top-N quantized alpha, original point order preserved",
+    "top_n": 8192,
+    "aabb": [
+      -0.25,
+      -0.25,
+      -0.25,
+      0.25,
+      0.25,
+      0.25
+    ],
+    "candidates_after_aabb": 153774,
+    "compression_level": 9,
+    "date_utc": "2026-07-20"
+  },
+  "output": {
+    "file": "leica-sofort-top8192.spz",
+    "sha256": "e613e3956fc1a42068615e5c9122984670cbb06bd62885090eedaf99adc556ae",
+    "bytes": 202617,
+    "payload_sha256": "a7a28db6f529fca815c2edcb96e0503dc99b31c9aeab165a4dd1b1555d983219",
+    "payload_bytes": 524304,
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "spz_version": 2
+  }
+}
