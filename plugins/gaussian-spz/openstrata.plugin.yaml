@@ -43,7 +43,8 @@ tests:
     - tests/fixtures/minimal-v1.spz
     - tests/fixtures/minimal-v2.spz
     - tests/fixtures/minimal-v3.spz
-  roundtrip: []
+  roundtrip:
+    - tests/fixtures/decode-degree1-v2.spz
   negative:
     - tests/fixtures/decode-degree4-v2.spz
     - tests/fixtures/decode-nonfinite-v1.spz
