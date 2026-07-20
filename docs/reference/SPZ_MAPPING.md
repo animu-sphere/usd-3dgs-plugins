@@ -131,9 +131,9 @@ per-coefficient sign only; no SH band rotation is required.
 ## 6. Spherical-harmonic layout
 
 The SPZ SH stream is point-major with the color channel as the inner axis: per
-point, per rest coefficient, three bytes `r, g, b`. The model is
-Gaussian-major RGB triples (model contract §3), so the transpose is only a
-stride change:
+point, per rest coefficient, three bytes `r, g, b`. That is already the model's
+layout — Gaussian-major RGB triples (model contract §3) — so no transpose is
+required; decoding is a copy with the sign flip applied:
 
 ```text
 model.restCoefficients[i * D + k] = flipSh[k] * dequantize(stream[(i*D + k)*3 .. +3])

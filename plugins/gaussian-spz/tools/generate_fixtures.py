@@ -275,6 +275,19 @@ def enc_sh(value: float) -> int:
     return max(0, min(255, int(round(value * 128.0)) + 128))
 
 
+def sh_triple(point: int, k: int) -> tuple[float, float, float]:
+    """Source RGB for rest coefficient `k` of `point`, mirrored by the C++ test.
+
+    Distinct across point, coefficient, and channel, so a wrong flip sign, a
+    coefficient swap, a channel swap, and a point-stride error each change the
+    decoded values. All are multiples of 1/128 (the SH quantization step).
+    """
+    a = (k + 1) / 32.0
+    b = (k + 2) / 32.0
+    c = (k + 3) / 64.0
+    return (a, -b, c) if point == 0 else (-a, c, -b)
+
+
 def enc_sh_stream(points_sh) -> bytes:
     """points_sh[point][coefficient] = (r, g, b); channel is the inner axis."""
     out = bytearray()
@@ -309,6 +322,26 @@ def decoder_fixtures() -> None:
     stream += b"".join(enc_rotation_first_three(q) for q in quaternions)
     stream += enc_sh_stream(sh)
     write("decode-degree1-v2.spz", gzip_member(stream))
+
+    # A two-point degree-3 asset covering every rest coefficient, so all 15
+    # RUB->RDF sign flips (bands 1-3) and the degree-3 Gaussian stride are
+    # pinned rather than just the three band-1 flips a degree-1 fixture
+    # reaches. Every SH value is an exact multiple of 1/128, so quantization
+    # round-trips without error, and the three channels of a coefficient are
+    # always distinct so a channel swap is visible too.
+    degree3_positions = [(0.5, 1.0, -1.5), (-2.0, 0.75, 3.0)]
+    stream = spz_header(2, len(degree3_positions), 3, fractional_bits=frac)
+    stream += b"".join(enc_position_v2(p, frac) for p in degree3_positions)
+    stream += b"".join(enc_alpha(o) for o in (0.25, 0.75))
+    stream += b"".join(
+        enc_color(c) for c in [(0.2, -0.2, 0.4), (-0.4, 0.1, -0.1)])
+    stream += b"".join(
+        enc_scale(s) for s in [(0.0, 0.0, 0.0), (1.0, -1.0, 0.5)])
+    stream += b"".join(enc_rotation_first_three(q) for q in [
+        (1.0, 0.0, 0.0, 0.0), (0.5, 0.5, 0.5, 0.5)])
+    stream += enc_sh_stream(
+        [[sh_triple(point, k) for k in range(15)] for point in range(2)])
+    write("decode-degree3-v2.spz", gzip_member(stream))
 
     # Single-point degree-0 fixtures isolating the version-specific paths.
     def single(version: int, position, quat, *, frac_bits=12) -> bytes:

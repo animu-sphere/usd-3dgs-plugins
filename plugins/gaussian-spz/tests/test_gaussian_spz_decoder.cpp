@@ -112,7 +112,8 @@ void TestDegree1FullPipeline()
 
     // Rest SH: Gaussian-major RGB triples with the band-1 flip signs
     // (coefficient 0 -> -1, 1 -> -1, 2 -> +1) applied to every channel.
-    // A transpose or a wrong flip sign changes these exact values.
+    // A coefficient reordering or a wrong flip sign changes these exact
+    // values; TestDegree3ShFlipsAndStride covers bands 2 and 3.
     const std::vector<gs::Float3> expectedRest = {
         {-0.1f, -0.2f, -0.3f}, // P0 coef0 (flip -1)
         {0.1f, 0.2f, 0.3f},    // P0 coef1 (flip -1)
@@ -130,6 +131,63 @@ void TestDegree1FullPipeline()
             (at + ".g").c_str());
         CheckClose(cloud.restCoefficients[i].z, expectedRest[i].z, 0.01f,
             (at + ".b").c_str());
+    }
+}
+
+// Mirrors tools/generate_fixtures.py sh_triple(): the source RGB for rest
+// coefficient k of a point in decode-degree3-v2.spz.
+gs::Float3 SourceShTriple(std::size_t point, std::size_t k)
+{
+    const float a = static_cast<float>(k + 1) / 32.0f;
+    const float b = static_cast<float>(k + 2) / 32.0f;
+    const float c = static_cast<float>(k + 3) / 64.0f;
+    return point == 0 ? gs::Float3{a, -b, c} : gs::Float3{-a, c, -b};
+}
+
+// The RUB->RDF rest-coefficient sign table (SPZ_MAPPING.md §5), restated here
+// so the decoder's constant is checked against an independent copy rather
+// than against itself. Derived from the reference flipSh
+// {y, z, x, xy, yz, 1, xz, 1, y, xyz, y, z, x, z, x} at (x,y,z) = (1,-1,-1).
+constexpr float kExpectedShFlip[15] = {
+    -1.0f, -1.0f, +1.0f,                       // band 1
+    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,         // band 2
+    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
+    +1.0f,
+};
+
+// A degree-1 fixture only reaches the three band-1 flips, leaving the other
+// twelve signs and the degree-3 Gaussian stride unguarded. This covers every
+// rest coefficient of both points.
+void TestDegree3ShFlipsAndStride()
+{
+    const gsspz::GaussianSpzDecoder decoder;
+    gs::GaussianCloudData cloud;
+    std::string error;
+    CHECK(decoder.Decode(
+        Fixture("decode-degree3-v2.spz"), &cloud, nullptr, &error));
+    CHECK(error.empty());
+    CheckContract(cloud);
+    CHECK(cloud.gaussianCount == 2);
+    CHECK(cloud.shDegree == 3);
+    CHECK(cloud.restCoefficients.size() == 2 * 15);
+    if (cloud.restCoefficients.size() != 2 * 15) {
+        return;
+    }
+
+    // Source values are exact multiples of the 1/128 quantization step, so
+    // the only error left is float rounding.
+    for (std::size_t point = 0; point < 2; ++point) {
+        for (std::size_t k = 0; k < 15; ++k) {
+            const gs::Float3 source = SourceShTriple(point, k);
+            const float flip = kExpectedShFlip[k];
+            const gs::Float3& decoded = cloud.restCoefficients[point * 15 + k];
+            const std::string at =
+                "degree3 rest[" + std::to_string(point) + "][" +
+                std::to_string(k) + "]";
+            CheckClose(decoded.x, flip * source.x, 1e-4f, (at + ".r").c_str());
+            CheckClose(decoded.y, flip * source.y, 1e-4f, (at + ".g").c_str());
+            CheckClose(decoded.z, flip * source.z, 1e-4f, (at + ".b").c_str());
+        }
     }
 }
 
@@ -269,6 +327,7 @@ void TestInternalMisuse()
 int main()
 {
     TestDegree1FullPipeline();
+    TestDegree3ShFlipsAndStride();
     TestVersion1Float16Positions();
     TestVersion3SmallestThreeRotation();
     TestMetadataOnly();

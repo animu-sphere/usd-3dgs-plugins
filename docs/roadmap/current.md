@@ -120,7 +120,7 @@ model.*
   position dequantization (v1 float16, v2/v3 24-bit fixed point), 8-bit
   log-scale and opacity decoding, per-version rotation decoding
   (first-three and smallest-three) with normalization, DC and rest SH
-  dequantization with the channel-inner-to-Gaussian-major transpose, the
+  dequantization straight into the model's Gaussian-major RGB triples, the
   RUB→RDF reference-frame conversion, finite-value checks, and shared cloud
   validation — the same output invariants as `GaussianPlyDecoder`. The exact
   mapping and the reference constants are pinned in
