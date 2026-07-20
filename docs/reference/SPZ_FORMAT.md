@@ -7,7 +7,9 @@ targets is [GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md); the
 SPZ-specific semantic mapping gets its own `SPZ_MAPPING.md` alongside the
 decoder, mirroring [PLY_MAPPING.md](PLY_MAPPING.md).
 
-Status: decisions accepted 2026-07-20. Implementation not started.
+Status: decisions accepted 2026-07-20; container reader implemented
+2026-07-20 (`plugins/gaussian-spz/src/io/SpzReader.*`). Semantic decoding not
+started.
 
 ## 1. Specification source
 
@@ -76,21 +78,42 @@ Recorded from the specification for implementation; every one of these is
 confirmed against a real file before the decoder is considered done, and any
 correction is made here first.
 
-- The file is gzip as a whole: it begins with the `0x1f 0x8b` member header,
-  and the magic `0x5053474e` is the first field of the *decompressed* stream,
-  not of the file. Detection has to account for that (see §6).
-- Header fields are little-endian: magic, version, point count, SH degree,
-  fractional bits, flags, reserved.
-- Positions: 24-bit fixed-point signed integers; the fractional-bit count comes
-  from the header rather than being fixed.
-- Scales: 8-bit, log-encoded.
-- Rotations: smallest-three quaternion encoding — the stored component order
-  and the reconstruction of the dropped component are the highest-risk part of
-  the decoder and get dedicated fixtures.
-- Alphas and colours: 8-bit unsigned.
-- Spherical harmonics: 8-bit signed, count determined by degree.
-- Attribute-major ordering: positions, scales, rotations, alphas, colours,
+Corrected 2026-07-20 against the upstream README and reference serializer
+(`load-spz.cc`) while implementing the container reader. Three of the facts
+initially recorded here were wrong: the attribute ordering placed scales and
+rotations before alphas and colours, the 24-bit fixed-point position encoding
+was recorded without its version qualifier (v1 stores float16), and the
+smallest-three rotation encoding was recorded without its version qualifier
+(v1-v2 store the first three components). The corrected facts:
+
+- The v1-v3 file is gzip as a whole: it begins with the `0x1f 0x8b` member
+  header, and the magic `0x5053474e` ("NGSP" little-endian) is the first
+  field of the *decompressed* stream, not of the file. The v4-and-later
+  container instead stores the magic in plaintext at file offset 0. Format
+  detection therefore branches on the first bytes: gzip signature → v1-v3,
+  plaintext magic → v4+ (see §6).
+- Header fields are little-endian: magic, version, point count (`uint32`,
+  reference maximum `INT32_MAX`), SH degree, fractional bits, flags,
+  reserved (one byte each). 16 bytes total for v1-v3.
+- Flags: bit `0x1` antialiased (informational), bit `0x2` extension records
+  follow the attribute streams.
+- Attribute-major ordering: positions, alphas, colours, scales, rotations,
   spherical harmonics.
+- Positions: v1 stores float16 (2 bytes per component); v2-v3 store 24-bit
+  fixed-point signed integers whose fractional-bit count comes from the
+  header rather than being fixed.
+- Scales: 8-bit, log-encoded.
+- Rotations: v1-v2 store the first three quaternion components (x, y, z) as
+  8-bit signed values, 3 bytes per rotation, with the real component
+  reconstructed; v3 packs the smallest three components as 10-bit signed
+  values plus a 2-bit largest-component index, 4 bytes per rotation. The
+  component order and the reconstruction of the dropped component are the
+  highest-risk part of the decoder and get dedicated fixtures.
+- Alphas: 8-bit unsigned. Colours: 8-bit unsigned RGB carrying the SH DC
+  term — the SH stream holds rest coefficients only.
+- Spherical harmonics: 8-bit signed, `(degree+1)² − 1` rest coefficients per
+  colour channel with the channel as the inner (faster-varying) axis; the
+  header field admits degrees 0-4.
 
 ## 5. Coordinate system
 
@@ -105,21 +128,40 @@ criterion forbids.
 The conversion is part of decoding and is covered by the PLY/SPZ equivalence
 fixtures, which would otherwise disagree on sign in two axes.
 
-## 6. Open items
+## 6. Decision — `CanRead()` strategy
+
+**Accepted 2026-07-20, implemented in `SpzReader::CanRead()`: bounded partial
+decompression of the container magic, plus the plaintext v4 signature.**
+
+The initial framing of this question ("the magic sits inside the gzip member,
+so there is no signature at offset 0") turned out to be incomplete: it is true
+for v1-v3, but the v4 layout stores the magic in plaintext at offset 0, which
+is also how the reference implementation distinguishes the two generations.
+The accepted behavior:
+
+- `.spz` extension, then signature: a plaintext `NGSP` magic at offset 0 is
+  claimed immediately — a v4 file must reach `Read()` so it fails with the
+  specific unsupported-version diagnostic (`GSPZ-E003`, §3) instead of USD
+  reporting that no plugin was found.
+- A `0x1f 0x8b` gzip signature alone is *not* enough (that is the over-broad
+  direction §7.6 warns about): the reader inflates only the first four
+  decompressed bytes — bounded over a 64 KiB file prefix, retrying against
+  the whole file when oversized gzip header fields or stored-block padding
+  make the prefix inconclusive — and compares them against the magic.
+- Header fields beyond the magic (version, count, SH degree) are deliberately
+  *not* validated in `CanRead()`: a defective SPZ file is still an SPZ file,
+  and §7.6 assigns the explanation to `Read()`'s diagnostics, not to a silent
+  routing refusal.
+
+## 7. Open items
 
 - Confirm the SH quantization bit-depth actually present in real v1-v3 assets;
   the packing bit-depth is an encoder option, and the decoder must not assume
   the default.
-- Confirm degree-4 handling. The header field admits SH degrees the shared
-  model does not currently carry (`GaussianCloudData` covers degrees 0-3); if
-  real v1-v3 files use degree 4, this needs an explicit accept-or-reject
-  decision rather than a silent truncation.
+- Confirm degree-4 handling. The container reader accepts the specification
+  range (degrees 0-4) structurally, so the decision is confined to the
+  semantic decoder: `GaussianCloudData` covers degrees 0-3, so if real v1-v3
+  files use degree 4 the decoder needs an explicit accept-or-reject decision
+  rather than a silent truncation.
 - Identify a legally redistributable SPZ asset with recorded provenance for the
   corpus, per the release criteria.
-- Decide the `CanRead()` strategy. The container magic sits *inside* the gzip
-  member, not at file offset 0, so the header-only rule of design policy §7.6
-  has no signature to read directly. The two candidates are accepting on
-  extension plus the `0x1f 0x8b` gzip marker — which claims every gzip file
-  with the right extension, the over-broad direction §7.6 warns about — or
-  inflating only the first header-sized block. This must be settled before the
-  reader is written, not discovered during it.

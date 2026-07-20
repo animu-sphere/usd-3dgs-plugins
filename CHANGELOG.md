@@ -34,6 +34,17 @@ read-only SPZ import through the shared `GaussianCloudData` pipeline
   same code rather than to a per-bundle copy of it.
 - A documented `CanRead()` contract (design policy §7.6): it reports plausible
   format compatibility, not asset validity.
+- The `gaussian-spz` bundle with the SPZ v1-v3 container reader: signature
+  detection for both the gzip-wrapped v1-v3 layout and the plaintext v4
+  layout (rejected with a specific unsupported-version diagnostic), gzip
+  member framing, overflow-safe header and size validation, truncation,
+  corruption, and trailing-data detection, a metadata-only header path, and
+  the stable `GSPZ-****` container diagnostic catalog. Semantic decoding into
+  `GaussianCloudData` is not wired yet, so opening an `.spz` stage still
+  fails — now with container-level diagnostics instead of no plugin at all.
+- Vendored miniz 3.0.2 (MIT) for the raw-DEFLATE decompression and CRC32
+  behind the SPZ container reader; the gzip framing itself is parsed by the
+  reader so container diagnostics keep their required granularity.
 
 ## [0.2.0] - 2026-07-19
 

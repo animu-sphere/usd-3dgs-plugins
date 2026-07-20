@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "GaussianSpzFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/libGaussianSpzFileFormat.dll",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "GaussianSpzFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "GaussianSpz File Format",
+                        "extensions": ["spz"],
+                        "formatId": "spz",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}

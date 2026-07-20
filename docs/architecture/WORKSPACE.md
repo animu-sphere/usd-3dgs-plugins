@@ -15,7 +15,7 @@ Future component identities are reserved here but do not yet exist.
 | `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | implemented | Detect and decode canonical Gaussian Splatting PLY and author a standard OpenUSD Gaussian layer. |
 | `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, SH layout utilities, diagnostic message formatting, and the test-only model-contract checker every decoder is held to. |
 | `gaussianUsd` | plain CMake/OpenStrata static library | implemented | Shared `GaussianCloudData` → OpenUSD schema authoring. Extracted from `gaussian-ply` in v0.3.0, at the moment design policy §7.4 reserves for it: the SPZ bundle would otherwise duplicate `GaussianLayerWriter`. Diagnostic codes stay owned by the calling bundle. |
-| `gaussian-spz` | plugin bundle (`usd-fileformat`) | reserved | Decode SPZ through `GaussianCloudData` and the shared authoring contract. |
+| `gaussian-spz` | plugin bundle (`usd-fileformat`) | in progress — container reader implemented | Decode SPZ through `GaussianCloudData` and the shared authoring contract. |
 | `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |
 | `gaussian-sog` | plugin bundle (`usd-fileformat`) | reserved | SOG decoding and, later, chunk/LOD composition. |
 
@@ -30,6 +30,8 @@ Allowed today:
 gaussian-ply -> gaussianCore
 gaussian-ply -> gaussianUsd
 gaussian-ply -> tinyPLY (private, vendored parser implementation)
+gaussian-spz -> gaussianCore
+gaussian-spz -> miniz (private, vendored raw-DEFLATE/CRC32; gzip framing is in-repo)
 gaussianUsd  -> gaussianCore
 gaussianUsd  -> OpenUSD
 ```
@@ -37,7 +39,6 @@ gaussianUsd  -> OpenUSD
 Reserved future directions:
 
 ```text
-gaussian-spz  -> gaussianCore
 gaussian-spz  -> gaussianUsd
 gaussian-gltf -> gaussianCore
 gaussian-sog  -> gaussianCore
@@ -72,6 +73,13 @@ plugins/gaussian-ply/src/io/PlyReader.*
 
 plugins/gaussian-ply/src/io/GaussianPlyDecoder.*
     Gaussian dialect validation and semantic decoding
+
+plugins/gaussian-spz/src/GaussianSpzFileFormat.*
+    thin SdfFileFormat integration (semantic decoding pending)
+
+plugins/gaussian-spz/src/io/SpzReader.*
+    SPZ container reading: gzip framing, header/size validation,
+    quantized attribute spans; miniz isolation
 
 libs/gaussian-core/
     format- and USD-independent Gaussian model/math
@@ -181,7 +189,7 @@ fixtures but not the adjacent `.golden.usda`; this is recorded in the
 | M2 | Gaussian semantic mapping | implemented |
 | M3 | validation and negative fixtures | implemented |
 | M4 | integration, package, docs, notices | implemented locally; release gate incomplete |
-| M5 | SPZ | not started |
+| M5 | SPZ | in progress: container reader implemented; semantic decoder and USD integration not started |
 
 Current work and acceptance gaps are tracked in
 [roadmap/current.md](../roadmap/current.md).
