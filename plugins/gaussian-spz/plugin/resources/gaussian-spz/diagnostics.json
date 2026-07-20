@@ -63,10 +63,70 @@
             "action": "Check that the path exists, is a regular file, and is readable."
         },
         {
+            "code": "GSPZ-E011",
+            "severity": "error",
+            "summary": "The spherical-harmonics degree is valid SPZ but not supported by this release; supported degrees are 0-3.",
+            "action": "Re-export the asset with SH degree 0-3, or wait for a release whose shared model carries degree 4."
+        },
+        {
+            "code": "GSPZ-E012",
+            "severity": "error",
+            "summary": "A float16 position in an SPZ version 1 container is not finite (NaN or infinity).",
+            "action": "Re-export the asset; positions must be finite."
+        },
+        {
+            "code": "GSPZ-E013",
+            "severity": "error",
+            "summary": "The decoded cloud failed shared model validation before authoring. The decoder should have rejected the input with a more specific code first.",
+            "action": "Report a bug against usd-3dgs-plugins with the file; this indicates a decoder gap rather than a normal malformed-input failure."
+        },
+        {
             "code": "GSPZ-E100",
             "severity": "error",
-            "summary": "Internal misuse of the import pipeline (null output parameters). Not reachable from file content.",
+            "summary": "Internal misuse of the import pipeline (null output parameters, inconsistent container spans). Not reachable from file content.",
             "action": "Report a bug against usd-3dgs-plugins with the reproduction."
+        },
+        {
+            "code": "GSPZ-E101",
+            "severity": "error",
+            "summary": "The in-memory USD stage could not be created.",
+            "action": "Check the OpenUSD installation and plugin registration; this failure is environmental, not file content."
+        },
+        {
+            "code": "GSPZ-E102",
+            "severity": "error",
+            "summary": "The /Asset or /Asset/Splat prim could not be defined on the generated layer.",
+            "action": "Report a bug against usd-3dgs-plugins; the authoring scaffold is fixed and should always succeed on a healthy stage."
+        },
+        {
+            "code": "GSPZ-E103",
+            "severity": "error",
+            "summary": "An attribute value could not be authored on the generated layer.",
+            "action": "Report a bug against usd-3dgs-plugins with the file that triggered it."
+        },
+        {
+            "code": "GSPZ-E104",
+            "severity": "error",
+            "summary": "The extent computation overflowed to a non-finite bound.",
+            "action": "The decoded positions or scales are at the edge of float range; re-export the asset with values inside a renderable range."
+        },
+        {
+            "code": "GSPZ-E201",
+            "severity": "error",
+            "summary": "Writing USD content back to SPZ is unsupported; the plugin is read-only.",
+            "action": "Export through a Gaussian Splatting tool; USD-to-SPZ conversion is out of scope for this plugin."
+        },
+        {
+            "code": "GSPZ-W001",
+            "severity": "warning",
+            "summary": "Extension records were present and ignored; they are not part of the shared Gaussian model.",
+            "action": "No action needed unless the extension data matters to your pipeline; if it does, file a feature request."
+        },
+        {
+            "code": "GSPZ-W002",
+            "severity": "warning",
+            "summary": "The antialiased flag was set and ignored; the authored schema does not carry an antialiasing convention.",
+            "action": "Be aware the source asset was trained with the antialiased (mip-splatting style) convention; renderers that assume the classic convention may show slight differences."
         }
     ]
 }

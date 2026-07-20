@@ -4,12 +4,14 @@ This records the specification source, licence review, and scope decisions the
 v0.3.0 [release plan](../roadmap/release-plan.md#v030--spz-import) requires
 *before* SPZ decoding is implemented. The format-independent model the decoder
 targets is [GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md); the
-SPZ-specific semantic mapping gets its own `SPZ_MAPPING.md` alongside the
-decoder, mirroring [PLY_MAPPING.md](PLY_MAPPING.md).
+SPZ-specific semantic mapping is [SPZ_MAPPING.md](SPZ_MAPPING.md), mirroring
+[PLY_MAPPING.md](PLY_MAPPING.md).
 
 Status: decisions accepted 2026-07-20; container reader implemented
-2026-07-20 (`plugins/gaussian-spz/src/io/SpzReader.*`). Semantic decoding not
-started.
+2026-07-20 (`plugins/gaussian-spz/src/io/SpzReader.*`); semantic decoder and
+USD integration implemented 2026-07-20
+(`plugins/gaussian-spz/src/io/GaussianSpzDecoder.*`, mapping in
+[SPZ_MAPPING.md](SPZ_MAPPING.md)).
 
 ## 1. Specification source
 
@@ -159,16 +161,20 @@ The accepted behavior:
 
 ## 7. Open items
 
-- Confirm the SH quantization bit-depth actually present in real v1-v3 assets;
-  the packing bit-depth is an encoder option, and the decoder must not assume
-  the default.
-- Confirm degree-4 handling. The container reader accepts the specification
-  range (degrees 0-4) structurally, so the decision is confined to the
-  semantic decoder: `GaussianCloudData` covers degrees 0-3, so if real v1-v3
-  files use degree 4 the decoder needs an explicit accept-or-reject decision
-  rather than a silent truncation.
+- **Resolved.** SH quantization bit-depth is not an assumption the decoder
+  makes: the reference dequantization `(byte - 128) / 128` is independent of the
+  encoder's packing bit-depth (gzip restores the zeroed low bits), so
+  `GaussianSpzDecoder` reads any bit-depth without a per-asset option. See
+  [SPZ_MAPPING.md §3](SPZ_MAPPING.md).
+- **Resolved.** Degree-4 handling: the decoder rejects degree 4 with the
+  *unsupported* diagnostic `GSPZ-E011` (not malformed), and `DecodeMetadata`
+  applies the same check. `GaussianCloudData` carries degrees 0-3; degree 4
+  is deferred to a release whose shared model carries it. See
+  [SPZ_MAPPING.md §7](SPZ_MAPPING.md).
 - Identify a legally redistributable SPZ asset with recorded provenance for the
-  corpus, per the release criteria.
+  corpus, per the release criteria. (Still open: the decoder is verified against
+  hand-encoded fixtures; a real-asset corpus entry and PLY/SPZ equivalence
+  pairs remain in the "Equivalence and real assets" workstream.)
 - Decide whether the import pipeline needs an overall decompressed-size policy
   for hostile inputs. Container memory is bounded by DEFLATE's inherent 1032:1
   expansion over the file size (the payload additionally by the declared-count

@@ -1,14 +1,25 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Generate deterministic SPZ container fixtures used by the reader tests.
+"""Generate deterministic SPZ fixtures used by the reader and decoder tests.
 
 The gzip member is assembled by hand (RFC 1952) rather than through the gzip
 module so damaged framing — flipped trailer bytes, truncated members, data
-after the member — can be constructed exactly. Payload bytes follow the
-pattern (7*i + 3) % 256 so tests can verify attribute spans byte-for-byte.
+after the member — can be constructed exactly. Container-reader fixtures fill
+their payload with the pattern (7*i + 3) % 256 so tests can verify attribute
+spans byte-for-byte.
+
+The semantic-decoder fixtures instead encode known floating-point Gaussians
+through the reference serializer's exact quantization formulas
+(https://github.com/nianticlabs/spz, splat-utils.h / load-spz.cc). The C++
+decoder test knows the same source values, applies the documented RUB->RDF
+reference-frame conversion (SPZ_MAPPING.md §4-§5), and checks the decoded
+cloud within per-attribute quantization tolerances. Encoding a known value and
+decoding it back is a genuine inverse check: a sign or ordering error does not
+round-trip.
 """
 
 from __future__ import annotations
 
+import math
 import pathlib
 import struct
 import zlib
@@ -182,10 +193,165 @@ def invalid_fixtures() -> None:
     write("trailing-after-member-v2.spz", gzip_member(minimal) + b"JUNKJUNK")
 
 
+# --------------------------------------------------------------------------
+# Semantic-decoder fixtures: known Gaussians encoded with the reference
+# quantization formulas.
+# --------------------------------------------------------------------------
+
+SQRT1_2 = 0.7071067811865476
+COLOR_SCALE = 0.15
+
+
+def to_uint8(value: float) -> int:
+    return max(0, min(255, int(round(value))))
+
+
+def enc_position_v2(xyz: tuple[float, float, float], fractional_bits: int) -> bytes:
+    """24-bit little-endian two's-complement fixed point."""
+    out = b""
+    for component in xyz:
+        fixed = int(round(component * (1 << fractional_bits))) & 0xFFFFFF
+        out += bytes([fixed & 0xFF, (fixed >> 8) & 0xFF, (fixed >> 16) & 0xFF])
+    return out
+
+
+def enc_position_v1(xyz: tuple[float, float, float]) -> bytes:
+    """Three IEEE 754 binary16 components, little-endian."""
+    return b"".join(struct.pack("<e", component) for component in xyz)
+
+
+def enc_scale(log_scales: tuple[float, float, float]) -> bytes:
+    return bytes(to_uint8((s + 10.0) * 16.0) for s in log_scales)
+
+
+def enc_alpha(opacity: float) -> bytes:
+    # The decoder reports opacity as byte / 255 directly, so encoding the
+    # target opacity is a single scale.
+    return bytes([to_uint8(opacity * 255.0)])
+
+
+def enc_color(dc: tuple[float, float, float]) -> bytes:
+    return bytes(to_uint8(c * (COLOR_SCALE * 255.0) + 0.5 * 255.0) for c in dc)
+
+
+def _normalize_wxyz(quat_wxyz: tuple[float, float, float, float]):
+    w, x, y, z = quat_wxyz
+    norm = math.sqrt(w * w + x * x + y * y + z * z)
+    return w / norm, x / norm, y / norm, z / norm
+
+
+def enc_rotation_first_three(quat_wxyz) -> bytes:
+    """v1/v2: store x, y, z after forcing w >= 0 (reference packQuaternionFirstThree)."""
+    w, x, y, z = _normalize_wxyz(quat_wxyz)
+    sign = -127.5 if w < 0 else 127.5
+    return bytes([
+        to_uint8(x * sign + 127.5),
+        to_uint8(y * sign + 127.5),
+        to_uint8(z * sign + 127.5)])
+
+
+def enc_rotation_smallest_three(quat_wxyz) -> bytes:
+    """v3: 2-bit largest index + three 10-bit signed magnitudes scaled by 1/sqrt2
+    (reference packQuaternionSmallestThree). Component order is (x, y, z, w)."""
+    w, x, y, z = _normalize_wxyz(quat_wxyz)
+    q = [x, y, z, w]
+    i_largest = 0
+    for i in range(1, 4):
+        if abs(q[i]) > abs(q[i_largest]):
+            i_largest = i
+    negate = q[i_largest] < 0
+    comp = i_largest
+    for i in range(4):
+        if i == i_largest:
+            continue
+        negbit = (1 if q[i] < 0 else 0) ^ (1 if negate else 0)
+        magnitude = int(((1 << 9) - 1) * (abs(q[i]) / SQRT1_2) + 0.5)
+        comp = (comp << 10) | (negbit << 9) | magnitude
+    return struct.pack("<I", comp)
+
+
+def enc_sh(value: float) -> int:
+    # quantizeSH with bucket size 1 (no entropy bucketing): round(x*128)+128.
+    return max(0, min(255, int(round(value * 128.0)) + 128))
+
+
+def enc_sh_stream(points_sh) -> bytes:
+    """points_sh[point][coefficient] = (r, g, b); channel is the inner axis."""
+    out = bytearray()
+    for coefficients in points_sh:
+        for rgb in coefficients:
+            out += bytes(enc_sh(channel) for channel in rgb)
+    return bytes(out)
+
+
+def decoder_fixtures() -> None:
+    # A two-point degree-1 v2 asset exercising every attribute plus the SH
+    # ordering and the per-coefficient RUB->RDF sign flips. Positions and log
+    # scales are chosen to land on exact quantization points; the C++ test
+    # mirrors these source values (test_gaussian_spz_decoder.cpp).
+    frac = 12
+    positions = [(1.0, 2.0, -0.5), (-3.0, 0.25, 4.0)]
+    log_scales = [(0.0, 1.0, -1.0), (0.5, -0.5, 0.0)]
+    quaternions = [
+        (1.0, 0.0, 0.0, 0.0),                       # identity
+        (0.70710678, 0.70710678, 0.0, 0.0)]         # 90 deg about +X
+    opacities = [0.8, 0.6]
+    dc = [(0.0, 0.5, -0.5), (0.9, -0.9, 0.0)]
+    sh = [
+        [(0.1, 0.2, 0.3), (-0.1, -0.2, -0.3), (0.4, -0.4, 0.5)],
+        [(0.05, -0.05, 0.15), (0.25, 0.35, -0.45), (-0.6, 0.6, 0.1)]]
+
+    stream = spz_header(2, len(positions), 1, fractional_bits=frac)
+    stream += b"".join(enc_position_v2(p, frac) for p in positions)
+    stream += b"".join(enc_alpha(o) for o in opacities)
+    stream += b"".join(enc_color(c) for c in dc)
+    stream += b"".join(enc_scale(s) for s in log_scales)
+    stream += b"".join(enc_rotation_first_three(q) for q in quaternions)
+    stream += enc_sh_stream(sh)
+    write("decode-degree1-v2.spz", gzip_member(stream))
+
+    # Single-point degree-0 fixtures isolating the version-specific paths.
+    def single(version: int, position, quat, *, frac_bits=12) -> bytes:
+        stream = spz_header(version, 1, 0, fractional_bits=frac_bits)
+        if version == 1:
+            stream += enc_position_v1(position)
+        else:
+            stream += enc_position_v2(position, frac_bits)
+        stream += enc_alpha(0.5)
+        stream += enc_color((0.0, 0.0, 0.0))
+        stream += enc_scale((0.0, 0.0, 0.0))
+        if version >= 3:
+            stream += enc_rotation_smallest_three(quat)
+        else:
+            stream += enc_rotation_first_three(quat)
+        return stream
+
+    # v1 float16 positions; a first-three rotation about +X.
+    write("decode-v1.spz", gzip_member(
+        single(1, (1.5, -2.5, 0.75), (0.92387953, 0.38268343, 0.0, 0.0))))
+    # v3 smallest-three rotation whose largest component is x, not w.
+    write("decode-v3.spz", gzip_member(
+        single(3, (2.0, -1.0, 0.5), (0.2, 0.8, 0.4, 0.4))))
+
+    # Degree 4 is valid SPZ but beyond the shared model: unsupported, not
+    # malformed (GSPZ-E011).
+    write("decode-degree4-v2.spz", gzip_member(spz_stream(2, 1, 4)))
+
+    # A non-finite float16 position: the one place a bad value enters the
+    # pipeline (GSPZ-E012). Header then inf-x, finite y/z, then the remaining
+    # degree-0 attributes so the container itself stays well-formed.
+    bad = spz_header(1, 1, 0)
+    bad += struct.pack("<e", float("inf")) + struct.pack("<e", 0.0) + struct.pack("<e", 0.0)
+    bad += enc_alpha(0.5) + enc_color((0.0, 0.0, 0.0)) + enc_scale((0.0, 0.0, 0.0))
+    bad += enc_rotation_first_three((1.0, 0.0, 0.0, 0.0))
+    write("decode-nonfinite-v1.spz", gzip_member(bad))
+
+
 def main() -> None:
     ROOT.mkdir(parents=True, exist_ok=True)
     valid_fixtures()
     invalid_fixtures()
+    decoder_fixtures()
 
 
 if __name__ == "__main__":

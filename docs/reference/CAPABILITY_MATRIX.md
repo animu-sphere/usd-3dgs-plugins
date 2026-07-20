@@ -36,7 +36,28 @@ This table describes the current tree. Planned capabilities belong in the
 | File-format arguments | supported | `shDegree`, `opacityThreshold`, `scaleMultiplier` with validated ranges and tests |
 | Stable diagnostics | supported | `GSPLY-E***`/`GSPLY-W***` codes with a machine-readable catalog shipped in the plugin resources |
 
+## SPZ input and semantic mapping
+
+| Capability | Status | Evidence / behavior |
+| --- | --- | --- |
+| SPZ container versions 1-3 (gzip) | supported | C++ container reader and decoder fixtures for each version |
+| SPZ version 4 (ZSTD) | unsupported | rejected with the specific unsupported-version diagnostic `GSPZ-E003` |
+| Position (v1 float16, v2/v3 24-bit fixed point) | supported | decoder fixtures with known values; non-finite float16 rejected (`GSPZ-E012`) |
+| Scale (8-bit log) | supported | `exp(byte/16 - 10)`, strictly positive |
+| Rotation first-three (v1/v2) and smallest-three (v3) | supported | per-version fixtures pin reconstruction and normalization |
+| Opacity (8-bit) | supported | `byte/255`, already in `[0,1]` |
+| DC and SH rest (8-bit quantized) | supported | dequantized with the channel-inner-to-Gaussian-major transpose |
+| SH degrees 0-3 | supported | fixtures per degree; degree 4 reported unsupported (`GSPZ-E011`), not malformed |
+| RUB→RDF reference-frame conversion | supported | position/quaternion/SH sign flips verified through the decoder and USD |
+| Extension records, antialiased flag | supported (ignored) | preserved by the reader, ignored by the decoder with warnings `GSPZ-W001`/`W002` |
+| Real trained SPZ assets | unverified | no committed corpus asset or PLY/SPZ equivalence pair yet (v0.3.0 remaining work) |
+| Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only |
+| Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
+
 ## USD authoring
+
+Both `gaussian-ply` and `gaussian-spz` author through the shared
+`libs/gaussian-usd` writer, so the rows below are identical for either format.
 
 | Capability | Status | USD output |
 | --- | --- | --- |
@@ -48,7 +69,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Extent | supported | conservative three-sigma bounds from position/scale |
 | Source provenance | supported | `customData.gs` with source format, count, and SH degree |
 | USDA inspection | supported | `WriteToString` delegates to USDA |
-| PLY write/export | unsupported | `WriteToFile` reports read-only behavior |
+| PLY/SPZ write/export | unsupported | `WriteToFile` reports read-only behavior (`GSPLY-E203`/`GSPZ-E201`) |
 | Animated Gaussians | unsupported | static arrays only |
 | Multiple clouds/cameras | unsupported | one `/Asset/Splat`, no camera import |
 
@@ -57,7 +78,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Capability | Status |
 | --- | --- |
 | Standalone OST bundle build | supported |
-| Plain root CMake composition | supported; Visual Studio 2022 Release build and all three tests locally green |
+| Plain root CMake composition | supported; Visual Studio 2022 Release build and all seven tests (core, gaussianUsd, PLY decoder + smoke, SPZ reader + decoder + smoke) locally green |
 | Workspace plain-library dependency | supported and validated by `ost plugin test --workspace` |
 | Source L0-L5 verification | supported; locally green |
 | Target-specific package | supported; locally generated and tested |
