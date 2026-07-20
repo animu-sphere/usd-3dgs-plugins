@@ -50,7 +50,7 @@ This table describes the current tree. Planned capabilities belong in the
 | SH degrees 0-3 | supported | decoder fixtures at degrees 0, 1, and 3; degree 4 reported unsupported (`GSPZ-E011`), not malformed |
 | RUB→RDF reference-frame conversion | supported | position/quaternion/SH sign flips verified through the decoder and USD |
 | Extension records, antialiased flag | supported (ignored) | preserved by the reader, ignored by the decoder with warnings `GSPZ-W001`/`W002` |
-| Real trained SPZ assets | unverified | no committed corpus asset or PLY/SPZ equivalence pair yet (v0.3.0 remaining work) |
+| Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test; PLY/SPZ equivalence pairs are still outstanding (v0.3.0 remaining work) |
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only |
 | Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
 

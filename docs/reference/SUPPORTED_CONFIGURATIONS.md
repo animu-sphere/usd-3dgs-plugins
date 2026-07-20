@@ -74,7 +74,8 @@ Not supported or not verified:
 
 - SPZ version 4 (ZSTD) — rejected with the unsupported-version diagnostic;
 - SH degree 4 — rejected as unsupported (the shared model carries 0-3);
-- real trained SPZ corpus assets and PLY/SPZ equivalence — not yet committed;
+- PLY/SPZ equivalence pairs — not yet committed (real trained SPZ corpus
+  assets are, as of v0.3.0 development);
 - writing or exporting SPZ;
 - streaming, partial reads, or memory mapping.
 

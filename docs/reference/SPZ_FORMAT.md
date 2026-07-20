@@ -171,10 +171,12 @@ The accepted behavior:
   applies the same check. `GaussianCloudData` carries degrees 0-3; degree 4
   is deferred to a release whose shared model carries it. See
   [SPZ_MAPPING.md §7](SPZ_MAPPING.md).
-- Identify a legally redistributable SPZ asset with recorded provenance for the
-  corpus, per the release criteria. (Still open: the decoder is verified against
-  hand-encoded fixtures; a real-asset corpus entry and PLY/SPZ equivalence
-  pairs remain in the "Equivalence and real assets" workstream.)
+- **Resolved.** A legally redistributable SPZ asset with recorded provenance
+  for the corpus: two CC0-1.0 author-captured Scaniverse exports are committed
+  under `plugins/gaussian-spz/tests/corpus/`, derived by
+  `scripts/spz_subset.py` and checked semantically by the smoke test. See §8
+  for what those real exports revealed. (Still open: PLY/SPZ equivalence pairs
+  remain in the "Equivalence and real assets" workstream.)
 - Decide whether the import pipeline needs an overall decompressed-size policy
   for hostile inputs. Container memory is bounded by DEFLATE's inherent 1032:1
   expansion over the file size (the payload additionally by the declared-count
@@ -182,3 +184,26 @@ The accepted behavior:
   still lets a small crafted file demand gigabytes. Whether to cap that is a
   host-application policy question, not a container fact — revisit alongside
   the semantic decoder.
+
+## 8. Producer traits observed in real exports
+
+Facts from the two Scaniverse exports admitted to the corpus (see each asset's
+`PROVENANCE.md`). They are recorded here because a reader that assumes the
+opposite would fail on real files, and none of them is stated by the
+specification.
+
+| Trait | Observed | Consequence |
+| --- | --- | --- |
+| Far-field background shell | 10,242 Gaussians — a 5×-subdivided icosphere, 10·4⁵+2 vertices — at radius ≈240, all at the identical quantized alpha 253 | Environment backdrop, not scene content. It outranks most real content by opacity, so any opacity-ranked subset of such a file must crop by position first; `scripts/spz_subset.py --aabb` exists for this. |
+| gzip framing | `FLG` 0 (no `FNAME`/`FCOMMENT`/`FEXTRA`), `MTIME` 0, `OS` byte **19** — outside the range RFC 1952 defines | The reader must not validate the `OS` byte, and must not depend on optional fields being present. |
+| Header | v2, SH degree 3, `fractionalBits` 12, `flags` `0x01` (antialiased), `reserved` 0 | The corpus assets are the first real-world trigger of `GSPZ-W002`; before them the antialiased-flag path was fixture-only. |
+| Scene scale | content within ≈0.25 units of the origin, with a sparse tail of incidental surroundings several units out | On-device captures are normalized, not metric. Nothing in the container states a unit, so the stage's `metersPerUnit = 1.0` is a convention, not a measurement. |
+
+Two independent captures agreeing on every row is what makes these producer
+traits rather than one-off accidents. A second producer's exports should be
+compared against this table before its rows are generalized.
+
+SPZ v1-v3 carries no geolocation, capture-time, or device field anywhere in the
+container, and the observed framing sets `MTIME` to zero, so a `.spz` file
+discloses nothing about where or when it was captured beyond what the geometry
+itself depicts.
