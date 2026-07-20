@@ -1,5 +1,6 @@
 # Build output and OpenStrata run reports.
 /build/
+/dist/
 /lib/
 .strata/
 

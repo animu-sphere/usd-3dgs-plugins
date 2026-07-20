@@ -74,10 +74,15 @@ Not supported or not verified:
 
 - SPZ version 4 (ZSTD) — rejected with the unsupported-version diagnostic;
 - SH degree 4 — rejected as unsupported (the shared model carries 0-3);
-- PLY/SPZ equivalence pairs — not yet committed (real trained SPZ corpus
-  assets are, as of v0.3.0 development);
+- equivalence pairs for SPZ v1 float16 positions — the v1 position path is
+  pinned by the SPZ decoder suite instead, for the reason in
+  [EQUIVALENCE.md §5](EQUIVALENCE.md);
 - writing or exporting SPZ;
 - streaming, partial reads, or memory mapping.
+
+PLY/SPZ cross-format equivalence *is* verified for SPZ v2 and v3 by synthetic
+pairs that encode one source model into both formats; see
+[EQUIVALENCE.md](EQUIVALENCE.md).
 
 ## Output contract
 

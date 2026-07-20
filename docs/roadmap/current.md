@@ -156,12 +156,25 @@ model.*
   (including the axis flip and SH layout seen through USD), the metadata-only
   path, and every negative fixture's exact diagnostic code.
 
-## Equivalence and real assets 🚧
+## Equivalence and real assets ✅
 
-- ⬜ Create matching or derived PLY/SPZ fixture pairs and compare count, SH
-  degree, positions, scales, rotations, opacities, and DC and higher SH
-  coefficients with documented quantization-aware tolerances, plus the
-  authored hierarchy, schema, and metadata.
+- ✅ Created synthetic PLY/SPZ fixture pairs and compared count, SH degree,
+  positions, scales, rotations, opacities, and DC and higher SH coefficients
+  with documented quantization-aware tolerances. One source model defined in
+  shared-model space is encoded into both formats by
+  `tools/generate_equivalence_fixtures.py`; `tests/equivalence/` decodes both
+  and compares. The tolerance derivation, the two profiles (on-grid at 1e-5,
+  off-grid at the quantization envelope), and what is deliberately *not*
+  paired are in [EQUIVALENCE.md](../reference/EQUIVALENCE.md). The pairs
+  cover SPZ v2 and v3 against one shared PLY, so a v3-only failure isolates
+  the smallest-three rotation path. Because both bundles author through one
+  writer, the authored hierarchy, schema, and metadata are identical by
+  construction and stay asserted per-bundle by the smoke tests rather than
+  re-compared here.
+  - Recorded while building it: the SPZ SH quantization range is asymmetric
+    (`[-1.0, +0.9921875]`), so a `-1.0` coefficient carrying a negative band
+    flip clamps on encode. That is an encoder property, not a decoder
+    disagreement — see [EQUIVALENCE.md §4](../reference/EQUIVALENCE.md).
 - ✅ Validated two legally redistributable SPZ assets with recorded
   provenance: `yashica-t4` and `leica-sofort` under
   `plugins/gaussian-spz/tests/corpus/`, CC0-1.0 author-captured Scaniverse
@@ -172,12 +185,13 @@ model.*
   producer traits these real exports revealed — a 10,242-point far-field
   icosphere at alpha 253, and an out-of-range gzip `OS` byte — are recorded
   in [SPZ_FORMAT.md §8](../reference/SPZ_FORMAT.md).
-- ⬜ Record design-policy §12.1 baselines for SPZ (`CanRead`, metadata-only
-  read, full decode, stage open, flatten to USDC, peak memory), compared
-  against PLY where equivalent assets exist. The v0.3.0 performance bar is
-  avoiding architectural regressions (full-buffer copies, duplicate decoded
-  representations, repeated dequantization); streaming and GPU decoding stay
-  out of scope.
+- ✅ Recorded design-policy §12.1 baselines for SPZ (`CanRead`, metadata-only
+  read, full decode, stage open, flatten to USDC, peak memory) in
+  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md), measured
+  through the same `scripts/benchmark_import.py` seam as PLY so the two tables
+  cannot drift apart. No architectural regression appeared: SPZ imports about
+  4x faster per Gaussian than PLY and both converge on the same dequantized
+  representation. Streaming and GPU decoding stayed out of scope as planned.
 
 ## Release hardening 🚧
 
@@ -194,7 +208,15 @@ model.*
     fixture with its golden `.usda`, so L5 executes rather than skips:
     `ost plugin test plugins/gaussian-spz --up-to 5` is OK (12 pass, 0 fail,
     3 skip).
-  - ⬜ Packaging and SBOM for the SPZ bundle, dry run, tag, draft release.
+  - ✅ Packaging and SBOM for the SPZ bundle verified locally on Windows:
+    `ost plugin package plugins/gaussian-spz` produces the archive plus
+    `manifest.json`, `sbom.spdx.json`, and `SHA256SUMS`, and
+    `ost plugin test plugins/gaussian-spz --from-package --up-to 5` is OK
+    (14 pass, 0 fail, 1 skip — the skip is the ⛔ package-origin L5 item
+    above). The `gaussian-ply` bundle packages identically at 0.3.0.
+  - ⬜ Hosted dry run (`workflow_dispatch` on `release.yml`), tag, draft
+    release. The dry run is the last gate item that has not been observed for
+    v0.3.0; everything it enforces has passed locally.
 - ℹ️ **Golden `.usda` files are portable despite embedding an absolute path.**
   `ost plugin test` flattens the roundtrip fixture *without*
   `--skipSourceFileComment`, so the golden carries a multiline
@@ -207,6 +229,12 @@ model.*
   block entirely and makes the comparison fail on line 4. (Recorded because
   this was initially misdiagnosed as an upstream portability defect — see
   [dogfooding report 03](../reports/ost/03-2026-07-20-l5-golden-portability.md).)
-- ⬜ Update the capability matrix, compatibility documents, and
+- ✅ Updated the capability matrix, compatibility documents, and
   build/install/usage guides to cover SPZ, including documented quantization
   behavior, precision limits, and supported SPZ versions.
+  [CAPABILITY_MATRIX.md](../reference/CAPABILITY_MATRIX.md) and
+  [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
+  carried SPZ already; this pass added the equivalence rows, corrected the
+  test count, and extended [BUILDING.md](../guides/BUILDING.md) and
+  [INSTALL.md](../guides/INSTALL.md), which still described a one-bundle
+  workspace.

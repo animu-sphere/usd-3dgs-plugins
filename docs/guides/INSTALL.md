@@ -20,6 +20,12 @@ ost plugin doctor plugins/gaussian-ply
 ost plugin test --workspace --up-to 5
 ```
 
+The workspace ships two independent plugin bundles: `gaussian-ply` for
+Graphdeco-style `.ply` and `gaussian-spz` for Niantic `.spz` (container
+versions 1-3). They install and activate the same way — substitute
+`plugins/gaussian-spz` in the per-bundle commands throughout this guide.
+Install only the one you need; neither depends on the other.
+
 Run a USD tool with the plugin environment composed automatically:
 
 ```sh
@@ -66,12 +72,15 @@ ost plugin test plugins/gaussian-ply --from-package --up-to 5
 The package is written under:
 
 ```text
-plugins/gaussian-ply/dist/plugins/gaussian-ply/<version>/<target>/
+plugins/<bundle>/dist/plugins/<bundle>/<version>/<target>/
 ```
 
-The current package-origin run passes discovery, read, and stage-open checks.
-L5 reports a skip because OST does not copy the adjacent golden file into the
-package; source-workspace L5 passes.
+alongside `manifest.json`, `sbom.spdx.json`, and `SHA256SUMS`.
+
+The current package-origin run passes discovery, read, and stage-open checks
+for both bundles (14 pass, 0 fail, 1 skip). L5 reports the skip because OST
+does not copy the adjacent golden file into the package; source-workspace L5
+passes.
 
 ## Manual package activation
 

@@ -18,6 +18,9 @@ plugins/gaussian-ply/tests/fixtures/*-binary-le.ply -text
 # Corpus assets are always binary little-endian PLY.
 plugins/gaussian-ply/tests/corpus/**/*.ply -text
 
+# Cross-format equivalence pairs; the PLY side is binary little-endian too.
+tests/equivalence/fixtures/*.ply -text
+
 # SPZ containers are gzip members (or deliberately damaged fragments of
 # them); never treat them as text.
 *.spz -text

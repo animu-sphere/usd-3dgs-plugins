@@ -4,11 +4,14 @@ All notable user-visible changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 semantic versioning for tagged releases.
 
-## [Unreleased]
+## [0.3.0] - 2026-07-20
 
-Development target: **v0.3.0 — SPZ import** — post-v0.2.0 stabilization plus
-read-only SPZ import through the shared `GaussianCloudData` pipeline
-([release plan](docs/roadmap/release-plan.md)).
+Read-only SPZ import through the shared `GaussianCloudData` pipeline, plus the
+post-v0.2.0 stabilization it rests on: the release-plan Phase 2 theme
+([release plan](docs/roadmap/release-plan.md)). The architectural claim is that
+a second, compressed format reaches USD through the same
+`GaussianCloudData` → `GaussianLayerWriter` path PLY uses, contributing no
+format-specific USD authoring.
 
 ### Changed
 
@@ -53,6 +56,22 @@ read-only SPZ import through the shared `GaussianCloudData` pipeline
 - Vendored miniz 3.0.2 (MIT) for the raw-DEFLATE decompression and CRC32
   behind the SPZ container reader; the gzip framing itself is parsed by the
   reader so container diagnostics keep their required granularity.
+- A real-asset SPZ corpus: two CC0-1.0 author-captured Scaniverse exports
+  (`yashica-t4`, `leica-sofort`) subset to 8,192 Gaussians by
+  `scripts/spz_subset.py`, with source and output checksums, SPZ version, SH
+  degree, and crop parameters recorded per asset.
+- [Performance baselines](docs/reference/PERFORMANCE_BASELINES.md) for SPZ,
+  measured through the same `scripts/benchmark_import.py` seam as PLY so the
+  two tables cannot drift apart.
+- [PLY/SPZ cross-format equivalence tests](docs/reference/EQUIVALENCE.md).
+  `tools/generate_equivalence_fixtures.py` defines one source model in
+  shared-model space and encodes it into both formats; `tests/equivalence/`
+  decodes both and compares every model attribute at tolerances derived from
+  the SPZ quantization steps. This is what holds the RUB→RDF conversion, the
+  15 spherical-harmonic band sign flips, and the two SH memory layouts to an
+  independent witness rather than to a re-derived formula. Pairs cover SPZ v2
+  and v3 against one shared PLY, so a v3-only failure isolates the
+  smallest-three rotation path.
 
 ## [0.2.0] - 2026-07-19
 
