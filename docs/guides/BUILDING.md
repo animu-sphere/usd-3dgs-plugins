@@ -19,6 +19,11 @@ ost plugin test --workspace --up-to 5
 ost plugin package plugins/gaussian-ply
 ```
 
+The workspace carries two bundles; substitute `plugins/gaussian-spz` in any of
+the per-bundle commands above to build, verify, or package the SPZ plugin. The
+`--workspace` form covers both at once. Windows runs to L4 in hosted CI and to
+L5 locally; see [WORKSPACE.md §8](../architecture/WORKSPACE.md).
+
 `openstrata.ci.yaml` is the cross-platform CI contract. Regenerate the
 checked-in GitHub Actions workflows after matrix changes:
 
@@ -31,6 +36,7 @@ ost ci generate github --force
 ```powershell
 ost plugin view plugins\gaussian-ply "C:\path\to\scene.ply"
 ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out scene.usd scene.ply
+ost plugin view plugins\gaussian-spz "C:\path\to\scene.spz"
 ```
 
 The stage can be inspected even when the active Hydra renderer does not draw
@@ -43,7 +49,13 @@ The repository carries CTest coverage beyond OST's verification pyramid:
 ```sh
 ctest --test-dir libs/gaussian-core/build/cy2026-windows-x86_64-py313-usd --output-on-failure
 ctest --test-dir plugins/gaussian-ply/build/cy2026-windows-x86_64-py313-usd --output-on-failure
+ctest --test-dir plugins/gaussian-spz/build/cy2026-windows-x86_64-py313-usd --output-on-failure
 ```
+
+The cross-format equivalence test is the exception: `tests/equivalence/` links
+both bundles' decoders, so it exists only in the plain root composition below,
+never in a per-bundle build. See
+[EQUIVALENCE.md](../reference/EQUIVALENCE.md).
 
 ## Plain CMake path (no ost)
 
@@ -54,6 +66,14 @@ OpenUSD 26.05 installation.
 cmake --preset default -DCMAKE_PREFIX_PATH=/path/to/openusd
 cmake --build --preset default
 ctest --test-dir build/default --output-on-failure
+```
+
+This composes both bundles plus the shared libraries and runs all eight tests,
+including `gaussian_ply_spz_equivalence`. Regenerate the equivalence fixtures
+after changing either mapping contract:
+
+```sh
+python tools/generate_equivalence_fixtures.py
 ```
 
 Note for OST users: the plain root build writes its plugin DLL into the same

@@ -189,7 +189,7 @@ fixtures but not the adjacent `.golden.usda`; this is recorded in the
 | M2 | Gaussian semantic mapping | implemented |
 | M3 | validation and negative fixtures | implemented |
 | M4 | integration, package, docs, notices | implemented locally; release gate incomplete |
-| M5 | SPZ | in progress: container reader implemented; semantic decoder and USD integration not started |
+| M5 | SPZ | implemented: container reader, semantic decoder, USD integration, real-asset corpus, performance baselines, and PLY/SPZ equivalence tests; release gate incomplete (hosted dry run, tag, draft) |
 
 Current work and acceptance gaps are tracked in
 [roadmap/current.md](../roadmap/current.md).

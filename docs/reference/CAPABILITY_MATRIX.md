@@ -50,7 +50,8 @@ This table describes the current tree. Planned capabilities belong in the
 | SH degrees 0-3 | supported | decoder fixtures at degrees 0, 1, and 3; degree 4 reported unsupported (`GSPZ-E011`), not malformed |
 | RUB→RDF reference-frame conversion | supported | position/quaternion/SH sign flips verified through the decoder and USD |
 | Extension records, antialiased flag | supported (ignored) | preserved by the reader, ignored by the decoder with warnings `GSPZ-W001`/`W002` |
-| Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test; PLY/SPZ equivalence pairs are still outstanding (v0.3.0 remaining work) |
+| Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test |
+| PLY/SPZ cross-format equivalence | supported | synthetic pairs encode one source model into both formats; `gaussian_ply_spz_equivalence` compares every model attribute at documented quantization-aware tolerances, covering SPZ v2 and v3 — see [EQUIVALENCE.md](EQUIVALENCE.md) |
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only |
 | Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
 
@@ -78,7 +79,7 @@ Both `gaussian-ply` and `gaussian-spz` author through the shared
 | Capability | Status |
 | --- | --- |
 | Standalone OST bundle build | supported |
-| Plain root CMake composition | supported; Visual Studio 2022 Release build and all seven tests (core, gaussianUsd, PLY decoder + smoke, SPZ reader + decoder + smoke) locally green |
+| Plain root CMake composition | supported; Release build and all eight tests (core, gaussianUsd, PLY decoder + smoke, SPZ reader + decoder + smoke, PLY/SPZ equivalence) locally green |
 | Workspace plain-library dependency | supported and validated by `ost plugin test --workspace` |
 | Source L0-L5 verification | supported; locally green |
 | Target-specific package | supported; locally generated and tested |

@@ -71,3 +71,13 @@ foreach(_root ${_ost_bundle_roots})
         endif()
     endforeach()
 endforeach()
+
+# Cross-format tests live here rather than in a bundle because they link more
+# than one bundle's decoder. They exist only in this composed build: `ost
+# plugin build <bundle>` configures a single bundle and never reaches this
+# file, so the guard below keeps the root usable if a bundle is removed.
+if(USD3DGS_BUILD_TESTS
+   AND TARGET gaussianPlyDecoder
+   AND TARGET gaussianSpzDecoder)
+    add_subdirectory("tests/equivalence")
+endif()
