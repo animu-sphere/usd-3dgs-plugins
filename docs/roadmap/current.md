@@ -190,21 +190,23 @@ model.*
     regenerated with `ost ci generate github --force` — 6 cells, purely
     additive. `scripts/release.py matrix` derives the release lane from the
     same cells, so both lanes moved together and now report 6.
-  - ✅ Verified locally before declaring the cells: `ost plugin test
-    plugins/gaussian-spz --up-to 5` is OK (11 pass, 0 fail, 4 skip).
+  - ✅ Declared `tests/fixtures/decode-degree1-v2.spz` as the SPZ roundtrip
+    fixture with its golden `.usda`, so L5 executes rather than skips:
+    `ost plugin test plugins/gaussian-spz --up-to 5` is OK (12 pass, 0 fail,
+    3 skip).
   - ⬜ Packaging and SBOM for the SPZ bundle, dry run, tag, draft release.
-- ⬜ **L5 goldens are not portable across runners** (upstream OST seam, found
-  2026-07-20). `ost plugin test` flattens the roundtrip fixture *without*
-  `--skipSourceFileComment`, so the golden `.usda` embeds the flattening
-  machine's absolute path in a multiline `doc = """Generated from Composed
-  Stage of root layer <abs path>"""` block. The committed
-  `one-gaussian-ascii.ply.golden.usda` therefore carries a `C:\dev\...` path
-  and cannot match a hosted runner's checkout. `gaussian-spz` deliberately
-  keeps `roundtrip: []` rather than inherit that: declaring one would have
-  made the new macOS/Linux cells fail on every run. This is the same family as
-  the Windows L4 cap ("hosted multiline-USDA line-ending finding") and the
-  package-origin L5 skip. Resolve upstream — a normalized or path-stripped
-  golden comparison — before L5 can be a real release gate for either bundle.
+- ℹ️ **Golden `.usda` files are portable despite embedding an absolute path.**
+  `ost plugin test` flattens the roundtrip fixture *without*
+  `--skipSourceFileComment`, so the golden carries a multiline
+  `doc = """Generated from Composed Stage of root layer <abs path>"""` block
+  naming the machine that generated it — the committed PLY and SPZ goldens
+  both hold a `C:\dev\...` path. `ost` normalizes that block when comparing,
+  and hosted macOS and Linux cells report "flattened output matches the
+  golden" against it. Generate goldens with the plain command `ost plugin
+  test` prints; **do not** add `--skipSourceFileComment`, which omits the
+  block entirely and makes the comparison fail on line 4. (Recorded because
+  this was initially misdiagnosed as an upstream portability defect — see
+  [dogfooding report 03](../reports/ost/03-2026-07-20-l5-golden-portability.md).)
 - ⬜ Update the capability matrix, compatibility documents, and
   build/install/usage guides to cover SPZ, including documented quantization
   behavior, precision limits, and supported SPZ versions.
