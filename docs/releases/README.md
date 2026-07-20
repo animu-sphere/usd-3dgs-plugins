@@ -6,6 +6,7 @@ Release records are history and are not rewritten after publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
+| v0.3.0 | 2026-07-20 | [v0.3.0.md](v0.3.0.md) — read-only SPZ import through the shared pipeline; draft assembled, awaiting publication |
 | v0.2.0 | 2026-07-19 | [v0.2.0.md](v0.2.0.md) — production-ready Graphdeco PLY import; published 2026-07-19 |
 | v0.1.0 | 2026-07-19 | [v0.1.0.md](v0.1.0.md) — first tagged release; published 2026-07-19 |
 
