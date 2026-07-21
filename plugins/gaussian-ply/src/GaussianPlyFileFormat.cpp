@@ -5,13 +5,17 @@
 #include "io/GaussianPlyDiagnostics.h"
 #include "io/GaussianPlyImportOptions.h"
 #include "openstrata/gs/GaussianCloudData.h"
+#include "openstrata/gs/GaussianImportStats.h"
+#include "openstrata/gs/GaussianMath.h"
 #include "openstrata/gs/usd/GaussianLayerWriter.h"
 
+#include "pxr/base/tf/debug.h"
 #include "pxr/base/tf/diagnostic.h"
 #include "pxr/base/tf/registryManager.h"
 #include "pxr/base/tf/type.h"
 #include "pxr/usd/sdf/layer.h"
 
+#include <chrono>
 #include <future>
 #include <string>
 #include <utility>
@@ -25,6 +29,18 @@ TF_DEFINE_PUBLIC_TOKENS(GaussianPlyFileFormatTokens, GAUSSIANPLY_FILE_FORMAT_TOK
 TF_REGISTRY_FUNCTION(TfType)
 {
     SDF_DEFINE_FILE_FORMAT(GaussianPlyFileFormat, SdfFileFormat);
+}
+
+// The shared import-statistics seam's output channel for this bundle
+// (GaussianImportStats.h): `TF_DEBUG=GSPLY_IMPORT_STATS` prints one stable
+// line per full import. Collection is skipped entirely when disabled.
+TF_DEBUG_CODES(GSPLY_IMPORT_STATS);
+
+TF_REGISTRY_FUNCTION(TfDebug)
+{
+    TF_DEBUG_ENVIRONMENT_SYMBOL(GSPLY_IMPORT_STATS,
+        "gaussian-ply: one line of per-import statistics through the shared "
+        "GaussianImportStats seam");
 }
 
 GaussianPlyFileFormat::GaussianPlyFileFormat()
@@ -109,7 +125,7 @@ GaussianPlyFileFormat::Read(
         auto task = std::async(std::launch::async, [&]() {
             return writer.WriteMetadataToLayer(
                 metadata.gaussianCount, effectiveDegree,
-                "Gaussian Splatting PLY", &generated, &error);
+                gsply::kSourceFormatToken, &generated, &error);
         });
         if (!task.get()) {
             TF_RUNTIME_ERROR(
@@ -121,9 +137,15 @@ GaussianPlyFileFormat::Read(
         return true;
     }
 
+    // Statistics are collected only when the debug flag asks for them, so
+    // the default import path pays nothing for the seam.
+    openstrata::gs::GaussianImportStats stats;
+    openstrata::gs::GaussianImportStats* statsOut =
+        TfDebug::IsEnabled(GSPLY_IMPORT_STATS) ? &stats : nullptr;
+
     openstrata::gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
-    if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error)) {
+    if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error, statsOut)) {
         TF_RUNTIME_ERROR(
             "gaussian-ply: failed to read '%s': %s",
             resolvedPath.c_str(), error.c_str());
@@ -140,17 +162,35 @@ GaussianPlyFileFormat::Read(
         return false;
     }
 
+    if (statsOut) {
+        // Import options may have filtered or truncated the decoded cloud;
+        // the reported model is the one actually authored.
+        stats.gaussianCount = cloud.gaussianCount;
+        stats.shDegree = cloud.shDegree;
+        stats.decodedBytes = openstrata::gs::ComputeDecodedByteSize(cloud);
+        stats.hasBounds = openstrata::gs::ComputeCloudExtent(
+            cloud.positions.data(), cloud.scales.data(), cloud.gaussianCount,
+            &stats.boundsMinimum, &stats.boundsMaximum);
+    }
+
     // The writer consumes the cloud so its arrays are released as they are
     // authored.
+    const auto authorStart = std::chrono::steady_clock::now();
     auto task = std::async(std::launch::async, [&]() {
         return writer.WriteToLayer(
-            std::move(cloud), "Gaussian Splatting PLY", &generated, &error);
+            std::move(cloud), gsply::kSourceFormatToken, &generated, &error);
     });
     if (!task.get()) {
         TF_RUNTIME_ERROR(
             "gaussian-ply: failed to author USD for '%s': %s",
             resolvedPath.c_str(), error.c_str());
         return false;
+    }
+    if (statsOut) {
+        stats.authorSeconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - authorStart).count();
+        TF_DEBUG(GSPLY_IMPORT_STATS).Msg("gaussian-ply: %s\n",
+            openstrata::gs::FormatImportStats(stats).c_str());
     }
 
     layer->TransferContent(generated);

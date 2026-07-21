@@ -105,6 +105,12 @@
             "action": "Re-export at degree 3 or below; unsupported degrees are rejected rather than silently truncated."
         },
         {
+            "code": "GSPLY-E018",
+            "severity": "error",
+            "summary": "The declared Gaussian count and SH degree exceed what this platform can allocate.",
+            "action": "The derived model size overflowed or its allocation failed; import the asset on a machine with more memory or reduce the asset size. A partial cloud is never loaded."
+        },
+        {
             "code": "GSPLY-E100",
             "severity": "error",
             "summary": "An import entry point was called with a null output parameter.",

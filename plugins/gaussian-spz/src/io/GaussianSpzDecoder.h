@@ -2,12 +2,18 @@
 #pragma once
 
 #include "openstrata/gs/GaussianCloudData.h"
+#include "openstrata/gs/GaussianImportStats.h"
 
 #include <cstddef>
 #include <string>
 #include <vector>
 
 namespace openstrata::gs::spz {
+
+// The one source-format token: passed to GaussianLayerWriter (authored as
+// `gs:sourceFormat`) and reported in import statistics, so the stage and the
+// instrumentation cannot disagree.
+inline constexpr const char* kSourceFormatToken = "Gaussian Splatting SPZ";
 
 // Header-derivable facts about an SPZ asset, available without decompressing
 // the attribute streams (design policy §12.3).
@@ -36,11 +42,16 @@ public:
         GaussianSpzMetadata* metadata,
         std::string* error = nullptr) const;
 
+    // On success, `stats` (optional) carries the decoder's half of the shared
+    // import-statistics record: source format/version, count and degree,
+    // byte sizes, and the read/decode timings. Bounds and the authoring time
+    // stay with the caller.
     bool Decode(
         const std::string& path,
         GaussianCloudData* cloud,
         std::vector<std::string>* warnings = nullptr,
-        std::string* error = nullptr) const;
+        std::string* error = nullptr,
+        GaussianImportStats* stats = nullptr) const;
 };
 
 } // namespace openstrata::gs::spz

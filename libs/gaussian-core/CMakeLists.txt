@@ -31,6 +31,7 @@ if(NOT DEFINED GAUSSIANCORE_BUILD_TESTS)
 endif()
 
 add_library(gaussianCore STATIC
+    src/GaussianImportStats.cpp
     src/GaussianMath.cpp)
 add_library(openstrata::gaussianCore ALIAS gaussianCore)
 set_target_properties(gaussianCore PROPERTIES

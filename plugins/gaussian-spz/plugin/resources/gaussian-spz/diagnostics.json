@@ -81,6 +81,12 @@
             "action": "Report a bug against usd-3dgs-plugins with the file; this indicates a decoder gap rather than a normal malformed-input failure."
         },
         {
+            "code": "GSPZ-E014",
+            "severity": "error",
+            "summary": "The declared Gaussian count and SH degree exceed what this platform can allocate.",
+            "action": "The derived model size overflowed or its allocation failed; import the asset on a machine with more memory or reduce the asset size. A partial cloud is never loaded."
+        },
+        {
             "code": "GSPZ-E100",
             "severity": "error",
             "summary": "Internal misuse of the import pipeline (null output parameters, inconsistent container spans). Not reachable from file content.",

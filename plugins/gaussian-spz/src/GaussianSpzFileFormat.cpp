@@ -4,13 +4,17 @@
 #include "io/GaussianSpzDecoder.h"
 #include "io/GaussianSpzDiagnostics.h"
 #include "openstrata/gs/GaussianCloudData.h"
+#include "openstrata/gs/GaussianImportStats.h"
+#include "openstrata/gs/GaussianMath.h"
 #include "openstrata/gs/usd/GaussianLayerWriter.h"
 
+#include "pxr/base/tf/debug.h"
 #include "pxr/base/tf/diagnostic.h"
 #include "pxr/base/tf/registryManager.h"
 #include "pxr/base/tf/type.h"
 #include "pxr/usd/sdf/layer.h"
 
+#include <chrono>
 #include <future>
 #include <string>
 #include <utility>
@@ -25,7 +29,9 @@ namespace {
 // The source-format string authored into customData.gs. SPZ and PLY carry
 // different strings, but they are the only per-format inputs to one shared
 // writer; the authored hierarchy, schema, and metadata policy are identical.
-constexpr const char* kSourceFormat = "Gaussian Splatting SPZ";
+// The decoder header owns the constant so the authored stage and the import
+// statistics agree by construction.
+constexpr const char* kSourceFormat = openstrata::gs::spz::kSourceFormatToken;
 
 } // namespace
 
@@ -33,6 +39,18 @@ constexpr const char* kSourceFormat = "Gaussian Splatting SPZ";
 TF_REGISTRY_FUNCTION(TfType)
 {
     SDF_DEFINE_FILE_FORMAT(GaussianSpzFileFormat, SdfFileFormat);
+}
+
+// The shared import-statistics seam's output channel for this bundle
+// (GaussianImportStats.h): `TF_DEBUG=GSPZ_IMPORT_STATS` prints one stable
+// line per full import. Collection is skipped entirely when disabled.
+TF_DEBUG_CODES(GSPZ_IMPORT_STATS);
+
+TF_REGISTRY_FUNCTION(TfDebug)
+{
+    TF_DEBUG_ENVIRONMENT_SYMBOL(GSPZ_IMPORT_STATS,
+        "gaussian-spz: one line of per-import statistics through the shared "
+        "GaussianImportStats seam");
 }
 
 GaussianSpzFileFormat::GaussianSpzFileFormat()
@@ -114,9 +132,15 @@ GaussianSpzFileFormat::Read(
         return true;
     }
 
+    // Statistics are collected only when the debug flag asks for them, so
+    // the default import path pays nothing for the seam.
+    openstrata::gs::GaussianImportStats stats;
+    openstrata::gs::GaussianImportStats* statsOut =
+        TfDebug::IsEnabled(GSPZ_IMPORT_STATS) ? &stats : nullptr;
+
     openstrata::gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
-    if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error)) {
+    if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error, statsOut)) {
         TF_RUNTIME_ERROR(
             "gaussian-spz: failed to read '%s': %s",
             resolvedPath.c_str(), error.c_str());
@@ -126,8 +150,15 @@ GaussianSpzFileFormat::Read(
         TF_WARN("gaussian-spz: %s", warning.c_str());
     }
 
+    if (statsOut) {
+        stats.hasBounds = openstrata::gs::ComputeCloudExtent(
+            cloud.positions.data(), cloud.scales.data(), cloud.gaussianCount,
+            &stats.boundsMinimum, &stats.boundsMaximum);
+    }
+
     // The writer consumes the cloud so its arrays are released as they are
     // authored.
+    const auto authorStart = std::chrono::steady_clock::now();
     auto task = std::async(std::launch::async, [&]() {
         return writer.WriteToLayer(
             std::move(cloud), kSourceFormat, &generated, &error);
@@ -137,6 +168,12 @@ GaussianSpzFileFormat::Read(
             "gaussian-spz: failed to author USD for '%s': %s",
             resolvedPath.c_str(), error.c_str());
         return false;
+    }
+    if (statsOut) {
+        stats.authorSeconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - authorStart).count();
+        TF_DEBUG(GSPZ_IMPORT_STATS).Msg("gaussian-spz: %s\n",
+            openstrata::gs::FormatImportStats(stats).c_str());
     }
 
     layer->TransferContent(generated);

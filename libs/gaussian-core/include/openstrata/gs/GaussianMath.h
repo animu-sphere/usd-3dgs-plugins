@@ -31,6 +31,20 @@ bool InferShDegree(std::size_t coefficientCount, int* degree) noexcept;
 // from a decoder after arrays are built, never from the writer.
 void FlipYZAxes(GaussianCloudData* cloud) noexcept;
 
+// The authored-extent policy (design policy §6): a conservative per-Gaussian
+// three-sigma bound over the largest scale axis. Rotation can only reduce an
+// axis from that max-scale sphere, so the bound holds for every ellipsoid.
+// This is the single implementation the writer authors and the decoder test
+// kit compares against, so a stage need not be authored to know the extent a
+// cloud will produce. Returns false when count is zero or a bound leaves
+// float range; the outputs are untouched on failure.
+bool ComputeCloudExtent(
+    const Float3* positions,
+    const Float3* scales,
+    std::size_t count,
+    Float3* outMinimum,
+    Float3* outMaximum) noexcept;
+
 bool ValidateGaussianCloud(
     const GaussianCloudData& cloud,
     std::string* error = nullptr) noexcept;

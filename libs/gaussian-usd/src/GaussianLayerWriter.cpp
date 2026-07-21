@@ -206,32 +206,20 @@ bool GaussianLayerWriter::WriteToLayer(
         return false;
     }
 
-    // A conservative three-sigma bound. Rotation can only reduce an axis from
-    // this max-scale sphere, so this remains valid for every ellipsoid.
-    const PXR_NS::GfVec3f* positionIn = positions.cdata();
-    const PXR_NS::GfVec3f* scaleIn = scales.cdata();
-    PXR_NS::GfVec3f minimum(std::numeric_limits<float>::max());
-    PXR_NS::GfVec3f maximum(-std::numeric_limits<float>::max());
-    for (std::size_t i = 0; i < cloud.gaussianCount; ++i) {
-        const PXR_NS::GfVec3f& p = positionIn[i];
-        const PXR_NS::GfVec3f& s = scaleIn[i];
-        const double radius = 3.0 * static_cast<double>(
-            std::max({s[0], s[1], s[2]}));
-        if (!std::isfinite(radius) ||
-            radius > std::numeric_limits<float>::max()) {
-            SetError(error, _codes.extentOverflow,
-                "Gaussian extent exceeds float range.");
-            return false;
-        }
-        const float r = static_cast<float>(radius);
-        minimum[0] = std::min(minimum[0], p[0] - r);
-        minimum[1] = std::min(minimum[1], p[1] - r);
-        minimum[2] = std::min(minimum[2], p[2] - r);
-        maximum[0] = std::max(maximum[0], p[0] + r);
-        maximum[1] = std::max(maximum[1], p[1] + r);
-        maximum[2] = std::max(maximum[2], p[2] + r);
+    // The shared three-sigma bound (gaussianCore's ComputeCloudExtent), so
+    // the authored extent and the decoder test kit's derived extent are one
+    // implementation by construction. Float3 and GfVec3f are byte-compatible
+    // (static_assert above).
+    Float3 minimum, maximum;
+    if (!ComputeCloudExtent(
+            reinterpret_cast<const Float3*>(positions.cdata()),
+            reinterpret_cast<const Float3*>(scales.cdata()),
+            cloud.gaussianCount, &minimum, &maximum)) {
+        SetError(error, _codes.extentOverflow,
+            "Gaussian extent exceeds float range.");
+        return false;
     }
-    PXR_NS::VtArray<PXR_NS::GfVec3f> extent = {minimum, maximum};
+    PXR_NS::VtArray<PXR_NS::GfVec3f> extent = {ToGf(minimum), ToGf(maximum)};
     if (!splat.CreateExtentAttr().Set(extent)) {
         SetError(error, _codes.attributeAuthoringFailed,
             "Could not author Gaussian extent.");
