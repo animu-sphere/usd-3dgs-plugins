@@ -99,13 +99,17 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-v0.3.0 — SPZ import — is tagged and published: PLY and SPZ reach USD through
-one shared `GaussianCloudData → GaussianLayerWriter` pipeline, with
-tolerance-aware cross-format equivalence fixtures and a committed real-asset
-corpus. The current target is **v0.4.0 — Gaussian Import Foundation**, which
-formalizes that decoder-to-USD seam — a normative model contract, shared
-semantic validation, a coordinate-system ADR, and a decoder test kit — into a
-reusable contract before **v0.5.0 — SOG v2 import** adds a third format
+**v0.4.0 — Gaussian Import Foundation — is tagged and published.** The
+decoder-to-USD seam PLY and SPZ share is now a normative, enforced contract:
+shared semantic validation and overflow-checked size math, a stage-free
+[decoder test kit](docs/reference/GAUSSIAN_MODEL_CONTRACT.md), an
+import-statistics seam, and a documented
+[header/API boundary](docs/architecture/API_BOUNDARY.md) — with a
+`gaussian-sog` skeleton proving a third bundle scales by declaration. This
+release also corrects authored orientation to **RUB / Y-up**
+([ADR 0001](docs/adr/0001-model-frame-is-rub.md)) to match the `upAxis` every
+stage already declared; it is a pre-1.0 change to v0.1.0-v0.3.0 output, so
+re-import to update. The next target is **v0.5.0 — SOG v2 import**
 ([current plan](docs/roadmap/current.md)). Releases are tag-driven,
 digest-reproducible, and published as drafts for human review
 ([release records](docs/releases/README.md)).
