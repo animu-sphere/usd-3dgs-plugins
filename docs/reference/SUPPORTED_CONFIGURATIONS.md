@@ -66,7 +66,8 @@ Supported:
 
 - SPZ container versions 1, 2, and 3 (gzip-wrapped, single stream);
 - position, scale, rotation (first-three and smallest-three), opacity, and
-  spherical harmonics dequantization with the documented RUB→RDF conversion;
+  spherical harmonics dequantization — decoded verbatim into the model's
+  native-RUB reference frame ([ADR 0001](../adr/0001-model-frame-is-rub.md));
 - SH degrees 0-3;
 - metadata-only reads from the container header.
 

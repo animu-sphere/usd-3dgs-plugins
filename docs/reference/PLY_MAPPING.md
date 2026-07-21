@@ -46,6 +46,13 @@ The sigmoid implementation uses sign-aware branches to avoid overflow. A
 zero-length quaternion is replaced with identity and reported as a warning.
 Non-finite inputs or non-finite conversion results fail the load.
 
+After the per-attribute conversions, the decoder converts the whole cloud
+from the Graphdeco **right-down-front** frame into the model's **RUB**
+reference frame ([ADR 0001](../adr/0001-model-frame-is-rub.md)): the shared
+`FlipYZAxes` helper negates Y/Z on positions and quaternion vector parts and
+applies the per-coefficient sign table to the rest SH coefficients; scales
+and the DC term are unchanged. The derivation is in the ADR.
+
 ## 4. Spherical-harmonic layout
 
 Let `R` be the number of `f_rest_*` scalar properties and

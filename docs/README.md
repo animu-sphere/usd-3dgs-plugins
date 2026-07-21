@@ -17,6 +17,7 @@ workspace contract wins; structural changes must update that contract first.
 | [roadmap/](roadmap/) | What remains incomplete and what comes next. | [README.md](roadmap/README.md) |
 | [releases/](releases/) | Immutable records for tagged releases. | [README.md](releases/README.md) |
 | [design/](design/) | Why the project is built this way. | [DESIGN_POLICY.md](design/DESIGN_POLICY.md) |
+| [adr/](adr/) | Numbered, immutable architecture decision records. | [0001-model-frame-is-rub.md](adr/0001-model-frame-is-rub.md) |
 | [reports/](reports/) | Evidence from real runs, including OST dogfooding. | [README.md](reports/README.md) |
 | [contributing/](contributing/) | Contributor and release procedures. | [RELEASE_NOTES_TEMPLATE.md](contributing/RELEASE_NOTES_TEMPLATE.md) |
 
@@ -34,6 +35,9 @@ workspace contract wins; structural changes must update that contract first.
   property-to-USD mapping for `gaussian-ply`;
   [reference/SPZ_MAPPING.md](reference/SPZ_MAPPING.md) is its counterpart for
   `gaussian-spz`.
+- [adr/0001-model-frame-is-rub.md](adr/0001-model-frame-is-rub.md) fixes the
+  canonical RUB reference frame of `GaussianCloudData` and derives the
+  RDF↔RUB conversion every affected decoder applies.
 
 ## Component documentation
 

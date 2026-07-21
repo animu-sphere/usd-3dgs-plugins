@@ -14,6 +14,18 @@ coordinate-system ADR, a decoder test kit) before a third format depends on it
 
 ### Changed
 
+- **Authored output changes orientation
+  ([ADR 0001](docs/adr/0001-model-frame-is-rub.md)).** The canonical model
+  frame moves from PLY-native RDF (Y-down) to **RUB (Y-up)**, matching the
+  authored `upAxis = "Y"` that every stage already declared. Imported stages
+  now render upright in `upAxis`-honoring consumers without delegate-side
+  flips. Relative to v0.1.0-v0.3.0 output, positions, orientation vector
+  parts, and non-DC SH coefficients negate Y/Z and extents move accordingly;
+  re-import is the migration path. The PLY decoder applies the conversion
+  through the shared `FlipYZAxes` helper; the SPZ decoder, natively RUB, no
+  longer converts at all. Golden stages and equivalence fixtures were
+  regenerated; diagnostic codes, counts, and every other attribute are
+  unchanged.
 - The [Gaussian model contract](docs/reference/GAUSSIAN_MODEL_CONTRACT.md) is
   revised into the normative decoder contract: supported SH degrees pinned to
   0-3, required arrays and length relationships, maximum-count and overflow

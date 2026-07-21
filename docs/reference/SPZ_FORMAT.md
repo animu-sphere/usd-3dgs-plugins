@@ -120,16 +120,17 @@ smallest-three rotation encoding was recorded without its version qualifier
 
 ## 5. Coordinate system
 
-SPZ conventionally stores right-up-back (RUB); the Graphdeco PLY frame this
-project already authors is right-down-front (RDF). Per
-[GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md) §2 the PLY-native
-frame is the model's reference frame, so **the SPZ decoder converts RUB into
-it**. Passing SPZ through unconverted would place equivalent PLY and SPZ assets
-in different orientations on the same stage, which the v0.3.0 equivalence
-criterion forbids.
-
-The conversion is part of decoding and is covered by the PLY/SPZ equivalence
-fixtures, which would otherwise disagree on sign in two axes.
+SPZ conventionally stores right-up-back (RUB). Since
+[ADR 0001](../adr/0001-model-frame-is-rub.md) (v0.4.0), RUB *is* the model's
+reference frame ([GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md)
+§2), so **the SPZ decoder applies no frame conversion**; the RDF→RUB
+Y/Z-negation duty now sits with the PLY decoder. (Through v0.3.0 the model
+frame was PLY-native RDF and this decoder carried the inverse conversion.)
+Passing one format through unconverted while the other's convention differs
+would place equivalent PLY and SPZ assets in different orientations on the
+same stage, which the equivalence criterion forbids; the frame handling is
+covered by the PLY/SPZ equivalence fixtures, which would otherwise disagree
+on sign in two axes.
 
 ## 6. Decision — `CanRead()` strategy
 

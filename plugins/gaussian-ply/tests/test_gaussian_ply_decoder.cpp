@@ -57,9 +57,11 @@ void TestDegreeZero(const char* fixture)
     CHECK(cloud.gaussianCount == 1);
     CHECK(cloud.shDegree == 0);
     CHECK(cloud.positions.size() == 1);
+    // Source RDF (1, 2, 3) reaches the RUB model frame with Y/Z negated
+    // (ADR 0001).
     CHECK(Close(cloud.positions[0].x, 1.0f));
-    CHECK(Close(cloud.positions[0].y, 2.0f));
-    CHECK(Close(cloud.positions[0].z, 3.0f));
+    CHECK(Close(cloud.positions[0].y, -2.0f));
+    CHECK(Close(cloud.positions[0].z, -3.0f));
     CHECK(Close(cloud.scales[0].x, 1.0f));
     CHECK(Close(cloud.scales[0].y, 2.0f));
     CHECK(Close(cloud.scales[0].z, 0.5f));
@@ -77,14 +79,26 @@ void TestShLayout()
     CHECK(decoder.Decode(Fixture("degree-1-sh.ply"), &cloud, nullptr, &error));
     CHECK(cloud.shDegree == 1);
     CHECK(cloud.restCoefficients.size() == 3);
-    CHECK(CloseF3(cloud.restCoefficients[0], 1.0f, 4.0f, 7.0f));
+    // Band-1 RDF->RUB flips are (-1, -1, +1): source triples (1,4,7) and
+    // (3,6,9) at coefficients 0 and 2.
+    CHECK(CloseF3(cloud.restCoefficients[0], -1.0f, -4.0f, -7.0f));
     CHECK(CloseF3(cloud.restCoefficients[2], 3.0f, 6.0f, 9.0f));
 }
 
+// The RDF->RUB rest-coefficient sign table (ADR 0001), restated here so the
+// decoder's use of the shared FlipYZAxes helper is checked against an
+// independent copy rather than against itself.
+constexpr float kExpectedShFlip[15] = {
+    -1.0f, -1.0f, +1.0f,                       // band 1
+    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,         // band 2
+    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
+    +1.0f,
+};
+
 // Exact coefficient assertions for every supported non-zero degree. The
 // channel-major source values are c+1 (red), 101+c (green), 201+c (blue) for
-// per-channel coefficient index c, so the interleaved result is fully
-// predictable at both degrees.
+// per-channel coefficient index c, so the interleaved result — including the
+// per-coefficient RDF->RUB sign — is fully predictable at both degrees.
 void TestHighDegreeShLayout(const char* fixture, int degree)
 {
     gs::ply::GaussianPlyDecoder decoder;
@@ -96,9 +110,11 @@ void TestHighDegreeShLayout(const char* fixture, int degree)
         static_cast<std::size_t>((degree + 1) * (degree + 1) - 1);
     CHECK(cloud.restCoefficients.size() == restCount);
     for (std::size_t c = 0; c < restCount; ++c) {
+        const float flip = kExpectedShFlip[c];
         CHECK(CloseF3(cloud.restCoefficients[c],
-            1.0f + c, 101.0f + c, 201.0f + c));
+            flip * (1.0f + c), flip * (101.0f + c), flip * (201.0f + c)));
     }
+    // The DC term is frame-flip invariant.
     CHECK(CloseF3(cloud.dcCoefficients[0], 0.1f, 0.2f, 0.3f));
 }
 
@@ -138,8 +154,9 @@ void TestThreeGaussians()
     CHECK(cloud.gaussianCount == 3);
     CHECK(cloud.shDegree == 1);
 
-    CHECK(CloseF3(cloud.positions[1], -4.0f, 5.0f, -6.0f));
-    CHECK(CloseF3(cloud.positions[2], 7.0f, -8.0f, 9.0f));
+    // Source RDF positions (-4, 5, -6) and (7, -8, 9), Y/Z negated into RUB.
+    CHECK(CloseF3(cloud.positions[1], -4.0f, -5.0f, 6.0f));
+    CHECK(CloseF3(cloud.positions[2], 7.0f, 8.0f, -9.0f));
 
     CHECK(CloseF3(cloud.scales[0],
         1.0f, std::exp(0.5f), std::exp(1.0f)));
@@ -148,19 +165,23 @@ void TestThreeGaussians()
     CHECK(CloseF3(cloud.scales[2],
         std::exp(2.0f), std::exp(-0.5f), 1.0f));
 
+    // The frame flip negates the quaternion's j/k components only.
     CHECK(Close(cloud.rotations[1].real, 0.5f));
     CHECK(Close(cloud.rotations[1].i, 0.5f));
     const float invSqrt2 = 1.0f / std::sqrt(2.0f);
     CHECK(Close(cloud.rotations[2].real, invSqrt2));
-    CHECK(Close(cloud.rotations[2].k, invSqrt2));
+    CHECK(Close(cloud.rotations[2].k, -invSqrt2));
 
     CHECK(Close(cloud.opacities[0], 0.26894143f));
     CHECK(Close(cloud.opacities[1], 0.5f));
     CHECK(Close(cloud.opacities[2], 0.8807971f));
 
+    // Band-1 flips (-1, -1, +1) on source triples (1,4,7), (11,14,17)
+    // (coefficient 0 of Gaussians 0 and 1) and (23,26,29) (coefficient 2 of
+    // Gaussian 2).
     CHECK(cloud.restCoefficients.size() == 9);
-    CHECK(CloseF3(cloud.restCoefficients[0], 1.0f, 4.0f, 7.0f));
-    CHECK(CloseF3(cloud.restCoefficients[3], 11.0f, 14.0f, 17.0f));
+    CHECK(CloseF3(cloud.restCoefficients[0], -1.0f, -4.0f, -7.0f));
+    CHECK(CloseF3(cloud.restCoefficients[3], -11.0f, -14.0f, -17.0f));
     CHECK(CloseF3(cloud.restCoefficients[8], 23.0f, 26.0f, 29.0f));
 }
 
@@ -310,11 +331,12 @@ void TestImportOptionApplication()
         options.opacityThreshold = 0.4f;
         CHECK(gs::ply::ApplyImportOptions(options, &cloud, &error));
         // sigmoid(-1) ~= 0.269 drops; sigmoid(0) = 0.5 and sigmoid(2) remain.
+        // Values are in the RUB model frame (the filter runs post-decode).
         CHECK(cloud.gaussianCount == 2);
-        CHECK(CloseF3(cloud.positions[0], -4.0f, 5.0f, -6.0f));
-        CHECK(CloseF3(cloud.positions[1], 7.0f, -8.0f, 9.0f));
+        CHECK(CloseF3(cloud.positions[0], -4.0f, -5.0f, 6.0f));
+        CHECK(CloseF3(cloud.positions[1], 7.0f, 8.0f, -9.0f));
         CHECK(cloud.restCoefficients.size() == 6);
-        CHECK(CloseF3(cloud.restCoefficients[0], 11.0f, 14.0f, 17.0f));
+        CHECK(CloseF3(cloud.restCoefficients[0], -11.0f, -14.0f, -17.0f));
         CHECK(CloseF3(cloud.restCoefficients[5], 23.0f, 26.0f, 29.0f));
     }
 

@@ -98,45 +98,28 @@ Every decoded quaternion is normalized through the shared
 `NormalizeQuaternion`. The decoded norm is never near zero, so the
 identity-replacement warning path is unreachable for SPZ.
 
-## 5. Coordinate system (RUB → RDF)
+## 5. Coordinate system (native RUB)
 
-SPZ conventionally stores **right-up-back**; the model's reference frame is the
-PLY-native **right-down-front** (model contract §2, [SPZ_FORMAT.md §5](SPZ_FORMAT.md)).
-The conversion negates the Y and Z axes — a proper 180° rotation about X, so it
-preserves handedness and is applied as sign flips rather than a reflection:
+SPZ conventionally stores **right-up-back** — exactly the model's reference
+frame (model contract §2, [ADR 0001](../adr/0001-model-frame-is-rub.md)) —
+so the decoder applies **no frame conversion**: positions, quaternions, and
+SH coefficients are dequantized verbatim.
 
-| Data | Flip |
-| --- | --- |
-| position | `(x, -y, -z)` |
-| quaternion vector part | `(x, -y, -z)`, real part unchanged |
-| DC coefficient | none (band 0 is rotation-invariant) |
-| SH rest coefficient `k` | multiply by `flipSh[k]` |
-
-The quaternion vector flip `(1, -1, -1)` is the reference `flipQ = {y·z, x·z, x·y}`
-evaluated at `(x, y, z) = (1, -1, -1)`; for this axis pair it coincides with the
-position flip.
-
-The rest-coefficient sign table is the reference `flipSh` at the same point,
-indexed by rest coefficient (bands 1-3):
-
-```text
-band 1 (0-2):   -1, -1, +1
-band 2 (3-7):   -1, +1, +1, -1, +1
-band 3 (8-14):  -1, +1, -1, -1, +1, -1, +1
-```
-
-Because RUB→RDF is a within-family conversion (no 90° reordering), the flip is a
-per-coefficient sign only; no SH band rotation is required.
+Through v0.3.0 the model frame was PLY-native RDF and this decoder negated
+the Y and Z axes; that Y/Z-negation conversion — including the quaternion
+vector flip and the per-coefficient `flipSh` sign table — is now the PLY
+decoder's duty, implemented once as `FlipYZAxes` in `gaussianCore` and
+derived in the ADR.
 
 ## 6. Spherical-harmonic layout
 
 The SPZ SH stream is point-major with the color channel as the inner axis: per
 point, per rest coefficient, three bytes `r, g, b`. That is already the model's
 layout — Gaussian-major RGB triples (model contract §3) — so no transpose is
-required; decoding is a copy with the sign flip applied:
+required; decoding is a dequantizing copy:
 
 ```text
-model.restCoefficients[i * D + k] = flipSh[k] * dequantize(stream[(i*D + k)*3 .. +3])
+model.restCoefficients[i * D + k] = dequantize(stream[(i*D + k)*3 .. +3])
 ```
 
 where `D = (degree+1)² - 1` rest coefficients. The writer interleaves the DC

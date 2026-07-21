@@ -14,9 +14,9 @@
 // docs/reference/EQUIVALENCE.md and mirrored in kEnvelope below.
 //
 // This test is the reason the two decoders cannot drift apart silently: the
-// RUB->RDF flips, the SH sign table, and the two SH memory layouts (PLY
-// channel-major, SPZ Gaussian-major) are each asserted against an independent
-// implementation rather than against a re-derived formula.
+// PLY RDF->RUB flips (ADR 0001), the SH sign table, and the two SH memory
+// layouts (PLY channel-major, SPZ Gaussian-major) are each asserted against
+// an independent implementation rather than against a re-derived formula.
 
 #include "io/GaussianPlyDecoder.h"
 #include "io/GaussianSpzDecoder.h"
@@ -280,8 +280,8 @@ void TestPair(
 int main()
 {
     // Degree 3, on the quantization grid. Every rest coefficient is present,
-    // so all 15 RUB->RDF sign flips are compared against PLY, which applies
-    // none of them.
+    // so all 15 RDF->RUB sign flips the PLY decoder applies are compared
+    // against SPZ, which applies none of them.
     TestPair(
         "degree-3 exact, SPZ v2 (first-three rotations)",
         "equiv-degree3-exact-binary-le.ply",

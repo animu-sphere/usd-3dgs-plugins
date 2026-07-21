@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <limits>
 
 namespace openstrata::gs {
@@ -113,6 +114,62 @@ bool InferShDegree(std::size_t coefficientCount, int* degree) noexcept
     }
     *degree = static_cast<int>(side - 1);
     return true;
+}
+
+namespace {
+
+// Sign a Y/Z axis negation induces on each rest SH coefficient, indexed by
+// rest coefficient 0-14 (bands 1-3): a real SH basis function changes sign
+// when it is odd in an odd number of the flipped axes. The table is the
+// reference flipSh basis {y, z, x, xy, yz, zz, xz, xx-yy, ...} evaluated at
+// (x, y, z) = (+1, -1, -1); the derivation is recorded in ADR 0001.
+constexpr float kShFlipYZ[15] = {
+    -1.0f, -1.0f, +1.0f,                       // band 1: y, z, x
+    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,         // band 2: xy, yz, zz, xz, xx-yy
+    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
+    +1.0f,
+};
+
+// The table is indexed by rest coefficient up to the model's maximum degree,
+// so raising kMaxShDegree without extending it would read out of bounds.
+static_assert(
+    std::size(kShFlipYZ) == (kMaxShDegree + 1) * (kMaxShDegree + 1) - 1,
+    "kShFlipYZ must cover every rest coefficient the shared model carries; "
+    "extend it when kMaxShDegree changes.");
+
+} // namespace
+
+void FlipYZAxes(GaussianCloudData* cloud) noexcept
+{
+    if (!cloud) {
+        return;
+    }
+    for (Float3& position : cloud->positions) {
+        position.y = -position.y;
+        position.z = -position.z;
+    }
+    // For a Y/Z axis pair the quaternion conjugation by the flip equals
+    // negating the matching vector components; the scalar part is unchanged.
+    for (Quaternion& rotation : cloud->rotations) {
+        rotation.j = -rotation.j;
+        rotation.k = -rotation.k;
+    }
+    const std::size_t restPerGaussian =
+        cloud->gaussianCount == 0 || cloud->restCoefficients.empty()
+            ? 0
+            : cloud->restCoefficients.size() / cloud->gaussianCount;
+    if (restPerGaussian == 0 || restPerGaussian > std::size(kShFlipYZ)) {
+        return;
+    }
+    for (std::size_t i = 0; i < cloud->restCoefficients.size(); ++i) {
+        const float flip = kShFlipYZ[i % restPerGaussian];
+        if (flip < 0.0f) {
+            Float3& coefficient = cloud->restCoefficients[i];
+            coefficient.x = -coefficient.x;
+            coefficient.y = -coefficient.y;
+            coefficient.z = -coefficient.z;
+        }
+    }
 }
 
 bool ValidateGaussianCloud(

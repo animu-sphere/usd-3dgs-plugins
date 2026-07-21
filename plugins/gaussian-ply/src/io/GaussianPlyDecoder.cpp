@@ -460,6 +460,13 @@ bool GaussianPlyDecoder::Decode(
         }
     }
 
+    // Graphdeco PLY conventionally stores right-down-front; the model's
+    // reference frame is RUB (GAUSSIAN_MODEL_CONTRACT.md §2, ADR 0001), so
+    // decoding negates the Y and Z axes of positions, rotations, and rest SH
+    // coefficients. Through v0.3.0 the model frame was PLY-native and the SPZ
+    // decoder carried the inverse of this conversion.
+    FlipYZAxes(&result);
+
     std::string validationError;
     if (!ValidateGaussianCloud(result, &validationError)) {
         SetError(error, diag::kCloudValidationFailed, validationError);

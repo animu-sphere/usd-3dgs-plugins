@@ -29,32 +29,11 @@ constexpr int kModelMaxShDegree = kMaxShDegree;
 constexpr float kColorScale = 0.15f;
 constexpr float kSqrt1_2 = 0.70710678118654752440f;
 
-// SPZ conventionally stores right-up-back; the model's reference frame is the
-// PLY-native right-down-front (GAUSSIAN_MODEL_CONTRACT.md §2), so decoding
-// negates the Y and Z axes. For that axis pair the quaternion flip equals the
-// position flip (SPZ_MAPPING.md §4).
-constexpr float kFlipY = -1.0f;
-constexpr float kFlipZ = -1.0f;
-
-// Sign flips the Y/Z negation induces on the rest SH coefficients, indexed by
-// rest coefficient 0-14 (bands 1-3): a real SH basis function changes sign
-// when it is odd in an odd number of the flipped axes. The table is the
-// reference implementation's flipSh evaluated at (x,y,z) = (+1,-1,-1) and is
-// derived in SPZ_MAPPING.md §5.
-constexpr float kShFlipRubToRdf[15] = {
-    -1.0f, -1.0f, +1.0f,                       // band 1: y, z, x
-    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,         // band 2: xy, yz, zz, xz, xx-yy
-    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
-    +1.0f,
-};
-
-// The table is indexed by rest coefficient up to the model's maximum degree,
-// so raising kModelMaxShDegree without extending it would read out of bounds.
-static_assert(
-    std::size(kShFlipRubToRdf) ==
-        (kModelMaxShDegree + 1) * (kModelMaxShDegree + 1) - 1,
-    "kShFlipRubToRdf must cover every rest coefficient the shared model "
-    "carries; extend it when kModelMaxShDegree changes.");
+// SPZ conventionally stores right-up-back — exactly the model's RUB reference
+// frame (GAUSSIAN_MODEL_CONTRACT.md §2, ADR 0001) — so decoding applies no
+// frame conversion. Through v0.3.0 the model frame was PLY-native RDF and
+// this decoder negated Y/Z; that conversion now lives in the PLY decoder as
+// the shared FlipYZAxes helper.
 
 void SetError(std::string* error, const char* code, const std::string& message)
 {
@@ -271,8 +250,7 @@ bool GaussianSpzDecoder::Decode(
                         std::to_string(i) + " is not finite.");
                     return false;
                 }
-                result.positions[i] = {
-                    decoded[0], kFlipY * decoded[1], kFlipZ * decoded[2]};
+                result.positions[i] = {decoded[0], decoded[1], decoded[2]};
             }
         } else {
             const int fractionalBits =
@@ -281,8 +259,8 @@ bool GaussianSpzDecoder::Decode(
                 const unsigned char* p = stored + i * 9;
                 result.positions[i] = {
                     Fixed24ToFloat(p, fractionalBits),
-                    kFlipY * Fixed24ToFloat(p + 3, fractionalBits),
-                    kFlipZ * Fixed24ToFloat(p + 6, fractionalBits)};
+                    Fixed24ToFloat(p + 3, fractionalBits),
+                    Fixed24ToFloat(p + 6, fractionalBits)};
             }
         }
     }
@@ -336,9 +314,6 @@ bool GaussianSpzDecoder::Decode(
             } else {
                 UnpackRotationFirstThree(stored + i * stride, q);
             }
-            q[1] *= kFlipY;
-            q[2] *= kFlipZ;
-
             // Reorder to the model's scalar-first convention and absorb the
             // quantization drift; the decoded norm is never near zero
             // (SPZ_MAPPING.md §4), so identity replacement is unreachable.
@@ -359,14 +334,13 @@ bool GaussianSpzDecoder::Decode(
                  ++coefficient) {
                 // SPZ already orders the stream by Gaussian, then coefficient,
                 // with the channel innermost — the model's own layout — so
-                // this is a copy plus the sign flip, not a transpose.
+                // this is a straight dequantizing copy, not a transpose.
                 const unsigned char* rgb =
                     stored + (i * restDims + coefficient) * 3;
-                const float flip = kShFlipRubToRdf[coefficient];
                 result.restCoefficients[i * restDims + coefficient] = {
-                    flip * UnquantizeSh(rgb[0]),
-                    flip * UnquantizeSh(rgb[1]),
-                    flip * UnquantizeSh(rgb[2])};
+                    UnquantizeSh(rgb[0]),
+                    UnquantizeSh(rgb[1]),
+                    UnquantizeSh(rgb[2])};
             }
         }
     }

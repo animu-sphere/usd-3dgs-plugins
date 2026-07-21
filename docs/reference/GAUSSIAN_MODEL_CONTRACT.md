@@ -70,18 +70,21 @@ cross-format [equivalence criterion](EQUIVALENCE.md) forbids.
 
 Therefore:
 
-- **The model has exactly one reference frame, and every decoder whose format
-  defines a different conventional frame converts into it** — positions,
-  quaternions, and SH coefficients together, never positions alone — and
-  documents the conversion in its own mapping document. For SPZ this is the
-  RUB→RDF axis flip ([SPZ_MAPPING.md](SPZ_MAPPING.md)).
-- **The reference frame today is the PLY-native RDF frame**, the frame v0.1.0
-  authored first. Which frame the model *should* define — including whether
-  the current mismatch between the RDF model frame and the authored
-  `upAxis = "Y"` declaration is corrected while the project is pre-1.0 — is
-  the subject of the coordinate-system ADR, a v0.4.0 deliverable
-  ([current.md](../roadmap/current.md)). When that ADR lands, its decision
-  supersedes this paragraph and this section will cite it.
+- **The reference frame is RUB** — `+X` right, `+Y` up, `+Z` toward the
+  viewer, right-handed — decided by
+  [ADR 0001](../adr/0001-model-frame-is-rub.md). This is the convention of a
+  USD stage with `upAxis = "Y"`, so authored data and authored stage metadata
+  agree; no compensating stage transform exists or is permitted.
+- **Every decoder whose format defines a different conventional frame
+  converts into it during decoding** — positions, quaternions, and SH
+  coefficients together, never positions alone — using the shared
+  `FlipYZAxes` helper where the conversion is the Y/Z negation, and documents
+  the conversion in its own mapping document. Graphdeco PLY converts
+  RDF→RUB ([PLY_MAPPING.md](PLY_MAPPING.md)); SPZ is natively RUB and
+  converts nothing ([SPZ_MAPPING.md](SPZ_MAPPING.md)). The derivation of the
+  quaternion and SH sign rules lives in the ADR.
+- Through v0.3.0 the reference frame was PLY-native RDF; ADR 0001 records
+  the migration consequences of the correction.
 
 ## 3. Field-by-field contract
 
