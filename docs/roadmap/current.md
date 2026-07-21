@@ -1,19 +1,25 @@
 # Current
 
-The active development target is **v0.3.0 — SPZ import**, defined in the
-[release plan](release-plan.md): stabilize the post-v0.2.0 repository state,
-then prove that the common Gaussian import architecture supports a compressed
-second format through the existing
-`GaussianCloudData -> GaussianLayerWriter` pipeline. v0.1.0 and v0.2.0 are
-tagged and published; their completed milestone detail is recorded in the
-[delivery history](../reports/delivery-history.md) and the
-[release records](../releases/README.md). In the qualified sequences of the
-[roadmap README](README.md), v0.3.0 delivers delivery milestone M5
-(`gaussian-spz`) and opens format Phase 2.
+The active development target is **v0.4.0 — Gaussian Import Foundation**,
+defined in the [release plan](release-plan.md): turn the decoder-to-USD seam
+proven by PLY and SPZ into a formal, documented, reusable contract before a
+third format depends on it. This release adds no end-user file format; it
+formalizes the existing
+`format reader → semantic decoder → GaussianCloudData → GaussianLayerWriter →
+ParticleField3DGaussianSplat` pipeline (design policy §7.4) so SOG (v0.5.0) and
+later decoders can be added without format-specific USD authoring, duplicated
+validation, inconsistent coordinate handling, or incompatible diagnostics.
+
+v0.1.0, v0.2.0, and v0.3.0 are tagged and published; their completed milestone
+detail is recorded in the [delivery history](../reports/delivery-history.md)
+and the [release records](../releases/README.md). In the qualified sequences of
+the [roadmap README](README.md), v0.4.0 delivers the design-policy §7.4
+conversion-layer formalization and precedes format Phase 3, whose first
+candidate — SOG M1 (one object) — is the v0.5.0 theme.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
-## Carried over from v0.1/v0.2 stabilization
+## Carried over from earlier stabilization
 
 Release-engineering items that remain live across releases:
 
@@ -32,215 +38,136 @@ Release-engineering items that remain live across releases:
 - ⬜ Add a lightweight link/language check to CI so public Markdown remains
   English and local links resolve.
 
-## Post-v0.2.0 cleanup 🚧
+## 1. Formal decoder contract 🚧
 
-*Goal: bring the repository, documentation, and release state into a
-consistent post-v0.2.0 condition before SPZ work begins.*
+*Goal: a revised, normative `GaussianCloudData` output contract that a decoder
+targets without reading PLY or SPZ code.*
 
-- ✅ v0.1.0 and v0.2.0 drafts reviewed and published 2026-07-19; release
-  records, roadmap, README, and changelog updated to the published state, and
-  v0.3.0 set as the active target.
-- ✅ Documented the `CanRead()` contract as design policy §7.6: it indicates
-  plausible format compatibility (extension and header shape), not complete
-  asset validity, and a too-narrow signature silently disowns readable assets.
-- ⬜ Triage defects found in real v0.2.0 usage into GitHub issues (suggested
-  labels: `v0.3.0`, `spz`, `bug`, `documentation`, `testing`, `release`).
-  Every accepted fix ships with a regression fixture or test where practical,
-  a stable diagnostic update when user-visible failure behavior changes, a
-  changelog entry, and confirmation that valid v0.2.0 behavior stays
-  compatible. Diagnostic codes shipped in v0.2.0 are never renumbered or
-  reused.
-- ⬜ Improve test reporting where failures are currently too coarse.
-- ✅ Drafted the v0.3.0 release-record skeleton early, kept it as
-  `v0.3.0-draft.md` until the tag existed, then promoted it to
-  [releases/v0.3.0.md](../releases/v0.3.0.md) with the tagged commit,
-  hosted-run links, and published artifact checksums filled in. Drafting early
-  made tag time a transcription job; not renaming early kept the
-  [release-record policy](../releases/README.md) intact — the record pins the
-  tagged commit, and the record lives inside that commit.
+- ⬜ Revise [GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md)
+  to state, normatively: decoded physical positions; strictly positive linear
+  scales; normalized scalar-first quaternions; opacity in `[0, 1]`; supported
+  SH degrees and canonical coefficient ordering; Gaussian-major array layout;
+  required and optional arrays and their length relationships; finite-value
+  requirements; empty-cloud behavior; maximum-count and overflow policy; and
+  which source metadata may be retained without affecting semantics.
+- ⬜ State explicitly that format-native representations never enter the shared
+  model: PLY log-scales and opacity logits, SPZ quantized planes, and SOG WebP
+  pixels, codebook indices, and palette labels are all converted first.
 
-## Shared model contract 🚧
+## 2. Shared semantic validation ⬜
 
-*Goal: document `GaussianCloudData` clearly enough for two independent
-decoders to target it consistently. Format-specific encodings (Graphdeco
-log-scales and opacity logits, SPZ quantized values) never enter the shared
-model.*
+*Goal: one implementation of the validation identical for every decoded cloud,
+run by each decoder rather than copied per bundle. The existing
+`gaussianCore` contract checker is the seed.*
 
-- ✅ Documented the contract in
-  [GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md):
-  coordinate system and axis assumptions, position units, scale and opacity
-  representation at the model boundary, quaternion component order and
-  normalization, SH degree and coefficient ordering, array-length
-  relationships to `gaussianCount`, and finite-value/range validation.
-- ✅ Extracted `libs/gaussian-usd` (design policy §7.4) so PLY and SPZ author
-  through one `GaussianLayerWriter`. Authoring diagnostic codes are injected
-  by the calling bundle, so the `GSPLY-E1xx` spellings released in v0.2.0 are
-  unchanged and SPZ can pass `GSPZ-****` through the same path.
-- ✅ Added contract-conformance tests: `gaussianUsd_writer_unit` pins each
-  authoring failure to its injected code, and the PLY decoder suite asserts the
-  documented invariants (linear positive scales, opacity in `[0,1]`,
-  normalized quaternions, Gaussian-major SH, array lengths) across every valid
-  fixture. The checker itself lives in `gaussianCore`, so `gaussian-spz` will
-  run the same code against its own fixtures rather than a copy of it.
-- ⬜ Decide which validation and math utilities are shared under `libs/` and
-  which stay format-specific.
+- ⬜ Extract or consolidate under `libs/`: component-array length consistency,
+  finite values, strictly positive scales, normalized-or-normalizable
+  rotations, opacity range, SH degree/coefficient-count consistency,
+  count-overflow and allocation checks, and extent-computation preconditions.
+- ⬜ Keep container-structure validation format-specific — readers remain
+  responsible for their own containers.
 
-## SPZ container reader ✅
+## 3. Coordinate-system ADR ⬜
 
-- ✅ Identified the specification and recorded scope decisions in
-  [SPZ_FORMAT.md](../reference/SPZ_FORMAT.md): Niantic's MIT-licensed
-  documented format; **implement from the specification** (a vendored decoder
-  cannot express the required malformed/unsupported/internal distinction), and
-  **support versions 1-3 in v0.3.0** with v4 deferred to v0.5.0 and rejected
-  by a specific unsupported-version diagnostic.
-- ✅ Implemented low-level reading separate from semantic conversion
-  (`plugins/gaussian-spz/src/io/SpzReader.*`): signature detection for both
-  container generations, gzip member framing parsed in-repo (vendored miniz
-  supplies raw DEFLATE and CRC32 only), header validation, overflow-safe
-  size math with a DEFLATE-expansion plausibility bound, truncation /
-  corruption / trailing-data detection, unsupported-version rejection, and a
-  metadata-only header path. The reader constructs no USD objects and emits
-  the `GSPZ-E0**` container series of the stable diagnostic catalog.
-  Implementing from the specification surfaced three errors in the recorded
-  container facts (attribute ordering, v1 float16 positions, per-version
-  rotation encodings), corrected in [SPZ_FORMAT.md](../reference/SPZ_FORMAT.md)
-  §4 first.
-- ✅ Decided the SPZ `CanRead()` strategy
-  ([SPZ_FORMAT.md](../reference/SPZ_FORMAT.md) §6): plaintext v4 magic
-  claimed for the specific unsupported-version diagnostic; gzip inputs
-  identified by a bounded partial decompression of the magic only, with
-  header-field validation deliberately left to `Read()`.
-- ✅ Added container fixtures: 9 valid (versions 1-3, multi-point SH sizing,
-  spec-max degree 4, extension records, optional gzip header fields with a
-  verified FHCRC, an FNAME long enough to force the bounded `CanRead()`
-  retry) and 20 invalid, generated
-  deterministically by `plugins/gaussian-spz/tools/generate_fixtures.py`, with
-  `tests/test_gaussian_spz_reader.cpp` pinning every fixture to its exact
-  diagnostic code.
+*Goal: a normative decision, before SOG decoding lands, for the canonical
+coordinate frame and how formats convert into it.*
 
-## SPZ semantic decoder ✅
+- ⬜ Author an ADR deciding: the canonical frame of `GaussianCloudData`;
+  whether it stays PLY-native RDF or moves to a clearly named project frame;
+  how formats with authoritative coordinate definitions convert; how quaternion
+  and SH transformations are derived and tested; how `upAxis`, handedness, and
+  stage transforms stay consistent; whether the current RDF-model / authored
+  `upAxis = "Y"` mismatch is corrected now; and the migration consequences for
+  existing PLY and SPZ output. Because the project is pre-1.0, v0.4.0 is the
+  preferred point for a necessary authored-USD correction.
 
-- ✅ Decode into `GaussianCloudData` (`plugins/gaussian-spz/src/io/GaussianSpzDecoder.*`):
-  position dequantization (v1 float16, v2/v3 24-bit fixed point), 8-bit
-  log-scale and opacity decoding, per-version rotation decoding
-  (first-three and smallest-three) with normalization, DC and rest SH
-  dequantization straight into the model's Gaussian-major RGB triples, the
-  RUB→RDF reference-frame conversion, finite-value checks, and shared cloud
-  validation — the same output invariants as `GaussianPlyDecoder`. The exact
-  mapping and the reference constants are pinned in
-  [SPZ_MAPPING.md](../reference/SPZ_MAPPING.md).
-- ✅ Extended the stable `GSPZ-****` catalog with the decoding, authoring, and
-  entry-point codes (`E011`-`E013`, `E101`-`E104`, `E201`, `W001`-`W002`);
-  `diagnostics.json` is cross-checked against the source constants in both
-  directions by the Python smoke test. Malformed / unsupported / internal
-  failures stay distinct: SH degree 4 is unsupported (`E011`), not malformed.
-- ✅ Added decoder fixtures generated deterministically by
-  `tools/generate_fixtures.py` (known Gaussians encoded through the reference
-  quantization formulas) and `tests/test_gaussian_spz_decoder.cpp`, pinning the
-  RUB→RDF conversion, the per-coefficient SH flip signs, both rotation
-  encodings, unsupported degree 4, and non-finite float16 positions. The
-  highest-risk paths (rotation reconstruction, SH ordering) are checked as an
-  encode→decode inverse, not against re-derived formulas.
+## 4. Decoder test kit ⬜
 
-## USD integration ✅
+*Goal: reusable helpers to test a decoder against the shared contract without
+authoring a USD stage.*
 
-- ✅ The SPZ file-format plugin routes decoded data through the shared
-  `GaussianLayerWriter` under this bundle's own stable authoring codes; no
-  SPZ-specific USD prim construction exists. `Read()` and metadata-only reads
-  both author, and the read-only `WriteToFile` path fails with `GSPZ-E201`.
-- ✅ PLY and SPZ author the same stage hierarchy (`/Asset`, `/Asset/Splat`),
-  schema, metadata policy, stage metrics, and default-prim behavior by
-  construction — one writer, differing only in the `sourceFormat` string.
-- ✅ Added `tests/test_gaussian_spz_plugin.py`: opens SPZ stages through
-  OpenUSD, asserts the shared stage contract and the known decoded values
-  (including the axis flip and SH layout seen through USD), the metadata-only
-  path, and every negative fixture's exact diagnostic code.
+- ⬜ Provide canonical one- and multi-Gaussian expected models, quaternion
+  comparison with sign equivalence, SH layout/degree checks, tolerance-aware
+  comparison, invalid shared-model cases, deterministic extent comparison, and
+  fixtures distinguishing point, coefficient, and channel ordering.
+- ⬜ Demonstrate the kit with a minimal mock decoder that targets the shared
+  contract using no PLY or SPZ code.
 
-## Equivalence and real assets ✅
+## 5. Import statistics seam ⬜
 
-- ✅ Created synthetic PLY/SPZ fixture pairs and compared count, SH degree,
-  positions, scales, rotations, opacities, and DC and higher SH coefficients
-  with documented quantization-aware tolerances. One source model defined in
-  shared-model space is encoded into both formats by
-  `tools/generate_equivalence_fixtures.py`; `tests/equivalence/` decodes both
-  and compares. The tolerance derivation, the two profiles (on-grid at 1e-5,
-  off-grid at the quantization envelope), and what is deliberately *not*
-  paired are in [EQUIVALENCE.md](../reference/EQUIVALENCE.md). The pairs
-  cover SPZ v2 and v3 against one shared PLY, so a v3-only failure isolates
-  the smallest-three rotation path. Because both bundles author through one
-  writer, the authored hierarchy, schema, and metadata are identical by
-  construction and stay asserted per-bundle by the smoke tests rather than
-  re-compared here.
-  - Recorded while building it: the SPZ SH quantization range is asymmetric
-    (`[-1.0, +0.9921875]`), so a `-1.0` coefficient carrying a negative band
-    flip clamps on encode. That is an encoder property, not a decoder
-    disagreement — see [EQUIVALENCE.md §4](../reference/EQUIVALENCE.md).
-- ✅ Validated two legally redistributable SPZ assets with recorded
-  provenance: `yashica-t4` and `leica-sofort` under
-  `plugins/gaussian-spz/tests/corpus/`, CC0-1.0 author-captured Scaniverse
-  exports subset by `scripts/spz_subset.py --top-n 8192 --aabb=…` to 8,192
-  Gaussians (~195 KB each), with source and output checksums, SPZ version,
-  SH degree, and crop parameters in each `*.provenance.json`. The smoke test
-  discovers `corpus/*/*.spz` and checks the decoded stage semantically. The
-  producer traits these real exports revealed — a 10,242-point far-field
-  icosphere at alpha 253, and an out-of-range gzip `OS` byte — are recorded
-  in [SPZ_FORMAT.md §8](../reference/SPZ_FORMAT.md).
-- ✅ Recorded design-policy §12.1 baselines for SPZ (`CanRead`, metadata-only
-  read, full decode, stage open, flatten to USDC, peak memory) in
-  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md), measured
-  through the same `scripts/benchmark_import.py` seam as PLY so the two tables
-  cannot drift apart. No architectural regression appeared: SPZ imports about
-  4x faster per Gaussian than PLY and both converge on the same dequantized
-  representation. Streaming and GPU decoding stayed out of scope as planned.
+*Goal: a common optional result structure so per-format instrumentation cannot
+diverge. The plugin API need not expose all of it in v0.4.0.*
 
-## Release hardening 🚧
+- ⬜ Define fields for source format and version, Gaussian count, SH degree,
+  source byte size, decoded semantic byte size, bounding box, and reader /
+  semantic-decode / USD-authoring times.
 
-- 🚧 The same gate v0.2.0 passed, now including the SPZ bundle: cross-platform
-  CI, packaging and SBOM, release guard, documentation review, dry run, tag,
-  draft release, and human publication review.
-  - ✅ `openstrata.ci.yaml` declares three `gaussian-spz` source cells
-    mirroring the `gaussian-ply` ones (same pinned runtime digests, same
-    platform/profile, Windows capped at L4). `.github/workflows/ost-source-ci.yml`
-    regenerated with `ost ci generate github --force` — 6 cells, purely
-    additive. `scripts/release.py matrix` derives the release lane from the
-    same cells, so both lanes moved together and now report 6.
-  - ✅ Declared `tests/fixtures/decode-degree1-v2.spz` as the SPZ roundtrip
-    fixture with its golden `.usda`, so L5 executes rather than skips:
-    `ost plugin test plugins/gaussian-spz --up-to 5` is OK (12 pass, 0 fail,
-    3 skip).
-  - ✅ Packaging and SBOM for the SPZ bundle verified locally on Windows:
-    `ost plugin package plugins/gaussian-spz` produces the archive plus
-    `manifest.json`, `sbom.spdx.json`, and `SHA256SUMS`, and
-    `ost plugin test plugins/gaussian-spz --from-package --up-to 5` is OK
-    (14 pass, 0 fail, 1 skip — the skip is the ⛔ package-origin L5 item
-    above). The `gaussian-ply` bundle packages identically at 0.3.0.
-  - ✅ Hosted dry run, tag, draft release, all on 2026-07-20. The
-    `workflow_dispatch` dry run passed first
-    ([run 29741537174](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/29741537174)),
-    then `v0.3.0` was tagged at `80fad96` and
-    [run 29741754978](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/29741754978)
-    assembled the draft — 6 cells green, packaging digest-reproducible within
-    each run.
-  - ⬜ Human publication review of the draft release. This is deliberately not
-    automated; the lane stops at `gh release create --draft`.
-- ℹ️ **Golden `.usda` files are portable despite embedding an absolute path.**
-  `ost plugin test` flattens the roundtrip fixture *without*
-  `--skipSourceFileComment`, so the golden carries a multiline
-  `doc = """Generated from Composed Stage of root layer <abs path>"""` block
-  naming the machine that generated it — the committed PLY and SPZ goldens
-  both hold a `C:\dev\...` path. `ost` normalizes that block when comparing,
-  and hosted macOS and Linux cells report "flattened output matches the
-  golden" against it. Generate goldens with the plain command `ost plugin
-  test` prints; **do not** add `--skipSourceFileComment`, which omits the
-  block entirely and makes the comparison fail on line 4. (Recorded because
-  this was initially misdiagnosed as an upstream portability defect — see
-  [dogfooding report 03](../reports/ost/03-2026-07-20-l5-golden-portability.md).)
-- ✅ Updated the capability matrix, compatibility documents, and
-  build/install/usage guides to cover SPZ, including documented quantization
-  behavior, precision limits, and supported SPZ versions.
-  [CAPABILITY_MATRIX.md](../reference/CAPABILITY_MATRIX.md) and
-  [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
-  carried SPZ already; this pass added the equivalence rows, corrected the
-  test count, and extended [BUILDING.md](../guides/BUILDING.md) and
-  [INSTALL.md](../guides/INSTALL.md), which still described a one-bundle
-  workspace.
+## 6. Public/internal API boundary ⬜
+
+*Goal: classify headers and targets deliberately, with no ABI promise before
+v1.0.0.*
+
+- ⬜ Separate format-plugin implementation details, workspace-shared internal
+  libraries, deliberately reusable contributor APIs, and any stable public
+  APIs. A header must not read as public merely because it is installed.
+
+## 7. Build, package, and CI scaling ⬜
+
+*Goal: adding a third bundle (`gaussian-sog`) requires declarative
+configuration, not copied release logic.*
+
+- ⬜ Verify root plain-CMake composition, standalone library/plugin builds,
+  cross-plugin-independent package installation, release-matrix generation from
+  one source, per-bundle diagnostic-catalog validation, and early package
+  testing for a new bundle skeleton. Record the aggregate-artifact policy even
+  if deferred (see [backlog](backlog.md#packaging-and-release)).
+
+## 8. Documentation synchronization 🚧
+
+*Goal: bring the roadmap, release, and reference docs onto the adopted
+v0.4.0/v0.5.0 direction and remove drift left by the v0.3.0 release.*
+
+- ✅ README release status: v0.3.0 published, v0.4.0 the current target, v0.5.0
+  named as SOG import.
+- ✅ Current development target: this file reframed from the completed v0.3.0
+  breakdown to the v0.4.0 workstreams; the v0.3.0 detail moved to the
+  [delivery history](../reports/delivery-history.md).
+- ✅ Release plan: sequence table, v0.3.0 marked shipped, and the v0.4.0 and
+  v0.5.0 sections rewritten to Gaussian Import Foundation and SOG v2 import.
+- ✅ Backlog priority and milestone ladders: M5/SPZ recorded as shipped, SOG M1
+  promoted to the v0.5.0 theme, glTF/GLB reconsidered after SOG.
+- ✅ v0.3.0 release-record status finalized to published, and its
+  forward-looking version pins corrected (SPZ v4 is no longer a v0.5.0 item).
+- ✅ Documentation index and the SPZ scope note corrected so no doc still calls
+  v0.3.0 the current target or schedules SPZ v4 for v0.5.0.
+- ⬜ Contributor guide: "Adding a format decoder", generalizing
+  [CONTRIBUTING.md](../../CONTRIBUTING.md) from the PLY-specific path to the
+  shared decoder contract, the reader/decoder/diagnostics split, and the shared
+  writer.
+
+## 9. SOG skeleton and v0.5.0 plan ⬜
+
+*Goal: land the `gaussian-sog` bundle skeleton and an approved fixture plan so
+v0.5.0 begins against proven CI and packaging, without forcing unresolved
+shared-contract decisions into v0.4.0.*
+
+- ⬜ Create the `gaussian-sog` bundle skeleton exercising the scaled CI and
+  packaging path from item 7.
+- ⬜ Record the SOG dependency decisions (ZIP reading, lossless WebP) with
+  fixed source revisions and license review before production decoding lands.
+- ⬜ Approve the SOG implementation and fixture plan (bundled `.sog` and
+  unbundled `meta.json`, the `GSSOG-****` catalog, cross-format equivalence)
+  per the [release plan](release-plan.md#v050--sog-v2-one-object-import).
+
+## Completion criteria
+
+v0.4.0 is complete when:
+
+1. PLY and SPZ still produce equivalent authored structure through one writer.
+2. Both decoders pass the same shared-model validation tests.
+3. Coordinate conversion and stage-axis policy are normative and consistent.
+4. A minimal mock decoder can target the shared contract without PLY or SPZ code.
+5. Adding a bundle does not require duplicated release-matrix logic.
+6. Documentation clearly defines where parsing ends and shared semantics begin.
+7. Existing v0.2.0/v0.3.0 performance and correctness baselines show no material
+   regression.

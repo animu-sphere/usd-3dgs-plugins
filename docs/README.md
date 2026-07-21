@@ -44,4 +44,5 @@ Component-specific usage stays with the component:
 | `gaussian-ply` | [plugin README](../plugins/gaussian-ply/README.md) |
 | `gaussian-spz` | [plugin README](../plugins/gaussian-spz/README.md) |
 | `gaussianCore` | [library README](../libs/gaussian-core/README.md) |
+| `gaussianUsd` | [library README](../libs/gaussian-usd/README.md) |
 

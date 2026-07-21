@@ -15,25 +15,36 @@ investment after release stabilization:
 | --- | --- | --- |
 | P0 | Benchmark real datasets; establish load-time, memory, and output-size baselines | ✅ shipped in v0.2.0 — [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md) |
 | P1 | Metadata-only reads | ✅ shipped in v0.2.0 |
-| P2 | Documented PLY dialect compatibility; the SPZ importer | dialects ✅ ([PLY_DIALECTS.md](../reference/PLY_DIALECTS.md)); SPZ importer 🚧 — [current.md](current.md) |
+| P2 | Documented PLY dialect compatibility; the SPZ importer | ✅ shipped — dialects ([PLY_DIALECTS.md](../reference/PLY_DIALECTS.md)) in v0.2.0, SPZ importer in v0.3.0 ([release record](../releases/v0.3.0.md)) |
 | P3 | Tighter anisotropic bounds; worker-thread workaround removal | ⬜ USD contract evolution; implementation debt |
 
 ## Milestone ladder
 
-Release-plan mapping: M5 is [v0.3.0](release-plan.md); the glTF/GLB and
-SOG M1 entries are [v0.5.0](release-plan.md) candidates; SOG M2-M4 is
-post-1.0 work.
+Release-plan mapping: M5 shipped as [v0.3.0](release-plan.md);
+[v0.4.0](release-plan.md) Gaussian Import Foundation formalizes the shared
+decoder contract (design policy §7.4); SOG M1 is the [v0.5.0](release-plan.md)
+theme; glTF/GLB and other Phase 3 formats are reconsidered after SOG v2 ships;
+SOG M2-M4 is post-1.0 work.
 
-- 🚧 **M5 — `gaussian-spz`.** Active as [v0.3.0](release-plan.md); the task
-  breakdown is in [current.md](current.md). Select and pin a decoder
-  dependency, decode into `GaussianCloudData`, reuse the PLY USD contract,
-  and add tolerance-aware PLY/SPZ equivalence tests plus real-size
-  performance measurements.
-- ⬜ **glTF/GLB Gaussian ADR.** Decide plugin ownership, ordinary scene-graph
-  scope, Gaussian extension scope, external resources, and SPZ extension
-  interaction before creating a bundle.
+- ✅ **M5 — `gaussian-spz`.** Shipped in [v0.3.0](release-plan.md); recorded in
+  the [delivery history](../reports/delivery-history.md#i-m5--spz-import-v030)
+  and the [release record](../releases/v0.3.0.md). Decoded into
+  `GaussianCloudData`, reused the PLY USD contract, and added tolerance-aware
+  PLY/SPZ equivalence tests plus real-size performance measurements.
+- 🚧 **Gaussian Import Foundation.** Active as [v0.4.0](release-plan.md); the
+  task breakdown is in [current.md](current.md). Revise the shared model
+  contract, consolidate semantic validation, decide the coordinate-system ADR,
+  add a decoder test kit, define a shared import-statistics seam, clarify the
+  public/internal header boundary, and scale build/packaging/CI to a third
+  bundle.
+- 🚧 **SOG M1 — one object.** The [v0.5.0](release-plan.md) theme: decode one
+  SOG v2 object (bundled `.sog` and unbundled `meta.json`, lossless WebP)
+  through the common model and the shared writer, with a stable `GSSOG-****`
+  catalog. Pin the ZIP and WebP dependencies before production decoding lands.
+- ⬜ **glTF/GLB Gaussian ADR.** Reconsidered after SOG v2 ships. Decide plugin
+  ownership, ordinary scene-graph scope, Gaussian extension scope, external
+  resources, and SPZ extension interaction before creating a bundle.
 - ⬜ **glTF/GLB vertical slice.** Implement only the scope approved by the ADR.
-- ⬜ **SOG M1 — one object.** Decode one SOG data object through the common model.
 - ⬜ **SOG M2-M4 — composition.** Multi-file packaging, streamed LOD, spatial
   chunks, payloads, and deferred loading.
 

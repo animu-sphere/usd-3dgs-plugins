@@ -99,11 +99,13 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-v0.2.0 — production-ready Graphdeco PLY import — is tagged and published;
-the current target is **v0.3.0 — SPZ import**. SPZ decoding and USD authoring
-are implemented and pass through the same `GaussianCloudData` pipeline as PLY;
-the remaining v0.3.0 work is PLY/SPZ equivalence fixtures, performance
-baselines, and release hardening
+v0.3.0 — SPZ import — is tagged and published: PLY and SPZ reach USD through
+one shared `GaussianCloudData → GaussianLayerWriter` pipeline, with
+tolerance-aware cross-format equivalence fixtures and a committed real-asset
+corpus. The current target is **v0.4.0 — Gaussian Import Foundation**, which
+formalizes that decoder-to-USD seam — a normative model contract, shared
+semantic validation, a coordinate-system ADR, and a decoder test kit — into a
+reusable contract before **v0.5.0 — SOG v2 import** adds a third format
 ([current plan](docs/roadmap/current.md)). Releases are tag-driven,
 digest-reproducible, and published as drafts for human review
 ([release records](docs/releases/README.md)).
