@@ -31,6 +31,17 @@ coordinate-system ADR, a decoder test kit) before a third format depends on it
   0-3, required arrays and length relationships, maximum-count and overflow
   policy, retained-source-metadata rules, and the SOG encodings named among
   the representations that never enter the shared model.
+- The installed-header audience and stability tiers are documented in
+  [API_BOUNDARY.md](docs/architecture/API_BOUNDARY.md): the end-user
+  compatibility surface is the authored stage, the file-format arguments, and
+  the diagnostic codes — not a C++ header, and nothing is ABI/API-frozen
+  before v1.0.0. `WORKSPACE.md` is brought up to date (SPZ shipped, the SOG
+  skeleton, the new shared headers and dependency edges).
+- Adding a format decoder now has an end-to-end contributor guide,
+  [ADDING_A_FORMAT_DECODER.md](docs/contributing/ADDING_A_FORMAT_DECODER.md),
+  generalizing the PLY-specific path to the shared contract, the
+  reader/decoder/diagnostics split, and the shared writer — followable with
+  no PLY or SPZ source.
 - Shared cloud validation now enforces the contract's SH degree ceiling and
   quaternion normalization (tolerance `1e-4`); both were previously pinned
   only by the test-side contract checker.
