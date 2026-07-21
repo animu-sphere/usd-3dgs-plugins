@@ -7,13 +7,17 @@ requires *before* SOG decoding is implemented (workstream 9 in
 [current.md](../roadmap/current.md)). It is the SOG counterpart of
 [SPZ_FORMAT.md](SPZ_FORMAT.md). The format-independent model the decoder
 targets is [GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md); the
-SOG-specific semantic mapping will live in `SOG_MAPPING.md`, mirroring
+SOG-specific semantic mapping is [SOG_MAPPING.md](SOG_MAPPING.md), mirroring
 [SPZ_MAPPING.md](SPZ_MAPPING.md).
 
 Status: plan accepted 2026-07-22 with the v0.4.0 `gaussian-sog` bundle
-skeleton (`plugins/gaussian-sog/`, no decoding). Production decoding is the
-v0.5.0 theme and must not begin before the open items in §6 are resolved in
-this document.
+skeleton (`plugins/gaussian-sog/`, no decoding). The v2 container facts were
+confirmed against the reference implementation and the §6 decisions
+(coordinate frame, `CanRead()` bounds, libwebp pin) recorded 2026-07-22 for
+the v0.5.0 cycle; the full semantic mapping is now
+[SOG_MAPPING.md](SOG_MAPPING.md). The remaining §6 item — a provenance-recorded
+real SOG asset — stays open. Production decoding follows the confirmed facts
+below.
 
 ## 1. Specification source
 
@@ -31,6 +35,15 @@ standing rule that undocumented layouts are never guessed
 ([design policy](../design/DESIGN_POLICY.md) §4.4). The spec is the normative
 source; where the reference implementation and the prose disagree, the
 discrepancy is recorded here and resolved deliberately.
+
+The v2 facts in §4 and the equations in [SOG_MAPPING.md](SOG_MAPPING.md) were
+confirmed 2026-07-22 against SplatTransform at `main` — the encoder
+`src/lib/writers/write-sog.ts`, the decoder `src/lib/readers/read-sog.ts`, and
+the coordinate convention `src/lib/utils/math.ts` (`Transform.PLY`) — quoted,
+not inferred. One prose-vs-implementation disagreement surfaced and was
+resolved in favour of the implementation: the developer-documentation page
+describes a y-up/z-back frame, while the implementation stores PLY-native
+(Graphdeco) coordinates (§4, [SOG_MAPPING.md §5](SOG_MAPPING.md)).
 
 Target: **SOG v2** (the `meta.json` `version: 2` generation), both layouts:
 
@@ -58,7 +71,7 @@ are a release criterion, and wholesale-vendored decoders cannot express them.
 | Concern | Decision | Licence | Pin |
 | --- | --- | --- | --- |
 | ZIP reading (bundled `.sog`) | Reuse the already-vendored **miniz 3.0.2** (`third_party/miniz/`), enabling its archive-reading API for this bundle only — `gaussian-spz` keeps compiling it with `MINIZ_NO_ARCHIVE_APIS`. No new dependency. | MIT (already reviewed for v0.3.0, [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)) | already vendored at 3.0.2 |
-| Lossless WebP decoding | Vendor the decoder subset of Google's **libwebp** into `third_party/libwebp/`, trimmed to lossless decode (no encoder, no lossy VP8, no I/O helpers), mirroring how miniz is trimmed by compile definitions. | BSD-3-Clause | exact upstream release tag and commit recorded in `third_party/libwebp/` and THIRD_PARTY_NOTICES.md **at vendoring time, before any decoder code lands** |
+| Lossless WebP decoding | Vendor the decoder subset of Google's **libwebp** into `third_party/libwebp/`, trimmed to lossless decode (no encoder, no lossy VP8, no I/O helpers), mirroring how miniz is trimmed by compile definitions. | BSD-3-Clause | **v1.6.0** (latest upstream stable); the exact commit and the licence text land in `third_party/libwebp/` and THIRD_PARTY_NOTICES.md **at vendoring time, before any decoder code lands** |
 
 Rejected alternatives: a system/package-manager WebP (breaks the hermetic,
 digest-reproducible package gate), and image libraries larger than the need
@@ -114,18 +127,52 @@ third format:
   checksums recorded as for the SPZ corpus, design policy §17), validated
   automatically and manually, with §12.1 performance baselines recorded.
 
-## 6. Open items (resolve before decoding lands)
+## 6. Open items
 
-- Pin the exact libwebp release tag/commit and land the licence text in
-  [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) (§3).
-- Confirm the container facts against the v2 specification and a real
-  SplatTransform export — plane names and dtypes, codebook sizes, the
-  `means` inverse-log equation, quaternion packing order, palette/label
-  encoding for SH bands — and record them here as SPZ_FORMAT §4 does,
-  including any corrections.
-- Decide the SOG→RUB frame conversion from the documented SOG convention
-  (SuperSplat/PlayCanvas world axes) and record it in the ADR-0001 frame
-  table before fixtures are generated.
-- Decide `CanRead()` bounds for the unbundled layout (how much of a
-  `meta.json` is read during routing) mirroring the SPZ §6 bounded-routing
-  decision.
+Resolved 2026-07-22 against the reference implementation (§1); the equations
+they settle are in [SOG_MAPPING.md](SOG_MAPPING.md).
+
+- **Container facts — confirmed.** Plane names and dtypes, the codebook sizes
+  (256 entries for `scales`/`sh0`/`shN`), the split-precision `means`
+  inverse-log equation, the smallest-three quaternion packing and
+  largest-component tag, and the `shN` palette/label/centroid encoding are
+  quoted from `write-sog.ts`/`read-sog.ts` and recorded in
+  [SOG_MAPPING.md](SOG_MAPPING.md) §2-§7. No fact required correction from the
+  proposal; the one disagreement was the coordinate frame (below).
+
+- **Coordinate frame — decided: PLY-native (Graphdeco RDF), converted with the
+  shared `FlipYZAxes`,** exactly as the PLY decoder does. The reference writer
+  bakes to `Transform.PLY` and the reader reports `Transform.PLY` with no
+  per-component negation, and `math.ts` documents `Transform.PLY` as the
+  convention shared by "PLY, splat, KSplat, SPZ, and SOG" — so a SOG file
+  stores the same raw columns a Graphdeco `.ply` stores. This confirms the
+  duty [ADR 0001](../adr/0001-model-frame-is-rub.md) anticipated for SOG and
+  deferred to its mapping document; the derivation and the resolution of the
+  contradictory y-up/z-back prose are in [SOG_MAPPING.md §5](SOG_MAPPING.md).
+
+- **`CanRead()` bounds — decided,** mirroring the SPZ §6 bounded-routing rule:
+  - *bundled* `.sog` is claimed by the `.sog` extension plus the ZIP local-file
+    signature (`PK\x03\x04`) at offset 0; the presence and contents of the
+    archived `meta.json` are validated in `Read()`, not during routing.
+  - *unbundled* `meta.json` is routed by registering the `.json` extension and
+    claiming **only** when a bounded prefix parses as a JSON object with
+    `version == 2` and the required SOG property keys (`means`, `scales`,
+    `quats`, `sh0`) each carrying their `files` array. The strict shape keeps
+    the broad `.json` registration from claiming unrelated JSON; a defective
+    SOG `meta.json` past that gate still reaches `Read()` for a specific
+    diagnostic rather than a silent routing refusal. (The `.json` registration
+    is the one non-obvious consequence — flagged for maintainer confirmation
+    before the reader lands.)
+
+- **libwebp pin — decided: v1.6.0** (§3), the current upstream stable. The
+  exact commit and the BSD-3-Clause notice land with the vendored source,
+  before any decoder code, in the vendoring workstream.
+
+Still open:
+
+- **A provenance-recorded real SOG asset** for the corpus (own capture
+  converted with a pinned SplatTransform release, provenance and checksums
+  recorded as for the SPZ corpus, design policy §17), validated automatically
+  and manually with §12.1 performance baselines. Deterministic fixtures and the
+  decoder-test-kit round-trip (§5) do not need it; the real-asset validation
+  gate does.

@@ -35,8 +35,9 @@ workspace contract wins; structural changes must update that contract first.
   is the normative, format-independent contract every decoder targets.
 - [reference/PLY_MAPPING.md](reference/PLY_MAPPING.md) is the normative source
   property-to-USD mapping for `gaussian-ply`;
-  [reference/SPZ_MAPPING.md](reference/SPZ_MAPPING.md) is its counterpart for
-  `gaussian-spz`.
+  [reference/SPZ_MAPPING.md](reference/SPZ_MAPPING.md) and
+  [reference/SOG_MAPPING.md](reference/SOG_MAPPING.md) are its counterparts for
+  `gaussian-spz` and `gaussian-sog`.
 - [architecture/API_BOUNDARY.md](architecture/API_BOUNDARY.md) classifies
   every installed header by audience and stability tier — "installed" is not
   "public and stable" before v1.0.0.
