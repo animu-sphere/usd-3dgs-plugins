@@ -35,6 +35,17 @@ ctest --test-dir plugins/gaussian-ply/build/cy2026-windows-x86_64-py313-usd --ou
 | New diagnostics | add the code in `src/io/GaussianPlyDiagnostics.h` **and** the catalog `plugin/resources/gaussian-ply/diagnostics.json`; codes are never renumbered or reused |
 | Behavior claims | `docs/reference/` (capability matrix, PLY mapping, dialects) — a claim without a fixture is a bug |
 
+## Adding a new format
+
+Adding a decoder (SOG, glTF, another PLY-family variant) follows one
+end-to-end path:
+[docs/contributing/ADDING_A_FORMAT_DECODER.md](docs/contributing/ADDING_A_FORMAT_DECODER.md).
+It generalizes the PLY-specific loop above to the shared
+`GaussianCloudData` contract, the reader/decoder/diagnostics split, and the
+one shared writer — followable without reading PLY or SPZ source. The header
+tiers it builds against are in
+[docs/architecture/API_BOUNDARY.md](docs/architecture/API_BOUNDARY.md).
+
 ## Ground rules
 
 - Follow [docs/design/DESIGN_POLICY.md](docs/design/DESIGN_POLICY.md); the

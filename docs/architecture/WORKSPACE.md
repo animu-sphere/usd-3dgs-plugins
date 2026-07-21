@@ -5,22 +5,26 @@ component identities, dependency directions, root responsibilities, artifact
 naming, and migration invariants. A structural change that contradicts this
 document must change this document first.
 
-Status: the initial workspace and `gaussian-ply` vertical slice are implemented.
-Future component identities are reserved here but do not yet exist.
+Status: `gaussian-ply` and `gaussian-spz` are implemented; the `gaussian-sog`
+skeleton is registered but does not decode (v0.5.0). Future component
+identities are reserved here.
 
 ## 1. Components
 
 | Identity | Kind | Status | Responsibility |
 | --- | --- | --- | --- |
 | `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | implemented | Detect and decode canonical Gaussian Splatting PLY and author a standard OpenUSD Gaussian layer. |
-| `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, SH layout utilities, diagnostic message formatting, and the test-only model-contract checker every decoder is held to. |
+| `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, overflow-checked size math, the authored-extent computation, SH layout utilities, the import-statistics record, diagnostic message formatting, and the test-only model-contract checker and decoder test kit every decoder is held to. |
 | `gaussianUsd` | plain CMake/OpenStrata static library | implemented | Shared `GaussianCloudData` → OpenUSD schema authoring. Extracted from `gaussian-ply` in v0.3.0, at the moment design policy §7.4 reserves for it: the SPZ bundle would otherwise duplicate `GaussianLayerWriter`. Diagnostic codes stay owned by the calling bundle. |
-| `gaussian-spz` | plugin bundle (`usd-fileformat`) | in progress — container reader implemented | Decode SPZ through `GaussianCloudData` and the shared authoring contract. |
+| `gaussian-spz` | plugin bundle (`usd-fileformat`) | implemented | Decode SPZ v1-v3 through `GaussianCloudData` and the shared authoring contract. |
+| `gaussian-sog` | plugin bundle (`usd-fileformat`) | skeleton (v0.4.0) — no decoding | Registers `.sog` and rejects it with `GSSOG-E001`; the v0.5.0 SOG v2 decoder fills the reader/decoder. |
 | `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |
-| `gaussian-sog` | plugin bundle (`usd-fileformat`) | reserved | SOG decoding and, later, chunk/LOD composition. |
 
 `gaussianCore` is not a plugin: it has no `plugInfo.json`, performs no plugin
-registration, and exposes no OpenUSD types in its public API.
+registration, and exposes no OpenUSD types in its public API. The audience and
+stability tier of every installed header is fixed by
+[API_BOUNDARY.md](API_BOUNDARY.md); adding a decoder against those headers is
+[ADDING_A_FORMAT_DECODER.md](../contributing/ADDING_A_FORMAT_DECODER.md).
 
 ## 2. Dependency directions
 
@@ -31,7 +35,9 @@ gaussian-ply -> gaussianCore
 gaussian-ply -> gaussianUsd
 gaussian-ply -> tinyPLY (private, vendored parser implementation)
 gaussian-spz -> gaussianCore
+gaussian-spz -> gaussianUsd
 gaussian-spz -> miniz (private, vendored raw-DEFLATE/CRC32; gzip framing is in-repo)
+gaussian-sog -> gaussianCore
 gaussianUsd  -> gaussianCore
 gaussianUsd  -> OpenUSD
 ```
@@ -39,9 +45,8 @@ gaussianUsd  -> OpenUSD
 Reserved future directions:
 
 ```text
-gaussian-spz  -> gaussianUsd
+gaussian-sog  -> gaussianUsd   (when the v0.5.0 decoder authors a stage)
 gaussian-gltf -> gaussianCore
-gaussian-sog  -> gaussianCore
 any format bundle -> gaussianUsd
 ```
 
@@ -75,14 +80,22 @@ plugins/gaussian-ply/src/io/GaussianPlyDecoder.*
     Gaussian dialect validation and semantic decoding
 
 plugins/gaussian-spz/src/GaussianSpzFileFormat.*
-    thin SdfFileFormat integration (semantic decoding pending)
+    thin SdfFileFormat integration
 
 plugins/gaussian-spz/src/io/SpzReader.*
     SPZ container reading: gzip framing, header/size validation,
     quantized attribute spans; miniz isolation
 
+plugins/gaussian-spz/src/io/GaussianSpzDecoder.*
+    SPZ dequantization into GaussianCloudData
+
+plugins/gaussian-sog/src/GaussianSogFileFormat.*
+    thin SdfFileFormat integration; rejects with GSSOG-E001 until the
+    v0.5.0 reader/decoder land under src/io/
+
 libs/gaussian-core/
-    format- and USD-independent Gaussian model/math
+    format- and USD-independent Gaussian model, math, size math,
+    import-statistics record, and test-only contract checker/kit
 
 libs/gaussian-usd/
     OpenUSD schema authoring, shared by every format bundle
@@ -188,8 +201,9 @@ fixtures but not the adjacent `.golden.usda`; this is recorded in the
 | M1 | minimal ASCII/binary LE PLY read | implemented |
 | M2 | Gaussian semantic mapping | implemented |
 | M3 | validation and negative fixtures | implemented |
-| M4 | integration, package, docs, notices | implemented locally; release gate incomplete |
-| M5 | SPZ | implemented: container reader, semantic decoder, USD integration, real-asset corpus, performance baselines, and PLY/SPZ equivalence tests; release gate incomplete (hosted dry run, tag, draft) |
+| M4 | integration, package, docs, notices | implemented; v0.2.0 tagged and published |
+| M5 | SPZ | implemented and shipped in v0.3.0: container reader, semantic decoder, USD integration, real-asset corpus, performance baselines, and PLY/SPZ equivalence tests |
+| v0.4.0 | Gaussian Import Foundation | the decoder→USD seam formalized: normative model contract, shared validation and size math, RUB frame (ADR 0001), decoder test kit, import-statistics seam, this header boundary, and the `gaussian-sog` skeleton proving a third bundle scales by declaration |
 
 Current work and acceptance gaps are tracked in
 [roadmap/current.md](../roadmap/current.md).

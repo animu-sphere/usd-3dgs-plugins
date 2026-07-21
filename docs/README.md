@@ -31,10 +31,18 @@ workspace contract wins; structural changes must update that contract first.
   artifacts.
 - [reference/CAPABILITY_MATRIX.md](reference/CAPABILITY_MATRIX.md) describes
   what the current tree implements, not what it intends to implement later.
+- [reference/GAUSSIAN_MODEL_CONTRACT.md](reference/GAUSSIAN_MODEL_CONTRACT.md)
+  is the normative, format-independent contract every decoder targets.
 - [reference/PLY_MAPPING.md](reference/PLY_MAPPING.md) is the normative source
   property-to-USD mapping for `gaussian-ply`;
   [reference/SPZ_MAPPING.md](reference/SPZ_MAPPING.md) is its counterpart for
   `gaussian-spz`.
+- [architecture/API_BOUNDARY.md](architecture/API_BOUNDARY.md) classifies
+  every installed header by audience and stability tier — "installed" is not
+  "public and stable" before v1.0.0.
+- [contributing/ADDING_A_FORMAT_DECODER.md](contributing/ADDING_A_FORMAT_DECODER.md)
+  is the end-to-end path for a new format, targeting the shared contract with
+  no PLY or SPZ code.
 - [adr/0001-model-frame-is-rub.md](adr/0001-model-frame-is-rub.md) fixes the
   canonical RUB reference frame of `GaussianCloudData` and derives the
   RDF↔RUB conversion every affected decoder applies.
@@ -47,6 +55,7 @@ Component-specific usage stays with the component:
 | --- | --- |
 | `gaussian-ply` | [plugin README](../plugins/gaussian-ply/README.md) |
 | `gaussian-spz` | [plugin README](../plugins/gaussian-spz/README.md) |
+| `gaussian-sog` | [plugin README](../plugins/gaussian-sog/README.md) (v0.5.0 skeleton) |
 | `gaussianCore` | [library README](../libs/gaussian-core/README.md) |
 | `gaussianUsd` | [library README](../libs/gaussian-usd/README.md) |
 

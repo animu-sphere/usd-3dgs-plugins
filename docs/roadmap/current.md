@@ -122,14 +122,19 @@ diverge. The plugin API need not expose all of it in v0.4.0.*
   API deliberately does not expose the record in v0.4.0; the v0.6.0 tooling
   consumes this same seam.
 
-## 6. Public/internal API boundary ⬜
+## 6. Public/internal API boundary ✅
 
 *Goal: classify headers and targets deliberately, with no ABI promise before
 v1.0.0.*
 
-- ⬜ Separate format-plugin implementation details, workspace-shared internal
-  libraries, deliberately reusable contributor APIs, and any stable public
-  APIs. A header must not read as public merely because it is installed.
+- ✅ [API_BOUNDARY.md](../architecture/API_BOUNDARY.md) classifies every
+  installed header into public / contributor / internal / plugin-private,
+  states that the end-user compatibility surface is the authored stage, the
+  file-format arguments, and the diagnostic codes (never a C++ header before
+  v1.0.0), and imposes the rules that keep the tiers honest (no OpenUSD in
+  `gaussianCore`, no cross-bundle `#include`, contributor-header changes
+  update the guide and every decoder together). A header no longer reads as
+  public merely because it is installed.
 
 ## 7. Build, package, and CI scaling ✅
 
@@ -167,10 +172,13 @@ v0.4.0/v0.5.0 direction and remove drift left by the v0.3.0 release.*
   forward-looking version pins corrected (SPZ v4 is no longer a v0.5.0 item).
 - ✅ Documentation index and the SPZ scope note corrected so no doc still calls
   v0.3.0 the current target or schedules SPZ v4 for v0.5.0.
-- ⬜ Contributor guide: "Adding a format decoder", generalizing
-  [CONTRIBUTING.md](../../CONTRIBUTING.md) from the PLY-specific path to the
-  shared decoder contract, the reader/decoder/diagnostics split, and the shared
-  writer.
+- ✅ Contributor guide
+  [ADDING_A_FORMAT_DECODER.md](../contributing/ADDING_A_FORMAT_DECODER.md)
+  generalizes the PLY-specific path in [CONTRIBUTING.md](../../CONTRIBUTING.md)
+  to the shared decoder contract, the reader/decoder/diagnostics split, and
+  the shared writer — the whole loop followable with no PLY or SPZ source,
+  including the decoder-test-kit round-trip and the declarative CI/packaging
+  onboarding. `CONTRIBUTING.md` links it.
 
 ## 9. SOG skeleton and v0.5.0 plan ✅
 
