@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 
 # C is enabled alongside C++ for the vendored miniz.c translation unit.
 project(GaussianSpzPlugin
-    VERSION 0.3.0
+    VERSION 0.4.0
     DESCRIPTION "OpenUSD spz file-format plugin"
     LANGUAGES C CXX)
 
