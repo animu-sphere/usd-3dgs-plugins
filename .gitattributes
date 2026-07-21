@@ -24,3 +24,6 @@ tests/equivalence/fixtures/*.ply -text
 # SPZ containers are gzip members (or deliberately damaged fragments of
 # them); never treat them as text.
 *.spz -text
+
+# Bundled SOG assets are ZIP containers; never treat them as text.
+*.sog -text

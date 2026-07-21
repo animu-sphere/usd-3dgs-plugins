@@ -108,3 +108,54 @@ cells:
     profile: usd
     host_python: "3.13"
     up_to: 5
+
+  # gaussian-sog is the v0.4.0 skeleton for the v0.5.0 SOG decoder. Its cells
+  # exist to prove that a third bundle scales by declaration: the same three
+  # digest-pinned runtimes, no copied release logic. Two deliberate
+  # differences from the shipping bundles:
+  #   - up_to: 2 — the skeleton rejects every .sog with GSSOG-E001, so the
+  #     pyramid stops at USD discovery; L3+ begin when the decoder lands.
+  #   - publish: never — the PR lane builds, tests, and packages it, but
+  #     scripts/release.py excludes publish-never cells from the release
+  #     matrix so no skeleton package ships. Removing the marker is the whole
+  #     release onboarding for the bundle.
+  - name: gaussian-sog-pr-windows
+    lane: pull_request
+    runner: windows-hosted
+    runtime_artifact: sha256:c1c54f1e8a31983ad24f2997e419b000d4ad5d030c392d592d20fd6c8ac8b227
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
+      expected_oci_digest: sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
+    bundle: plugins/gaussian-sog
+    platform: cy2026
+    profile: usd
+    up_to: 2
+    publish: never
+
+  - name: gaussian-sog-pr-macos-arm64
+    lane: pull_request
+    runner: macos-arm64-hosted
+    runtime_artifact: sha256:5630132e617c5234fb7a6ddac97dd5716642eeedd096c919c007c81787f3facf
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
+      expected_oci_digest: sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
+    bundle: plugins/gaussian-sog
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
+    up_to: 2
+    publish: never
+
+  - name: gaussian-sog-pr-linux
+    lane: pull_request
+    runner: linux-hosted
+    runtime_artifact: sha256:f6a2047c1681da4b4038f32d23b10f9713797a3f071945a799dedd73995739e5
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
+      expected_oci_digest: sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
+    bundle: plugins/gaussian-sog
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
+    up_to: 2
+    publish: never

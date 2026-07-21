@@ -61,6 +61,18 @@ coordinate-system ADR, a decoder test kit) before a third format depends on it
   (`libs/gaussian-core/tests/test_decoder_kit.cpp`) demonstrates the loop
   end to end using no PLY or SPZ code — the release's "a third decoder needs
   only the contract" criterion, held by a test.
+- The `gaussian-sog` bundle skeleton for the v0.5.0 SOG v2 importer. It
+  contains no decoding: `.sog` files are recognized and rejected with the new
+  stable diagnostic `GSSOG-E001` ("SOG import is not implemented in this
+  release") instead of USD reporting that no plugin was found. The bundle
+  exists to prove a third format scales by declaration — it builds, tests,
+  and packages through the same path as the shipping bundles, its three PR CI
+  cells were added to `openstrata.ci.yaml` alone, and the new
+  `publish: never` cell marker keeps it out of the release matrix so no
+  skeleton package ships. The SOG dependency decisions (vendored miniz for
+  ZIP; a pinned libwebp decoder subset for lossless WebP) and the v0.5.0
+  implementation and fixture plan are recorded in
+  [SOG_FORMAT.md](docs/reference/SOG_FORMAT.md).
 - Import-statistics seam: the shared `GaussianImportStats` record
   (`openstrata/gs/GaussianImportStats.h`) — source format and version,
   Gaussian count, SH degree, source and decoded byte sizes, model-frame

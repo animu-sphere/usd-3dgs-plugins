@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "GaussianSogFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/libGaussianSogFileFormat.dll",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "GaussianSogFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "GaussianSog File Format",
+                        "extensions": ["sog"],
+                        "formatId": "sog",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}
