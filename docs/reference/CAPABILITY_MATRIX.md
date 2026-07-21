@@ -56,6 +56,12 @@ This table describes the current tree. Planned capabilities belong in the
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only |
 | Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
 
+## SOG
+
+| Capability | Status | Evidence / behavior |
+| --- | --- | --- |
+| SOG import | unsupported | the v0.4.0 `gaussian-sog` skeleton recognizes `.sog` and rejects every read with `GSSOG-E001` ("not implemented in this release"); it ships in no release package (`publish: never` cells). SOG v2 one-object import is the v0.5.0 theme — plan in [SOG_FORMAT.md](SOG_FORMAT.md) |
+
 ## USD authoring
 
 Both `gaussian-ply` and `gaussian-spz` author through the shared

@@ -132,6 +132,54 @@ jobs:
             bundle: plugins/gaussian-spz
             runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8"
             host_python: "3.13"
+          - name: gaussian-sog-pr-windows
+            lane: pull_request
+            runtime_artifact: sha256:c1c54f1e8a31983ad24f2997e419b000d4ad5d030c392d592d20fd6c8ac8b227
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            up_to: 2
+            runs_on: ["windows-2022"]
+            hosted: true
+            runner_profile: windows-hosted
+            bundle: plugins/gaussian-sog
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724"
+            host_python: ""
+          - name: gaussian-sog-pr-macos-arm64
+            lane: pull_request
+            runtime_artifact: sha256:5630132e617c5234fb7a6ddac97dd5716642eeedd096c919c007c81787f3facf
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            up_to: 2
+            runs_on: ["macos-15"]
+            hosted: true
+            runner_profile: macos-arm64-hosted
+            bundle: plugins/gaussian-sog
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873"
+            host_python: "3.13"
+          - name: gaussian-sog-pr-linux
+            lane: pull_request
+            runtime_artifact: sha256:f6a2047c1681da4b4038f32d23b10f9713797a3f071945a799dedd73995739e5
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            up_to: 2
+            runs_on: ["ubuntu-24.04"]
+            hosted: true
+            runner_profile: linux-hosted
+            bundle: plugins/gaussian-sog
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8"
+            host_python: "3.13"
     steps:
       - name: Check out the repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

@@ -253,6 +253,12 @@ def cmd_matrix(args: argparse.Namespace) -> int:
         # source cells describe work a tag can reproduce from the checkout.
         if cell.get("plugin_artifact"):
             continue
+        # `publish: never` marks a cell whose bundle must not ship — the
+        # gaussian-sog skeleton runs the PR lane but is excluded here, so a
+        # bundle joins the release by removing the marker, not by editing
+        # release logic.
+        if cell.get("publish") == "never":
+            continue
 
         runner_name = cell["runner"]
         runner = runners[runner_name]

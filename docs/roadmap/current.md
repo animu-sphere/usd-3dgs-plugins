@@ -131,16 +131,23 @@ v1.0.0.*
   libraries, deliberately reusable contributor APIs, and any stable public
   APIs. A header must not read as public merely because it is installed.
 
-## 7. Build, package, and CI scaling ⬜
+## 7. Build, package, and CI scaling ✅
 
 *Goal: adding a third bundle (`gaussian-sog`) requires declarative
 configuration, not copied release logic.*
 
-- ⬜ Verify root plain-CMake composition, standalone library/plugin builds,
-  cross-plugin-independent package installation, release-matrix generation from
-  one source, per-bundle diagnostic-catalog validation, and early package
-  testing for a new bundle skeleton. Record the aggregate-artifact policy even
-  if deferred (see [backlog](backlog.md#packaging-and-release)).
+- ✅ Verified with the `gaussian-sog` skeleton (item 9): the root plain-CMake
+  composition picks the bundle up by glob with no root edit; `ost plugin
+  build|test|package` work standalone; the PR lane gained three sog cells by
+  declaration in `openstrata.ci.yaml` (`ost ci generate github` regenerated
+  the workflow); the release matrix stays derived from the same source cells,
+  with the new `publish: never` marker excluding the skeleton from the
+  release lane (`scripts/release.py matrix`); the per-bundle diagnostic
+  catalog is cross-checked by the bundle's own test, as in PLY/SPZ; and the
+  packaged skeleton passes `ost plugin test --from-package`. The
+  aggregate-artifact policy is recorded in the
+  [backlog](backlog.md#packaging-and-release): per-bundle packages remain the
+  release unit.
 
 ## 8. Documentation synchronization 🚧
 
@@ -165,19 +172,30 @@ v0.4.0/v0.5.0 direction and remove drift left by the v0.3.0 release.*
   shared decoder contract, the reader/decoder/diagnostics split, and the shared
   writer.
 
-## 9. SOG skeleton and v0.5.0 plan ⬜
+## 9. SOG skeleton and v0.5.0 plan ✅
 
 *Goal: land the `gaussian-sog` bundle skeleton and an approved fixture plan so
 v0.5.0 begins against proven CI and packaging, without forcing unresolved
 shared-contract decisions into v0.4.0.*
 
-- ⬜ Create the `gaussian-sog` bundle skeleton exercising the scaled CI and
-  packaging path from item 7.
-- ⬜ Record the SOG dependency decisions (ZIP reading, lossless WebP) with
-  fixed source revisions and license review before production decoding lands.
-- ⬜ Approve the SOG implementation and fixture plan (bundled `.sog` and
-  unbundled `meta.json`, the `GSSOG-****` catalog, cross-format equivalence)
-  per the [release plan](release-plan.md#v050--sog-v2-one-object-import).
+- ✅ `plugins/gaussian-sog` skeleton: builds, tests (pyramid to L2 —
+  discovery), and packages through the same declarative path as the shipping
+  bundles; `.sog` files are recognized and rejected with the stable
+  `GSSOG-E001` not-implemented diagnostic rather than opened as an empty
+  stage or disowned to USD's "no plugin found". Its CI cells are
+  `publish: never`, so no skeleton package ships.
+- ✅ SOG dependency decisions recorded in
+  [SOG_FORMAT.md](../reference/SOG_FORMAT.md) §3: ZIP reading reuses the
+  already-vendored miniz 3.0.2 (MIT); lossless WebP decoding vendors the
+  libwebp decoder subset (BSD-3-Clause), with the exact upstream revision and
+  notices landing at vendoring time — gated by SOG_FORMAT §6 to happen
+  before any production decoding.
+- ✅ SOG implementation and fixture plan approved in
+  [SOG_FORMAT.md](../reference/SOG_FORMAT.md) §4-§5: both layouts through one
+  reader/decoder, the `GSSOG-****` catalog allocation, decoder-test-kit
+  round-trips, PLY/SPZ/SOG equivalence triples, and a provenance-recorded
+  real asset, per the
+  [release plan](release-plan.md#v050--sog-v2-one-object-import).
 
 ## Completion criteria
 

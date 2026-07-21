@@ -106,6 +106,14 @@ allocation size remains unmeasured.
 
 - ⬜ Add an aggregate `usd-3dgs-plugins-<version>-<target>` artifact when a
   second bundle exists and OpenStrata has a clear aggregate-product contract.
+  Policy recorded in v0.4.0 (workstream 7): the per-bundle package remains
+  the release unit — the release matrix stays derived from the per-bundle
+  source cells in `openstrata.ci.yaml`, and a bundle joins or leaves the
+  release declaratively (`publish: never`). An aggregate artifact, if ever
+  added, is an additional derived artifact on top of that contract, never a
+  replacement for the per-bundle packages, and stays deferred until
+  OpenStrata defines an aggregate-product manifest the digest-reproducibility
+  gate can cover.
 - ⬜ Publish plugin packages with SBOM and provenance evidence.
 - ⬜ Add clean-machine manual install tests for each supported OS.
 - ⬜ Document and verify dependency-update procedures for tinyPLY and future

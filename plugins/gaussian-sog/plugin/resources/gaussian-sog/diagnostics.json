@@ -1,0 +1,12 @@
+{
+    "schema": "gaussian-sog.diagnostics/v1",
+    "description": "Stable diagnostic identifiers emitted by the gaussian-sog plugin. Codes are never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[GSSOG-E001] ...\".",
+    "diagnostics": [
+        {
+            "code": "GSSOG-E001",
+            "severity": "error",
+            "summary": "SOG import is not implemented in this release.",
+            "action": "SOG v2 one-object import is the v0.5.0 theme; upgrade to a release that ships the SOG decoder. This build only recognizes the format."
+        }
+    ]
+}

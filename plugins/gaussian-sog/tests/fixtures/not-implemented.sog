@@ -1,0 +1,1 @@
+PKgaussian-sog skeleton negative fixture: any .sog is rejected with GSSOG-E001 until the v0.5.0 decoder lands.

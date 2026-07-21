@@ -1,0 +1,43 @@
+# OpenStrata plugin bundle manifest.
+# A plugin is a self-describing bundle, not a bare shared library: this file is
+# the contract `ost plugin inspect|build|doctor|test` resolve against.
+#
+# gaussian-sog is the v0.4.0 *skeleton* for the v0.5.0 SOG v2 decoder: it
+# exercises the scaled build/test/package/CI path a third bundle needs before
+# any SOG decoding exists. Opening a .sog file fails with the stable
+# GSSOG-E001 not-implemented diagnostic; the bundle ships in no release until
+# the decoder lands (its CI cells are marked release: false in
+# openstrata.ci.yaml).
+manifest:
+  schema: openstrata.plugin/v1alpha1
+plugin:
+  name: gaussian-sog
+  version: 0.4.0
+  kind: usd-fileformat
+# SPDX license for this plugin's own code. Surfaced by `ost plugin inspect` and
+# recorded in the package manifest.
+license: Apache-2.0
+runtime:
+  # The OpenUSD version range this plugin tolerates. The runtime supplies the
+  # certified point within it.
+  # ParticleField3DGaussianSplat is part of OpenUSD 26.05's usdVol schema.
+  openusd: ">=26.05,<27.0"
+  # Source bundles do not hard-code C++ ABI; `ost plugin doctor` compares the
+  # resolved target/runtime ABI when a built or packaged manifest records one.
+  cxx_abi: inherit
+provides:
+  - usd-fileformat:sog
+requires:
+  capabilities: [usd-stage-read]
+  libraries:
+    - id: gaussianCore
+      version: ">=0.1,<0.2"
+usd:
+  # Where this bundle's plugInfo.json lives, relative to the bundle root.
+  plug_info: plugin/resources/gaussian-sog/plugInfo.json
+tests:
+  # No smoke or roundtrip fixtures yet: the skeleton's entire behavior is
+  # "reject with GSSOG-E001", pinned by the negative tier. The v0.5.0 decoder
+  # adds the positive tiers.
+  negative:
+    - tests/fixtures/not-implemented.sog
