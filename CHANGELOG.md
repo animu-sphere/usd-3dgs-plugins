@@ -4,6 +4,14 @@ All notable user-visible changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 semantic versioning for tagged releases.
 
+## [Unreleased]
+
+Development target: **v0.4.0 — Gaussian Import Foundation** — no new end-user
+format; the decoder-to-USD seam proven by PLY and SPZ becomes a formal,
+reusable contract (normative model contract, shared semantic validation, the
+coordinate-system ADR, a decoder test kit) before a third format depends on it
+([release plan](docs/roadmap/release-plan.md)).
+
 ## [0.3.0] - 2026-07-20
 
 Read-only SPZ import through the shared `GaussianCloudData` pipeline, plus the
