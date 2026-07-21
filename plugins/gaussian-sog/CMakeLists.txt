@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(GaussianSogPlugin
-    VERSION 0.4.0
+    VERSION 0.5.0
     DESCRIPTION "OpenUSD sog file-format plugin (v0.5.0 decoder skeleton)"
     LANGUAGES CXX)
 

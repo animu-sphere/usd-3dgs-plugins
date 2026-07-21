@@ -4,6 +4,16 @@ All notable user-visible changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 semantic versioning for tagged releases.
 
+## [Unreleased]
+
+Development target: **v0.5.0 — SOG v2 one-object import** — the `gaussian-sog`
+skeleton gains its container reader and `GaussianSogDecoder`, importing one
+complete SOG v2 object (bundled `.sog` and unbundled `meta.json` layouts) into
+the same authored USD representation PLY and SPZ produce, targeting the v0.4.0
+model contract and developed against the decoder test kit
+([release plan](docs/roadmap/release-plan.md),
+[SOG_FORMAT.md](docs/reference/SOG_FORMAT.md)).
+
 ## [0.4.0] - 2026-07-22
 
 **Gaussian Import Foundation.** No new end-user format: the
