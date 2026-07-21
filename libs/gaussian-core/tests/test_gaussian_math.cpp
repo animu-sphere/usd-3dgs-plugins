@@ -24,6 +24,11 @@ bool Close(float a, float b, float epsilon = 1.0e-6f)
     return std::abs(a - b) <= epsilon;
 }
 
+bool CloseF3(const gs::Float3& a, const gs::Float3& b)
+{
+    return Close(a.x, b.x) && Close(a.y, b.y) && Close(a.z, b.z);
+}
+
 void TestTransforms()
 {
     CHECK(Close(gs::Sigmoid(0.0f), 0.5f));
@@ -102,6 +107,65 @@ void TestValidation()
     CHECK(gs::ValidateGaussianCloud(nearUnit, &error));
 }
 
+// The RDF <-> RUB rest-coefficient sign table (ADR 0001), restated here so
+// FlipYZAxes is checked against an independent copy rather than against
+// itself. Derived from the reference flipSh basis
+// {y, z, x, xy, yz, zz, xz, xx-yy, band 3...} at (x, y, z) = (+1, -1, -1).
+constexpr float kExpectedShFlip[15] = {
+    -1.0f, -1.0f, +1.0f,                       // band 1
+    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,         // band 2
+    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
+    +1.0f,
+};
+
+void TestFlipYZAxes()
+{
+    gs::GaussianCloudData cloud;
+    cloud.gaussianCount = 2;
+    cloud.shDegree = 3;
+    for (int i = 0; i < 2; ++i) {
+        cloud.positions.push_back({1.0f, 2.0f, 3.0f});
+        cloud.scales.push_back({0.5f, 0.6f, 0.7f});
+        cloud.rotations.push_back({0.5f, 0.5f, 0.5f, 0.5f});
+        cloud.opacities.push_back(0.5f);
+        cloud.dcCoefficients.push_back({0.1f, 0.2f, 0.3f});
+        for (int c = 0; c < 15; ++c) {
+            cloud.restCoefficients.push_back(
+                {1.0f + c, 101.0f + c, 201.0f + c});
+        }
+    }
+
+    gs::GaussianCloudData flipped = cloud;
+    gs::FlipYZAxes(&flipped);
+
+    for (int i = 0; i < 2; ++i) {
+        CHECK(CloseF3(flipped.positions[i], {1.0f, -2.0f, -3.0f}));
+        // Scales and the DC term are frame-flip invariants.
+        CHECK(CloseF3(flipped.scales[i], cloud.scales[i]));
+        CHECK(CloseF3(flipped.dcCoefficients[i], cloud.dcCoefficients[i]));
+        CHECK(Close(flipped.rotations[i].real, 0.5f));
+        CHECK(Close(flipped.rotations[i].i, 0.5f));
+        CHECK(Close(flipped.rotations[i].j, -0.5f));
+        CHECK(Close(flipped.rotations[i].k, -0.5f));
+        for (int c = 0; c < 15; ++c) {
+            const gs::Float3& actual = flipped.restCoefficients[i * 15 + c];
+            const gs::Float3& source = cloud.restCoefficients[i * 15 + c];
+            const float flip = kExpectedShFlip[c];
+            CHECK(Close(actual.x, flip * source.x));
+            CHECK(Close(actual.y, flip * source.y));
+            CHECK(Close(actual.z, flip * source.z));
+        }
+    }
+
+    // The conversion is an involution: flipping back restores the source.
+    gs::FlipYZAxes(&flipped);
+    for (std::size_t i = 0; i < cloud.restCoefficients.size(); ++i) {
+        CHECK(CloseF3(flipped.restCoefficients[i], cloud.restCoefficients[i]));
+    }
+    CHECK(CloseF3(flipped.positions[0], cloud.positions[0]));
+    CHECK(Close(flipped.rotations[0].j, cloud.rotations[0].j));
+}
+
 // The contract checker is what every decoder is held to, so it needs its own
 // coverage: a checker that silently accepts everything would let a real
 // decoder regression through while the bundle suites stayed green. Each case
@@ -162,6 +226,7 @@ int main()
     TestTransforms();
     TestShLayout();
     TestValidation();
+    TestFlipYZAxes();
     TestCloudContractChecker();
     return failures == 0 ? 0 : 1;
 }

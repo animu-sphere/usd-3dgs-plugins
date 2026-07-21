@@ -72,19 +72,20 @@ run by each decoder rather than copied per bundle. The existing
   responsible for their own containers; the contract's §3 *Maximum count and
   overflow* section records the split.
 
-## 3. Coordinate-system ADR ⬜
+## 3. Coordinate-system ADR ✅
 
 *Goal: a normative decision, before SOG decoding lands, for the canonical
 coordinate frame and how formats convert into it.*
 
-- ⬜ Author an ADR deciding: the canonical frame of `GaussianCloudData`;
-  whether it stays PLY-native RDF or moves to a clearly named project frame;
-  how formats with authoritative coordinate definitions convert; how quaternion
-  and SH transformations are derived and tested; how `upAxis`, handedness, and
-  stage transforms stay consistent; whether the current RDF-model / authored
-  `upAxis = "Y"` mismatch is corrected now; and the migration consequences for
-  existing PLY and SPZ output. Because the project is pre-1.0, v0.4.0 is the
-  preferred point for a necessary authored-USD correction.
+- ✅ [ADR 0001](../adr/0001-model-frame-is-rub.md) (accepted 2026-07-22):
+  the canonical frame of `GaussianCloudData` is **RUB (Y-up)**, matching the
+  authored `upAxis = "Y"` — the pre-1.0 authored-USD correction taken in
+  v0.4.0 rather than deferred to a major bump. PLY (and later SOG) convert
+  RDF→RUB through the shared `FlipYZAxes` helper in `gaussianCore`; SPZ is
+  natively RUB and converts nothing. The quaternion/SH sign derivations, the
+  alternatives considered (corrective `xformOp`, status quo), and the
+  migration consequences for v0.1.0-v0.3.0 output are recorded in the ADR;
+  goldens and equivalence fixtures were regenerated in the same change.
 
 ## 4. Decoder test kit ⬜
 

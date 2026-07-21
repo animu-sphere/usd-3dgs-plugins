@@ -3,14 +3,15 @@
 
 Both bundles decode into the same format-independent `GaussianCloudData`
 (GAUSSIAN_MODEL_CONTRACT.md). This script defines Gaussians *in that shared
-model space* — RDF reference frame, linear positive scales, opacity in [0, 1],
-normalized scalar-first quaternions, Gaussian-major RGB spherical harmonics —
-and then encodes the same values twice:
+model space* — RUB reference frame (ADR 0001), linear positive scales, opacity
+in [0, 1], normalized scalar-first quaternions, Gaussian-major RGB spherical
+harmonics — and then encodes the same values twice:
 
   * to a Graphdeco-style binary PLY, by inverting PLY_MAPPING.md §3-§4
-    (log scales, opacity logit, channel-major `f_rest_*`); and
-  * to an SPZ v2/v3 container, by inverting SPZ_MAPPING.md §3-§6 (RDF->RUB
-    sign flips, then the reference quantization).
+    (RUB->RDF sign flips, log scales, opacity logit, channel-major
+    `f_rest_*`); and
+  * to an SPZ v2/v3 container, by inverting SPZ_MAPPING.md §3-§4 (the
+    reference quantization; SPZ is natively RUB, so no frame conversion).
 
 `tests/equivalence/test_equivalence.cpp` decodes both members of a pair and
 asserts the two clouds agree within the quantization envelope documented in
@@ -54,7 +55,7 @@ ply = _load(
 
 FRACTIONAL_BITS = 12
 
-# SPZ_MAPPING.md §5: the RUB<->RDF rest-coefficient sign table, bands 1-3.
+# ADR 0001: the RUB<->RDF rest-coefficient sign table, bands 1-3.
 # The flip is its own inverse, so the same table encodes and decodes.
 FLIP_SH = (
     -1.0, -1.0, 1.0,
@@ -68,7 +69,7 @@ FLIP_SH = (
 # --------------------------------------------------------------------------
 
 class Gaussian:
-    """One Gaussian in shared-model space (RDF, linear scale, opacity 0-1)."""
+    """One Gaussian in shared-model space (RUB, linear scale, opacity 0-1)."""
 
     def __init__(self, position, scale, rotation, opacity, dc, rest):
         self.position = position          # (x, y, z)
@@ -137,11 +138,10 @@ def exact_degree3() -> list[Gaussian]:
         #
         # Byte 0 is excluded. SH dequantizes as `(byte - 128) / 128`, so the
         # representable range is asymmetric — [-1.0, +0.9921875] — and byte 0
-        # is the one grid point whose negation is *not* on the grid. A rest
-        # coefficient of -1.0 whose band sign flip is negative would be
-        # encoded as +1.0 and clamp back to +0.9921875, which is a property of
-        # the SPZ encoding rather than a decoder disagreement. Staying in
-        # 1..255 keeps every value representable in both sign conventions.
+        # is the one grid point whose negation is *not* on the grid. Staying
+        # in 1..255 keeps every value exactly representable in both sign
+        # conventions, so the fixtures stay valid wherever the RDF<->RUB band
+        # flip sits (EQUIVALENCE.md §4).
         sh_bytes = [
             (1 + (13 * k + 5 * i) % 255,
              1 + (200 - 9 * k + 4 * i) % 255,
@@ -206,37 +206,42 @@ def logit(opacity: float) -> float:
     return math.log(opacity / (1.0 - opacity))
 
 
+def to_rdf(vector):
+    """RUB -> RDF is the same Y/Z negation in both directions."""
+    x, y, z = vector
+    return (x, -y, -z)
+
+
 def write_ply(name: str, gaussians: list[Gaussian]) -> None:
     rest_count = len(gaussians[0].rest)
     properties = ply.BASE_PROPERTIES + tuple(
         f"f_rest_{i}" for i in range(rest_count * 3))
     rows = []
     for g in gaussians:
+        # The container stores the Graphdeco RDF frame: positions and the
+        # quaternion's vector part negate Y/Z, the real part does not, and
+        # each rest coefficient carries its band sign (PLY_MAPPING.md §3).
+        w, x, y, z = g.rotation
         row = [
-            *g.position,
+            *to_rdf(g.position),
             *(math.log(s) for s in g.scale),
-            *g.rotation,
+            w, *to_rdf((x, y, z)),
             logit(g.opacity),
             *g.dc,
         ]
         # Graphdeco stores rest coefficients channel-major: all red, then all
         # green, then all blue (PLY_MAPPING.md §4).
         for channel in range(3):
-            row.extend(g.rest[k][channel] for k in range(rest_count))
+            row.extend(
+                FLIP_SH[k] * g.rest[k][channel] for k in range(rest_count))
         rows.append(tuple(row))
     (ROOT / name).write_bytes(
         ply.header(len(gaussians), properties) + ply.pack_rows(rows))
 
 
 # --------------------------------------------------------------------------
-# SPZ encoding — the inverse of SPZ_MAPPING.md §3-§6
+# SPZ encoding — the inverse of SPZ_MAPPING.md §3-§4
 # --------------------------------------------------------------------------
-
-def to_rub(vector):
-    """RDF -> RUB is the same Y/Z negation in both directions."""
-    x, y, z = vector
-    return (x, -y, -z)
-
 
 def write_spz(name: str, gaussians: list[Gaussian], version: int) -> None:
     rest_count = len(gaussians[0].rest)
@@ -245,32 +250,26 @@ def write_spz(name: str, gaussians: list[Gaussian], version: int) -> None:
     stream = spz.spz_header(
         version, len(gaussians), degree, fractional_bits=FRACTIONAL_BITS)
 
+    # SPZ's native RUB frame is the model frame (ADR 0001): every attribute
+    # is quantized directly, with no frame conversion anywhere.
     for g in gaussians:
-        position = to_rub(g.position)
         if version == 1:
-            stream += spz.enc_position_v1(position)
+            stream += spz.enc_position_v1(g.position)
         else:
-            stream += spz.enc_position_v2(position, FRACTIONAL_BITS)
+            stream += spz.enc_position_v2(g.position, FRACTIONAL_BITS)
     for g in gaussians:
         stream += spz.enc_alpha(g.opacity)
     for g in gaussians:
-        # Band 0 is rotation-invariant, so DC carries no flip.
         stream += spz.enc_color(g.dc)
     for g in gaussians:
         stream += spz.enc_scale(tuple(math.log(s) for s in g.scale))
     for g in gaussians:
-        # The quaternion's vector part flips with the frame; the real part
-        # does not (SPZ_MAPPING.md §5).
-        w, x, y, z = g.rotation
-        flipped = (w,) + to_rub((x, y, z))
         if version >= 3:
-            stream += spz.enc_rotation_smallest_three(flipped)
+            stream += spz.enc_rotation_smallest_three(g.rotation)
         else:
-            stream += spz.enc_rotation_first_three(flipped)
+            stream += spz.enc_rotation_first_three(g.rotation)
     stream += spz.enc_sh_stream(
-        [[tuple(FLIP_SH[k] * channel for channel in g.rest[k])
-          for k in range(rest_count)]
-         for g in gaussians])
+        [[g.rest[k] for k in range(rest_count)] for g in gaussians])
 
     (ROOT / name).write_bytes(spz.gzip_member(stream))
 

@@ -20,10 +20,10 @@ def Xform "Asset" (
 {
     def ParticleField3DGaussianSplat "Splat"
     {
-        float3[] extent = [(-5, -4, -3), (7, 8, 9)]
+        float3[] extent = [(-5, -8, -9), (7, 4, 3)]
         float[] opacities = [0.5]
-        quatf[] orientations = [(1, 0, 0, 0)]
-        point3f[] positions = [(1, 2, 3)]
+        quatf[] orientations = [(1, 0, -0, -0)]
+        point3f[] positions = [(1, -2, -3)]
         float3[] radiance:sphericalHarmonicsCoefficients = [(0.1, 0.2, 0.3)]
         uniform int radiance:sphericalHarmonicsDegree = 0
         float3[] scales = [(1, 2, 0.5)]

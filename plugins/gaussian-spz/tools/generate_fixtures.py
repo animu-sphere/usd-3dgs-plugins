@@ -10,11 +10,11 @@ spans byte-for-byte.
 The semantic-decoder fixtures instead encode known floating-point Gaussians
 through the reference serializer's exact quantization formulas
 (https://github.com/nianticlabs/spz, splat-utils.h / load-spz.cc). The C++
-decoder test knows the same source values, applies the documented RUB->RDF
-reference-frame conversion (SPZ_MAPPING.md §4-§5), and checks the decoded
-cloud within per-attribute quantization tolerances. Encoding a known value and
-decoding it back is a genuine inverse check: a sign or ordering error does not
-round-trip.
+decoder test knows the same source values and checks the decoded cloud within
+per-attribute quantization tolerances; SPZ's native RUB frame is the model's
+reference frame (ADR 0001), so no conversion sits between them. Encoding a
+known value and decoding it back is a genuine inverse check: a sign or
+ordering error does not round-trip.
 """
 
 from __future__ import annotations
@@ -299,9 +299,9 @@ def enc_sh_stream(points_sh) -> bytes:
 
 def decoder_fixtures() -> None:
     # A two-point degree-1 v2 asset exercising every attribute plus the SH
-    # ordering and the per-coefficient RUB->RDF sign flips. Positions and log
-    # scales are chosen to land on exact quantization points; the C++ test
-    # mirrors these source values (test_gaussian_spz_decoder.cpp).
+    # ordering. Positions and log scales are chosen to land on exact
+    # quantization points; the C++ test mirrors these source values
+    # (test_gaussian_spz_decoder.cpp).
     frac = 12
     positions = [(1.0, 2.0, -0.5), (-3.0, 0.25, 4.0)]
     log_scales = [(0.0, 1.0, -1.0), (0.5, -0.5, 0.0)]
@@ -323,12 +323,12 @@ def decoder_fixtures() -> None:
     stream += enc_sh_stream(sh)
     write("decode-degree1-v2.spz", gzip_member(stream))
 
-    # A two-point degree-3 asset covering every rest coefficient, so all 15
-    # RUB->RDF sign flips (bands 1-3) and the degree-3 Gaussian stride are
-    # pinned rather than just the three band-1 flips a degree-1 fixture
-    # reaches. Every SH value is an exact multiple of 1/128, so quantization
-    # round-trips without error, and the three channels of a coefficient are
-    # always distinct so a channel swap is visible too.
+    # A two-point degree-3 asset covering every rest coefficient, so the
+    # degree-3 Gaussian stride is pinned across all bands rather than just
+    # the three coefficients a degree-1 fixture reaches. Every SH value is an
+    # exact multiple of 1/128, so quantization round-trips without error, and
+    # the three channels of a coefficient are always distinct so a channel
+    # swap is visible too.
     degree3_positions = [(0.5, 1.0, -1.5), (-2.0, 0.75, 3.0)]
     stream = spz_header(2, len(degree3_positions), 3, fractional_bits=frac)
     stream += b"".join(enc_position_v2(p, frac) for p in degree3_positions)

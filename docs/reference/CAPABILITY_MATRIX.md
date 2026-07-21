@@ -23,6 +23,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Position | supported | `x/y/z` copied as local-space position |
 | Scale | supported | stable finite `exp(scale_*)` conversion |
 | Rotation | supported | scalar-first quaternion normalization; zero becomes identity with warning |
+| RDF→RUB reference-frame conversion | supported | shared `FlipYZAxes` (ADR 0001): position/quaternion/SH sign flips verified against independent tables and the cross-format equivalence suite |
 | Opacity | supported | numerically stable sigmoid to `[0,1]` |
 | SH degrees 0-3 | supported | exact-coefficient fixtures at every degree; corpus assets at degree 3; degree 4 reported unsupported (`GSPLY-E017`), not malformed |
 | Property declaration order | supported | name-based resolution; scrambled-order fixture and Brush's lexicographic `f_rest` order both decode identically |
@@ -48,7 +49,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Opacity (8-bit) | supported | `byte/255`, already in `[0,1]` |
 | DC and SH rest (8-bit quantized) | supported | dequantized directly into the model's Gaussian-major RGB triples (no transpose needed) |
 | SH degrees 0-3 | supported | decoder fixtures at degrees 0, 1, and 3; degree 4 reported unsupported (`GSPZ-E011`), not malformed |
-| RUB→RDF reference-frame conversion | supported | position/quaternion/SH sign flips verified through the decoder and USD |
+| Native-RUB reference frame (no conversion) | supported | SPZ's RUB convention is the model frame (ADR 0001); dequantized verbatim, verified through the decoder and USD |
 | Extension records, antialiased flag | supported (ignored) | preserved by the reader, ignored by the decoder with warnings `GSPZ-W001`/`W002` |
 | Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test |
 | PLY/SPZ cross-format equivalence | supported | synthetic pairs encode one source model into both formats; `gaussian_ply_spz_equivalence` compares every model attribute at documented quantization-aware tolerances, covering SPZ v2 and v3 — see [EQUIVALENCE.md](EQUIVALENCE.md) |

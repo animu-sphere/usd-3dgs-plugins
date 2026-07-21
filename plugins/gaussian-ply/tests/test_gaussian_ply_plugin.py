@@ -61,7 +61,8 @@ def check_stage(name, expected_degree):
     coefficients = splat.GetAttribute(
         "radiance:sphericalHarmonicsCoefficients").Get()
     assert len(positions) == len(scales) == len(orientations) == len(opacities) == 1
-    assert tuple(positions[0]) == (1.0, 2.0, 3.0)
+    # Source RDF (1, 2, 3) is authored in the RUB model frame (ADR 0001).
+    assert tuple(positions[0]) == (1.0, -2.0, -3.0)
     assert all(close(a, b) for a, b in zip(scales[0], (1.0, 2.0, 0.5)))
     assert close(orientations[0].GetReal(), 1.0)
     assert close(opacities[0], 0.5)
@@ -127,7 +128,8 @@ def check_format_args():
         "radiance:sphericalHarmonicsCoefficients").Get()
     assert len(positions) == 2
     # sigmoid(-1) ~= 0.269 was filtered; the survivors keep source order.
-    assert all(close(a, b) for a, b in zip(positions[0], (-4.0, 5.0, -6.0)))
+    # Positions are in the RUB model frame (source RDF (-4, 5, -6)).
+    assert all(close(a, b) for a, b in zip(positions[0], (-4.0, -5.0, 6.0)))
     assert all(close(a, b) for a, b in zip(
         scales[0], (2 * math.exp(-1), 2.0, 2 * math.exp(0.25))))
     assert len(coefficients) == 2

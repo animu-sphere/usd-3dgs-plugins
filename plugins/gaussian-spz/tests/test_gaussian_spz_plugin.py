@@ -95,8 +95,8 @@ def check_stage_contract(name, expected_count, expected_degree):
 def check_known_values():
     """The exact values encoded into decode-degree1-v2.spz, seen through USD.
 
-    Source is RUB; the authored stage is the model's RDF reference frame, so Y
-    and Z are negated relative to the SPZ-native positions.
+    Source is RUB, which is the model's reference frame (ADR 0001), so the
+    authored stage carries the SPZ-native values without conversion.
     """
     stage = Usd.Stage.Open(str(FIXTURES / "decode-degree1-v2.spz"))
     splat = stage.GetPrimAtPath("/Asset/Splat")
@@ -106,17 +106,17 @@ def check_known_values():
     coefficients = splat.GetAttribute(
         "radiance:sphericalHarmonicsCoefficients").Get()
 
-    assert all(close(a, b, 1.0e-3) for a, b in zip(positions[0], (1.0, -2.0, 0.5)))
-    assert all(close(a, b, 1.0e-3) for a, b in zip(positions[1], (-3.0, -0.25, -4.0)))
+    assert all(close(a, b, 1.0e-3) for a, b in zip(positions[0], (1.0, 2.0, -0.5)))
+    assert all(close(a, b, 1.0e-3) for a, b in zip(positions[1], (-3.0, 0.25, 4.0)))
     assert all(close(a, b, 1.0e-3)
                for a, b in zip(scales[0], (1.0, math.exp(1.0), math.exp(-1.0))))
     assert close(opacities[0], 0.8, 1.0e-4)
     assert close(opacities[1], 0.6, 1.0e-4)
 
     # SH is authored DC-first per Gaussian, then rest coefficients. Gaussian 0
-    # rest coefficient 0 carries the band-1 flip (sign -1): source (0.1,0.2,0.3)
-    # -> (-0.1,-0.2,-0.3). Index 1 is the first rest triple after the DC term.
-    assert all(close(a, b, 0.02) for a, b in zip(coefficients[1], (-0.1, -0.2, -0.3)))
+    # rest coefficient 0 is the dequantized source (0.1, 0.2, 0.3); index 1 is
+    # the first rest triple after the DC term.
+    assert all(close(a, b, 0.02) for a, b in zip(coefficients[1], (0.1, 0.2, 0.3)))
 
 
 def check_metadata_only():
@@ -255,18 +255,15 @@ def check_corpus_asset(spz_path):
                    for i in range(3)), (p, extent)
 
     # The crop recorded in the provenance record bounds the SPZ-native
-    # positions; the stage is authored in RDF, which negates Y and Z. Checking
-    # the authored positions against the flipped box proves the derivation and
-    # the frame flip agree, and would catch a corpus asset regenerated with
-    # other arguments. The check is on positions, not on extent: extent is a
-    # conservative three-sigma bound that legitimately overruns the crop by the
-    # splat radius.
+    # positions, and SPZ's native RUB frame is the model's reference frame
+    # (ADR 0001), so the box bounds the authored positions directly. The
+    # check would catch a corpus asset regenerated with other arguments. It
+    # is on positions, not on extent: extent is a conservative three-sigma
+    # bound that legitimately overruns the crop by the splat radius.
     aabb = provenance["derivation"]["aabb"]
     if aabb is not None:
         native_low, native_high = aabb[:3], aabb[3:]
-        bounds = [(native_low[0], native_high[0]),
-                  (-native_high[1], -native_low[1]),
-                  (-native_high[2], -native_low[2])]
+        bounds = list(zip(native_low, native_high))
         quantum = 2.0 ** -provenance["source"]["fractional_bits"]
         for p in positions:
             assert all(lo - quantum <= p[axis] <= hi + quantum

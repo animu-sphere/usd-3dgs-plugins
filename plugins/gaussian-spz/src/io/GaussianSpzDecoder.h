@@ -18,10 +18,11 @@ struct GaussianSpzMetadata {
 
 // Semantic decoding of an SPZ v1-v3 container into the format-independent
 // GaussianCloudData: position/scale dequantization, rotation decoding and
-// normalization, opacity decoding, SH dequantization, and the RUB→RDF
-// reference-frame conversion. Container concerns (signature, gzip framing,
-// truncation, size math) stay in SpzReader; this class consumes its packed
-// document. The exact mapping is docs/reference/SPZ_MAPPING.md.
+// normalization, opacity decoding, and SH dequantization. SPZ's native RUB
+// frame is the model's reference frame (ADR 0001), so no frame conversion is
+// applied. Container concerns (signature, gzip framing, truncation, size
+// math) stay in SpzReader; this class consumes its packed document. The
+// exact mapping is docs/reference/SPZ_MAPPING.md.
 class GaussianSpzDecoder {
 public:
     bool CanRead(const std::string& path) const noexcept;

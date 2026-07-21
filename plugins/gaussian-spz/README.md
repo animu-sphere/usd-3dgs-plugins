@@ -29,7 +29,7 @@ src/GaussianSpzFileFormat.{h,cpp}  thin SdfFileFormat integration (routes to gau
 src/io/SpzReader.{h,cpp}        SPZ container reading (gzip framing, header/size
                                 validation, quantized attribute spans)
 src/io/GaussianSpzDecoder.{h,cpp}  semantic decode into GaussianCloudData
-                                (dequantization, rotation decode, RUB→RDF)
+                                (dequantization, rotation decode; native RUB)
 src/io/GaussianSpzDiagnostics.h stable GSPZ-**** diagnostic identifiers
 plugin/resources/gaussian-spz/  plugInfo.json + machine-readable diagnostics.json
 tests/fixtures/                 deterministic valid + invalid container fixtures

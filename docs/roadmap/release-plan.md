@@ -147,9 +147,11 @@ breakdown is in [current.md](current.md). Scope:
 - shared semantic validation consolidated into `libs/` and run by every
   decoder rather than a per-bundle copy;
 - a normative coordinate-system ADR deciding the canonical frame, how formats
-  with authoritative axis definitions convert into it, and whether the current
+  with authoritative axis definitions convert into it, and whether the
   RDF-model / authored `upAxis = "Y"` mismatch is corrected in this pre-1.0
-  window;
+  window — decided:
+  [ADR 0001](../adr/0001-model-frame-is-rub.md) makes RUB the model frame and
+  corrects the mismatch in v0.4.0;
 - a decoder test kit letting a decoder be tested against the shared contract
   without authoring a USD stage;
 - a shared import-statistics seam so per-format instrumentation cannot diverge;
