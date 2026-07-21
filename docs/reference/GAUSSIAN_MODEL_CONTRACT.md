@@ -119,7 +119,10 @@ diagnostic; it is not truncated to degree 3, because silently discarding
 authored coefficients would misrepresent the asset. Truncation happens only
 when the *user* asks for it (the PLY `shDegree` import option), and an
 explicit cap below the source degree is not a contract violation — the decoded
-model simply is a degree-`min(cap, source)` cloud.
+model simply is a degree-`min(cap, source)` cloud. A cap does not, however,
+rescue a source *declaring* an unsupported degree: the decoder rejects the
+declaration before any cap applies, so a degree-4 asset is rejected even when
+the requested cap is 3 or lower.
 
 ### Quaternion order
 

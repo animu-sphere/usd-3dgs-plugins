@@ -17,12 +17,6 @@
 namespace openstrata::gs::spz {
 namespace {
 
-// The shared model carries SH degrees 0-kMaxShDegree
-// (GAUSSIAN_MODEL_CONTRACT.md §3). Degree 4 is valid SPZ and passes the
-// container stage, so the rejection here must say "not supported", never
-// "malformed" (SPZ_FORMAT.md §7).
-constexpr int kModelMaxShDegree = kMaxShDegree;
-
 // Dequantization constants from the reference serializer, recorded in
 // SPZ_MAPPING.md §3: the DC color scale and the smallest-three component
 // bound 1/sqrt(2).
@@ -44,13 +38,17 @@ void SetError(std::string* error, const char* code, const std::string& message)
 
 bool CheckSupportedShDegree(std::uint8_t shDegree, std::string* error)
 {
-    if (static_cast<int>(shDegree) <= kModelMaxShDegree) {
+    // The shared model carries SH degrees 0-kMaxShDegree
+    // (GAUSSIAN_MODEL_CONTRACT.md §3). Degree 4 is valid SPZ and passes the
+    // container stage, so the rejection here must say "not supported", never
+    // "malformed" (SPZ_FORMAT.md §7).
+    if (static_cast<int>(shDegree) <= kMaxShDegree) {
         return true;
     }
     SetError(error, diag::kUnsupportedShDegree,
         "SPZ SH degree " + std::to_string(static_cast<int>(shDegree)) +
         " is valid for the format but not supported by this release; "
-        "supported degrees are 0-" + std::to_string(kModelMaxShDegree) + ".");
+        "supported degrees are 0-" + std::to_string(kMaxShDegree) + ".");
     return false;
 }
 
