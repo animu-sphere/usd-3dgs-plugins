@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "openstrata/gs/GaussianImportStats.h"
 
-#include <cstdio>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 
 namespace openstrata::gs {
 namespace {
 
-// %g keeps small durations and large coordinates readable in one format and
-// is locale-independent through snprintf's "C" formatting of these fields.
+// Default float format at precision 6 -- the %.6g rendering that keeps small
+// durations and large coordinates readable in one form. Streamed through the
+// classic ("C") locale so the decimal point is always '.', independent of any
+// global locale the host may have installed: boundsMin/boundsMax join their
+// components with ',', which a comma-decimal locale would otherwise corrupt.
 std::string FormatDouble(double value)
 {
-    char buffer[32];
-    std::snprintf(buffer, sizeof buffer, "%.6g", value);
-    return buffer;
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out << std::setprecision(6) << value;
+    return out.str();
 }
 
 } // namespace
