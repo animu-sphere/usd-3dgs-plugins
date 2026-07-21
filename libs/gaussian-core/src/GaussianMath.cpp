@@ -158,6 +158,11 @@ void FlipYZAxes(GaussianCloudData* cloud) noexcept
         cloud->gaussianCount == 0 || cloud->restCoefficients.empty()
             ? 0
             : cloud->restCoefficients.size() / cloud->gaussianCount;
+    // Defensive: a rest layout the table cannot index (empty, or wider than
+    // kMaxShDegree admits) is left unflipped, while positions and rotations
+    // are already negated. That half-converted cloud is safe only because
+    // callers pass the result to ValidateGaussianCloud, which rejects any
+    // cloud this guard can trigger on.
     if (restPerGaussian == 0 || restPerGaussian > std::size(kShFlipYZ)) {
         return;
     }
@@ -196,8 +201,12 @@ bool ValidateGaussianCloud(
         return false;
     }
     if (cloud.shDegree > kMaxShDegree) {
-        // The message spells the ceiling out because SetError takes a static
-        // string; it must move with kMaxShDegree.
+        // The message spells the ceiling out because this function is
+        // noexcept and composing a string could throw; the assert keeps the
+        // text tied to the constant.
+        static_assert(kMaxShDegree == 3,
+            "update the SH degree validation message when kMaxShDegree "
+            "changes");
         SetError(error, "Gaussian SH degree exceeds the supported maximum of 3.");
         return false;
     }
