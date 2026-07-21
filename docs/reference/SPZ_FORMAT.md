@@ -20,7 +20,8 @@ SPZ is published by Niantic Labs at
 contains both a reference implementation and a prose format description in its
 `README`, so the binary layout is **documented, not inferred**. This satisfies
 the standing rule that undocumented binary layouts are never guessed
-([backlog](../roadmap/backlog.md), v0.5.0 criteria).
+([design policy](../design/DESIGN_POLICY.md) §4: Phase 3 formats are accepted
+only once documented).
 
 The specification is the normative source for this bundle. Where the reference
 implementation and the prose disagree, the discrepancy is recorded here and
@@ -64,9 +65,9 @@ The two generations differ structurally:
 v1-v3 is a single decompression dependency and one linear layout, which is the
 right size for a release whose stated purpose is *proving the shared
 architecture supports a compressed second format* — not maximizing format
-coverage. v4 is tracked for [v0.5.0](../roadmap/release-plan.md) (expanded
-format compatibility), where it is an additive change behind the same
-container-version check rather than a rewrite.
+coverage. v4 is tracked for reconsideration after SOG v2 ships
+([release plan](../roadmap/release-plan.md)), where it is an additive change
+behind the same container-version check rather than a rewrite.
 
 **Version 4 files must fail with a specific unsupported-version diagnostic, not
 a malformed-container one.** The distinction is a release criterion: a user

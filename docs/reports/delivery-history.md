@@ -8,8 +8,8 @@ Windows against OpenUSD 26.05. The first tagged release is
 [v0.1.0](../releases/v0.1.0.md); later sections record post-tag stabilization
 work.
 
-Legend: ✅ completed (sections A-G locally on Windows; section H on hosted
-runners or GitHub)
+Legend: ✅ completed (sections A-G locally on Windows; sections H-I on hosted
+runners or GitHub, with the local verification each notes)
 
 ## A. M0 — workspace bootstrap
 
@@ -174,3 +174,61 @@ publication on 2026-07-19.
   on PR #11, dry run green, tagged 2026-07-19 (`7323f46`).
 - ✅ Reviewed and published the v0.1.0 and v0.2.0 GitHub releases 2026-07-19;
   both [release records](../releases/README.md) record the published state.
+
+## I. M5 — SPZ import (v0.3.0)
+
+The v0.3.0 cycle, closed with the tag `80fad96` and GitHub publication on
+2026-07-20. Full shipped scope, artifact digests, and known limitations are in
+the [v0.3.0 release record](../releases/v0.3.0.md); this is the completed-work
+log the roadmap no longer needs to carry.
+
+- ✅ Post-v0.3.0-preparation stabilization: documented the `CanRead()` contract
+  as design policy §7.6 (plausible format compatibility, not asset validity)
+  and set the shared-model groundwork so two independent decoders could target
+  it.
+- ✅ Shared model contract: documented `GaussianCloudData` in
+  [GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md) and
+  extracted `libs/gaussian-usd` (design policy §7.4) so PLY and SPZ author
+  through one `GaussianLayerWriter` with per-bundle-injected diagnostic codes;
+  the contract checker lives in `gaussianCore` so every decoder runs the same
+  code rather than a copy.
+- ✅ SPZ container reader (`plugins/gaussian-spz/src/io/SpzReader.*`): versions
+  1-3, gzip framing parsed in-repo over vendored miniz 3.0.2 (raw DEFLATE and
+  CRC32 only), overflow-safe size math, truncation/corruption/trailing-data
+  detection, unsupported-version rejection, a metadata-only header path, and the
+  `GSPZ-E0**` container catalog. Implementing from the specification surfaced
+  and corrected three container facts (attribute ordering, v1 float16 positions,
+  per-version rotation encodings) in [SPZ_FORMAT.md](../reference/SPZ_FORMAT.md)
+  §4 first. 9 valid and 20 invalid fixtures, each pinned to its exact code.
+- ✅ Semantic decoder (`GaussianSpzDecoder`): position dequantization (v1
+  float16, v2/v3 24-bit fixed point), 8-bit log-scale/opacity decoding,
+  per-version rotation decoding with normalization, DC and rest SH into
+  Gaussian-major RGB triples, the RUB→RDF reference-frame conversion, and shared
+  cloud validation — the same output invariants as `GaussianPlyDecoder`, pinned
+  in [SPZ_MAPPING.md](../reference/SPZ_MAPPING.md). Highest-risk paths (rotation,
+  SH ordering) tested as an encode→decode inverse.
+- ✅ USD integration: the SPZ plugin routes decoded data through the shared
+  `GaussianLayerWriter` under its own stable codes; PLY and SPZ author an
+  identical hierarchy, schema, metadata, and stage metrics by construction,
+  differing only in the `sourceFormat` string.
+- ✅ PLY/SPZ cross-format equivalence
+  ([EQUIVALENCE.md](../reference/EQUIVALENCE.md)): one shared-model source
+  encoded into both formats and decoded back through the two decoders, compared
+  at tolerances derived from the SPZ quantization steps — the independent
+  witness over the RUB→RDF conversion, the 15 SH band sign flips, and the two SH
+  layouts. Recorded the asymmetric SPZ SH quantization range as an encoder
+  property.
+- ✅ Real-asset corpus: two CC0-1.0 author-captured Scaniverse exports
+  (`yashica-t4`, `leica-sofort`) subset to 8,192 Gaussians by
+  `scripts/spz_subset.py` with recorded provenance; the smoke test discovers
+  `corpus/*/*.spz` and checks the decoded stage semantically.
+- ✅ Performance baselines for SPZ recorded in
+  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md) through the
+  same `scripts/benchmark_import.py` seam as PLY (~4x faster per Gaussian, no
+  architectural regression).
+- ✅ Release hardening: three `gaussian-spz` source cells added to
+  `openstrata.ci.yaml`, moving the PR and release lanes from 3 to 6 by editing
+  one file; SPZ L5 golden roundtrip declared; packaging and SBOM verified
+  locally; hosted dry run, tag, and draft assembled 2026-07-20
+  ([run 29741754978](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/29741754978),
+  6 cells green), then published.

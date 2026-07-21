@@ -28,9 +28,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | --- | --- | --- | --- |
 | v0.1.0 | Initial PLY vertical slice | M0-M4 | ✅ tagged & published — [record](../releases/v0.1.0.md) |
 | v0.2.0 | Production-ready Graphdeco PLY import | Phase 1 stabilization | ✅ tagged & published — [record](../releases/v0.2.0.md) |
-| v0.3.0 | SPZ import | M5, Phase 2 | 🚧 current target |
-| v0.4.0 | Common Gaussian conversion layer | design policy §7.4 | ⬜ |
-| v0.5.0 | Expanded format compatibility | Phase 3, SOG M1 | ⬜ |
+| v0.3.0 | SPZ import | M5, Phase 2 | ✅ tagged & published — [record](../releases/v0.3.0.md) |
+| v0.4.0 | Gaussian Import Foundation | design policy §7.4 | 🚧 current target |
+| v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ⬜ |
 | v0.6.0 | Import tooling and diagnostics | — | ⬜ |
 | v0.7.0 | Performance and large-asset readiness | Phase 4 | ⬜ |
 | v0.8.0 | USD packaging and asset composition | — | ⬜ |
@@ -77,9 +77,9 @@ and editing workflows.
 Gaussian import architecture supports a compressed second format without
 duplicating the PLY-to-USD implementation.**
 
-This is M5 in the [milestone ladder](backlog.md#milestone-ladder) and the
-current development target; the task breakdown is in
-[current.md](current.md). Two workstreams, in order:
+Shipped: tagged and published 2026-07-20 — see the
+[release record](../releases/v0.3.0.md). This was M5 in the
+[milestone ladder](backlog.md#milestone-ladder), delivered in two workstreams:
 
 1. **Post-v0.2.0 stabilization** — resolve documentation and release-state
    inconsistencies left behind by v0.2.0, fix defects found in real usage,
@@ -126,35 +126,88 @@ editing, animation, LOD, network streaming, GPU-native decoding, a general
 conversion CLI (small internal validation or fixture tools excepted), and
 public decoder-API guarantees beyond what the plugin needs.
 
-## v0.4.0 — common Gaussian conversion layer
+## v0.4.0 — Gaussian Import Foundation
 
-**Separate file-format decoding from USD scene generation as a formal,
-documented contract.**
+**Turn the decoder-to-USD seam proven by PLY and SPZ into a formal, documented,
+reusable contract before a third format depends on it.**
 
-The `parser -> GaussianCloudData -> GaussianLayerWriter` pipeline already
-exists; this release formalizes it: shared validation, coordinate-conversion,
-SH-layout, and diagnostics utilities; the `gaussianUsd` extraction if the SPZ
-work triggered it (design policy §7.4); cleaner public/internal API
-separation; shared import statistics; and parsing and authoring benchmarks.
+v0.3.0 showed that two substantially different encodings converge at
+`format reader → semantic decoder → GaussianCloudData → GaussianLayerWriter →
+ParticleField3DGaussianSplat`. This release does not add an end-user format; it
+formalizes that seam (design policy §7.4) so SOG and later decoders can be
+implemented without format-specific USD authoring, duplicated validation,
+inconsistent coordinate handling, or incompatible diagnostics. The task
+breakdown is in [current.md](current.md). Scope:
 
-Done when: PLY and SPZ share one authoring path, format-specific logic is
-isolated from prim construction, shared conversion behavior is unit-tested,
-adding a decoder does not require rewriting the scene-graph layer, and
-internal APIs are documented for contributors.
+- a revised, normative `GaussianCloudData` output contract
+  ([GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md)) —
+  decoded physical values only; format-native representations (PLY log-scales
+  and opacity logits, SPZ quantized planes, SOG pixels and codebook indices)
+  never enter it;
+- shared semantic validation consolidated into `libs/` and run by every
+  decoder rather than a per-bundle copy;
+- a normative coordinate-system ADR deciding the canonical frame, how formats
+  with authoritative axis definitions convert into it, and whether the current
+  RDF-model / authored `upAxis = "Y"` mismatch is corrected in this pre-1.0
+  window;
+- a decoder test kit letting a decoder be tested against the shared contract
+  without authoring a USD stage;
+- a shared import-statistics seam so per-format instrumentation cannot diverge;
+- a documented public/internal header boundary (no ABI promise before v1.0.0);
+- build, package, and CI configuration that scales to a third bundle by
+  declaration rather than copied release logic;
+- documentation synchronization and a contributor guide for adding a decoder.
 
-## v0.5.0 — expanded format compatibility
+Done when: PLY and SPZ still produce equivalent authored structure through one
+writer and pass the same shared-model validation; coordinate and stage-axis
+policy are normative and consistent; a minimal mock decoder can target the
+shared contract without PLY or SPZ code; adding a bundle needs no duplicated
+release-matrix logic; and the v0.2.0/v0.3.0 performance and correctness
+baselines show no material regression.
 
-Phase 3 candidates, accepted individually: SOG (SOG M1, one object), glTF/GLB
-Gaussian extensions (only after the required ADR), `.splat`, `.ksplat`,
-SuperSplat-compatible PLY variants, and other documented PLY dialects.
-Priority follows specification availability, ecosystem adoption, test-asset
-availability, licensing compatibility, maintenance cost, and clean mapping
-into the common Gaussian model.
+Excluded: SOG file import and its ZIP/WebP dependencies, SPZ v4, `.splat`,
+`.ksplat`, compressed PLY, glTF/GLB, export, a conversion CLI, streaming/LOD,
+renderer work, and stable external ABI guarantees.
 
-Done when: each stable format has documented version-level coverage, fixtures,
-and invalid-input tests, and the generated stage structure remains
-format-independent. Undocumented binary layouts are not guessed, and ambiguous
-or unsupported variants fail explicitly.
+## v0.5.0 — SOG v2 one-object import
+
+**Import one complete SOG v2 Gaussian object into the same standard USD
+representation PLY and SPZ produce, exercising the v0.4.0 contract with a third
+format.**
+
+SOG was chosen ahead of `.splat`, `.ksplat`, compressed PLY, and glTF/GLB
+Gaussian extensions for its published versioned specification, clean mapping
+into the Gaussian semantic model, active PlayCanvas/SuperSplat use,
+deterministic test-asset generation through SplatTransform, and a natural path
+toward later spatial chunks and streamed LOD. Read-only, one object, two
+layouts converging on one reader and decoder:
+
+- bundled `.sog` (a ZIP of `meta.json` plus lossless-WebP property images);
+- unbundled `meta.json` with resolver-backed companion images.
+
+The SOG reader and `GaussianSogDecoder` decode positions (`means_l`/`means_u`),
+smallest-three quaternions, exponential scale codebooks, SH0/base color and
+opacity, and optional higher-order SH palettes into `GaussianCloudData`,
+convert the SOG source frame through the v0.4.0 canonical-frame policy, and
+author through the unchanged `GaussianLayerWriter`. SOG gets its own stable
+`GSSOG-****` diagnostic namespace and machine-readable catalog. New production
+dependencies for ZIP reading and lossless WebP decoding are pinned to fixed
+source revisions with recorded license and dependency decisions.
+
+Done when: both layouts open through the plugin on the same semantic path;
+position, scale, rotation, opacity, SH0, and optional higher-order SH decode
+correctly; cross-format fixtures demonstrate coordinate and SH consistency
+against PLY/SPZ at tolerances derived from the SOG equations; failures use
+stable actionable `GSSOG-****` diagnostics; a provenance-recorded real SOG
+asset is validated automatically and manually with recorded performance
+baselines; and Windows, macOS, and Linux source/package cells pass.
+
+Excluded: Streamed SOG and `lod-meta.json`, multiple chunks or LOD levels,
+deferred/partial loading, network resource loading, lossy property images, SOG
+export or recompression, GPU-native decode, generic ZIP/image APIs, glTF/GLB,
+`.splat`, `.ksplat`, compressed PLY, and SPZ v4. Streamed SOG and its
+composition model are SOG M2-M4, scheduled only after the one-object decoder is
+stable and measured.
 
 ## v0.6.0 — import tooling and diagnostics
 
@@ -289,8 +342,10 @@ a reviewed third-party dependency and license list.
 
 ## Immediate focus
 
-The current development target is **v0.3.0 — SPZ import**, entered with the
-v0.2.0 tag and publication on 2026-07-19. Work starts with post-v0.2.0
-stabilization and the shared-model contract before any SPZ decoding lands;
-the task breakdown is in [current.md](current.md). v0.4.0 and later begin
-only after the v0.3.0 completion criteria are met.
+The current development target is **v0.4.0 — Gaussian Import Foundation**,
+entered with the v0.3.0 tag and publication on 2026-07-20. Work starts with the
+coordinate-system ADR and the revised shared-model contract before any SOG
+decoding lands; the task breakdown is in [current.md](current.md). v0.5.0 SOG
+import begins only after the v0.4.0 completion criteria are met — experimental
+SOG work may start during v0.4.0, but production SOG code must not force
+unresolved shared-contract decisions into that release.
