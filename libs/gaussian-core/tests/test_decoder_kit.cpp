@@ -109,9 +109,10 @@ MockSplatDocument EncodeMockSplat(const gs::GaussianCloudData& model)
         const gs::Float3& dc = source.dcCoefficients[i];
         document.dc.insert(document.dc.end(), {dc.x, dc.y, dc.z});
     }
-    // Channel-major rest: channel, then coefficient, then Gaussian innermost
-    // stays with the coefficient (each channel block is coefficient-major per
-    // Gaussian, matching the PLY f_rest_* column convention).
+    // Channel-major rest: channel outermost, then Gaussian, then coefficient
+    // innermost -- one contiguous [Gaussian][coefficient] block per channel,
+    // matching the PLY f_rest_* column convention (all R coefficients, then
+    // all G, then all B). The decoder transposes this back to Gaussian-major.
     for (int channel = 0; channel < 3; ++channel) {
         for (std::size_t i = 0; i < source.gaussianCount; ++i) {
             for (std::size_t c = 0; c < restPerGaussian; ++c) {
