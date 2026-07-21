@@ -4,11 +4,14 @@
 #include "io/GaussianSpzDiagnostics.h"
 #include "io/SpzReader.h"
 #include "openstrata/gs/GaussianMath.h"
+#include "openstrata/gs/GaussianSizeMath.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -106,6 +109,18 @@ float UnquantizeSh(unsigned char stored) noexcept
     return (static_cast<float>(stored) - 128.0f) / 128.0f;
 }
 
+// Sized the way the reader opens files, so the reported source size matches
+// what was actually read; 0 when the size cannot be determined.
+std::uint64_t FileSizeOf(const std::string& path)
+{
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    if (!in) {
+        return 0;
+    }
+    const std::streamoff size = in.tellg();
+    return size < 0 ? 0 : static_cast<std::uint64_t>(size);
+}
+
 // First-three encoding (v1-v2): x, y, z mapped from [0,255] back to [-1,1];
 // w reconstructed non-negative from the unit constraint. Quantization can
 // push |xyz| slightly past 1, so the radicand is clamped and the result is
@@ -191,7 +206,8 @@ bool GaussianSpzDecoder::Decode(
     const std::string& path,
     GaussianCloudData* cloud,
     std::vector<std::string>* warnings,
-    std::string* error) const
+    std::string* error,
+    GaussianImportStats* stats) const
 {
     if (!cloud) {
         SetError(error, diag::kInternalError,
@@ -199,10 +215,17 @@ bool GaussianSpzDecoder::Decode(
         return false;
     }
 
+    using Clock = std::chrono::steady_clock;
+    const auto seconds = [](Clock::time_point from, Clock::time_point to) {
+        return std::chrono::duration<double>(to - from).count();
+    };
+    const auto readStart = Clock::now();
+
     SpzPackedDocument document;
     if (!SpzReader().Read(path, &document, error)) {
         return false;
     }
+    const auto decodeStart = Clock::now();
     const SpzHeader& header = document.header;
     if (!CheckSupportedShDegree(header.shDegree, error)) {
         return false;
@@ -229,9 +252,25 @@ bool GaussianSpzDecoder::Decode(
     result.gaussianCount = count;
     result.shDegree = static_cast<int>(header.shDegree);
 
+    // Model allocations go through the shared overflow-checked helpers
+    // (GAUSSIAN_MODEL_CONTRACT.md §3): a count whose derived sizes overflow
+    // or whose allocation fails is a decode failure, never a partial cloud.
+    const auto allocate = [&](auto* array, std::size_t elements) {
+        if (!TryResize(array, elements)) {
+            SetError(error, diag::kModelAllocationFailed,
+                "SPZ model arrays for " + std::to_string(count) +
+                " Gaussians at SH degree " + std::to_string(result.shDegree) +
+                " could not be allocated.");
+            return false;
+        }
+        return true;
+    };
+
     {
         const unsigned char* stored = document.Bytes(document.positions);
-        result.positions.resize(count);
+        if (!allocate(&result.positions, count)) {
+            return false;
+        }
         if (header.version == 1) {
             for (std::size_t i = 0; i < count; ++i) {
                 float decoded[3];
@@ -267,7 +306,9 @@ bool GaussianSpzDecoder::Decode(
         // Stored alpha is sigmoid(logit) * 255: already an opacity, only the
         // byte scale to undo. Always in [0, 1].
         const unsigned char* stored = document.Bytes(document.alphas);
-        result.opacities.resize(count);
+        if (!allocate(&result.opacities, count)) {
+            return false;
+        }
         for (std::size_t i = 0; i < count; ++i) {
             result.opacities[i] = static_cast<float>(stored[i]) / 255.0f;
         }
@@ -277,7 +318,9 @@ bool GaussianSpzDecoder::Decode(
         // Log-encoded byte scales: exp(s/16 - 10) is strictly positive and
         // finite over the whole byte range, so no per-value failure exists.
         const unsigned char* stored = document.Bytes(document.scales);
-        result.scales.resize(count);
+        if (!allocate(&result.scales, count)) {
+            return false;
+        }
         for (std::size_t i = 0; i < count; ++i) {
             const auto decode = [&](std::size_t component) {
                 return std::exp(
@@ -290,7 +333,9 @@ bool GaussianSpzDecoder::Decode(
 
     {
         const unsigned char* stored = document.Bytes(document.colors);
-        result.dcCoefficients.resize(count);
+        if (!allocate(&result.dcCoefficients, count)) {
+            return false;
+        }
         for (std::size_t i = 0; i < count; ++i) {
             const auto decode = [&](std::size_t channel) {
                 return (static_cast<float>(stored[i * 3 + channel]) / 255.0f -
@@ -303,7 +348,9 @@ bool GaussianSpzDecoder::Decode(
     {
         const unsigned char* stored = document.Bytes(document.rotations);
         const std::size_t stride = header.BytesPerRotation();
-        result.rotations.resize(count);
+        if (!allocate(&result.rotations, count)) {
+            return false;
+        }
         for (std::size_t i = 0; i < count; ++i) {
             // Decoded as SPZ stores it: vector-first (x, y, z, w).
             float q[4];
@@ -326,7 +373,21 @@ bool GaussianSpzDecoder::Decode(
 
     if (restDims != 0) {
         const unsigned char* stored = document.Bytes(document.sh);
-        result.restCoefficients.resize(count * restDims);
+        // restDims equals CoefficientsPerGaussian() - 1 for the supported
+        // degrees, so the shared helper computes exactly the length the fill
+        // loop below indexes.
+        std::size_t restLength = 0;
+        if (!ComputeRestCoefficientCount(
+                count, result.shDegree, &restLength)) {
+            SetError(error, diag::kModelAllocationFailed,
+                "The model size for " + std::to_string(count) +
+                " Gaussians at SH degree " + std::to_string(result.shDegree) +
+                " overflows this platform's address space.");
+            return false;
+        }
+        if (!allocate(&result.restCoefficients, restLength)) {
+            return false;
+        }
         for (std::size_t i = 0; i < count; ++i) {
             for (std::size_t coefficient = 0; coefficient < restDims;
                  ++coefficient) {
@@ -361,6 +422,17 @@ bool GaussianSpzDecoder::Decode(
                 "The antialiased flag was ignored; the authored schema does "
                 "not carry an antialiasing convention."));
         }
+    }
+
+    if (stats) {
+        stats->sourceFormat = kSourceFormatToken;
+        stats->sourceVersion = std::to_string(header.version);
+        stats->gaussianCount = result.gaussianCount;
+        stats->shDegree = result.shDegree;
+        stats->sourceBytes = FileSizeOf(path);
+        stats->decodedBytes = ComputeDecodedByteSize(result);
+        stats->readSeconds = seconds(readStart, decodeStart);
+        stats->decodeSeconds = seconds(decodeStart, Clock::now());
     }
 
     *cloud = std::move(result);

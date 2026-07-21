@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "io/GaussianPlyDecoder.h"
 #include "io/GaussianPlyImportOptions.h"
+#include "openstrata/gs/GaussianImportStats.h"
 #include "openstrata/gs/GaussianMath.h"
 #include "openstrata/gs/testing/CloudContract.h"
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -414,6 +416,37 @@ void TestImportOptionApplication()
 //
 // SH *ordering* is not covered here — it needs known expected values, which is
 // what TestShLayout below provides.
+// The decoder's half of the shared import-statistics seam
+// (GaussianImportStats.h): filled on request, consistent with the decoded
+// cloud, and carrying this format's identity.
+void TestImportStats()
+{
+    gs::ply::GaussianPlyDecoder decoder;
+    gs::GaussianCloudData cloud;
+    std::vector<std::string> warnings;
+    std::string error;
+    gs::GaussianImportStats stats;
+    const std::string path = Fixture("degree-1-sh.ply");
+    CHECK(decoder.Decode(path, &cloud, &warnings, &error, &stats));
+    CHECK(stats.sourceFormat == gs::ply::kSourceFormatToken);
+    CHECK(stats.sourceVersion == "ascii");
+    CHECK(stats.gaussianCount == cloud.gaussianCount);
+    CHECK(stats.shDegree == cloud.shDegree);
+    CHECK(stats.sourceBytes ==
+        static_cast<std::uint64_t>(std::filesystem::file_size(path)));
+    CHECK(stats.decodedBytes == gs::ComputeDecodedByteSize(cloud));
+    CHECK(stats.readSeconds >= 0.0 && stats.decodeSeconds >= 0.0);
+    // The decoder does not time authoring and does not compute bounds; both
+    // stay with the file-format caller.
+    CHECK(stats.authorSeconds == 0.0);
+    CHECK(!stats.hasBounds);
+
+    gs::GaussianImportStats binaryStats;
+    CHECK(decoder.Decode(Fixture("one-gaussian-binary-le.ply"), &cloud,
+        &warnings, &error, &binaryStats));
+    CHECK(binaryStats.sourceVersion == "binary_little_endian");
+}
+
 void TestContractConformance()
 {
     // Every fixture the bundle considers valid, across encodings, SH degrees,
@@ -462,5 +495,6 @@ int main()
     TestFailures();
     TestImportOptionParsing();
     TestImportOptionApplication();
+    TestImportStats();
     return failures == 0 ? 0 : 1;
 }

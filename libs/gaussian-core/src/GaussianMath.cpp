@@ -177,6 +177,46 @@ void FlipYZAxes(GaussianCloudData* cloud) noexcept
     }
 }
 
+bool ComputeCloudExtent(
+    const Float3* positions,
+    const Float3* scales,
+    std::size_t count,
+    Float3* outMinimum,
+    Float3* outMaximum) noexcept
+{
+    if (!positions || !scales || count == 0 || !outMinimum || !outMaximum) {
+        return false;
+    }
+    Float3 minimum = {
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max()};
+    Float3 maximum = {
+        -std::numeric_limits<float>::max(),
+        -std::numeric_limits<float>::max(),
+        -std::numeric_limits<float>::max()};
+    for (std::size_t i = 0; i < count; ++i) {
+        const Float3& p = positions[i];
+        const Float3& s = scales[i];
+        const double radius = 3.0 * static_cast<double>(
+            std::max({s.x, s.y, s.z}));
+        if (!std::isfinite(radius) ||
+            radius > std::numeric_limits<float>::max()) {
+            return false;
+        }
+        const float r = static_cast<float>(radius);
+        minimum.x = std::min(minimum.x, p.x - r);
+        minimum.y = std::min(minimum.y, p.y - r);
+        minimum.z = std::min(minimum.z, p.z - r);
+        maximum.x = std::max(maximum.x, p.x + r);
+        maximum.y = std::max(maximum.y, p.y + r);
+        maximum.z = std::max(maximum.z, p.z + r);
+    }
+    *outMinimum = minimum;
+    *outMaximum = maximum;
+    return true;
+}
+
 bool ValidateGaussianCloud(
     const GaussianCloudData& cloud,
     std::string* error) noexcept

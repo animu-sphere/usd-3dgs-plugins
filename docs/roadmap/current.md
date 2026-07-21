@@ -54,20 +54,24 @@ targets without reading PLY or SPZ code.*
   model: PLY log-scales and opacity logits, SPZ quantized planes, and SOG WebP
   pixels, codebook indices, and palette labels are all converted first.
 
-## 2. Shared semantic validation 🚧
+## 2. Shared semantic validation ✅
 
 *Goal: one implementation of the validation identical for every decoded cloud,
 run by each decoder rather than copied per bundle. The existing
 `gaussianCore` contract checker is the seed.*
 
-- 🚧 Extract or consolidate under `libs/`: component-array length consistency,
+- ✅ Extract or consolidate under `libs/`: component-array length consistency,
   finite values, strictly positive scales, normalized-or-normalizable
   rotations, opacity range, SH degree/coefficient-count consistency,
   count-overflow and allocation checks, and extent-computation preconditions.
-  Landed so far: the shared gate now enforces the SH degree ceiling
-  (`kMaxShDegree`, shared with the SPZ decoder; PLY rejects with
-  `GSPLY-E017`) and quaternion normalization at the contract tolerance.
-  Still open: shared overflow-checked size/allocation helpers for readers.
+  The shared gate enforces the SH degree ceiling (`kMaxShDegree`, shared with
+  the SPZ decoder; PLY rejects with `GSPLY-E017`) and quaternion
+  normalization at the contract tolerance. The overflow-checked
+  size/allocation helpers live in `openstrata/gs/GaussianSizeMath.h` and both
+  decoders allocate through them (failure diagnostics `GSPLY-E018` /
+  `GSPZ-E014`); the authored-extent computation moved into `gaussianCore`
+  (`ComputeCloudExtent`) so the writer and the decoder test kit share one
+  implementation.
 - ✅ Keep container-structure validation format-specific — readers remain
   responsible for their own containers; the contract's §3 *Maximum count and
   overflow* section records the split.
@@ -87,26 +91,36 @@ coordinate frame and how formats convert into it.*
   migration consequences for v0.1.0-v0.3.0 output are recorded in the ADR;
   goldens and equivalence fixtures were regenerated in the same change.
 
-## 4. Decoder test kit ⬜
+## 4. Decoder test kit ✅
 
 *Goal: reusable helpers to test a decoder against the shared contract without
 authoring a USD stage.*
 
-- ⬜ Provide canonical one- and multi-Gaussian expected models, quaternion
-  comparison with sign equivalence, SH layout/degree checks, tolerance-aware
-  comparison, invalid shared-model cases, deterministic extent comparison, and
-  fixtures distinguishing point, coefficient, and channel ordering.
-- ⬜ Demonstrate the kit with a minimal mock decoder that targets the shared
+- ✅ `openstrata/gs/testing/DecoderTestKit.h`: canonical one- and
+  multi-Gaussian expected models with values unique across (gaussian,
+  coefficient, channel), quaternion comparison with sign equivalence, SH
+  layout/degree checks, tolerance-aware comparison, invalid shared-model
+  cases, and deterministic extent comparison through the shared
+  `ComputeCloudExtent`.
+- ✅ Demonstrated with a minimal mock decoder
+  (`libs/gaussian-core/tests/test_decoder_kit.cpp`) that decodes a
+  deliberately format-native mock encoding (RDF frame, log scales, opacity
+  logits, vector-first quaternions, channel-major SH) into the shared
   contract using no PLY or SPZ code.
 
-## 5. Import statistics seam ⬜
+## 5. Import statistics seam ✅
 
 *Goal: a common optional result structure so per-format instrumentation cannot
 diverge. The plugin API need not expose all of it in v0.4.0.*
 
-- ⬜ Define fields for source format and version, Gaussian count, SH degree,
-  source byte size, decoded semantic byte size, bounding box, and reader /
-  semantic-decode / USD-authoring times.
+- ✅ `GaussianImportStats` (`openstrata/gs/GaussianImportStats.h`) defines
+  source format and version, Gaussian count, SH degree, source byte size,
+  decoded semantic byte size, bounding box, and reader / semantic-decode /
+  USD-authoring times, with one shared formatter. Both decoders fill it on
+  request; the file-format plugins add the authoring time and emit one stable
+  line under `TF_DEBUG=GSPLY_IMPORT_STATS` / `GSPZ_IMPORT_STATS`. The plugin
+  API deliberately does not expose the record in v0.4.0; the v0.6.0 tooling
+  consumes this same seam.
 
 ## 6. Public/internal API boundary ⬜
 

@@ -2,10 +2,12 @@
 #include "io/GaussianSpzDecoder.h"
 #include "io/GaussianSpzDiagnostics.h"
 #include "openstrata/gs/GaussianCloudData.h"
+#include "openstrata/gs/GaussianImportStats.h"
 #include "openstrata/gs/testing/CloudContract.h"
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -308,6 +310,37 @@ void TestInternalMisuse()
     CHECK(HasCode(error, gsspz::diag::kInternalError));
 }
 
+// The decoder's half of the shared import-statistics seam
+// (GaussianImportStats.h): filled on request, consistent with the decoded
+// cloud, and carrying this format's identity.
+void TestImportStats()
+{
+    const gsspz::GaussianSpzDecoder decoder;
+    gs::GaussianCloudData cloud;
+    std::vector<std::string> warnings;
+    std::string error;
+    gs::GaussianImportStats stats;
+    const std::string path = Fixture("decode-degree1-v2.spz");
+    CHECK(decoder.Decode(path, &cloud, &warnings, &error, &stats));
+    CHECK(stats.sourceFormat == gsspz::kSourceFormatToken);
+    CHECK(stats.sourceVersion == "2");
+    CHECK(stats.gaussianCount == cloud.gaussianCount);
+    CHECK(stats.shDegree == cloud.shDegree);
+    CHECK(stats.sourceBytes ==
+        static_cast<std::uint64_t>(std::filesystem::file_size(path)));
+    CHECK(stats.decodedBytes == gs::ComputeDecodedByteSize(cloud));
+    CHECK(stats.readSeconds >= 0.0 && stats.decodeSeconds >= 0.0);
+    // The decoder does not time authoring and does not compute bounds; both
+    // stay with the file-format caller.
+    CHECK(stats.authorSeconds == 0.0);
+    CHECK(!stats.hasBounds);
+
+    gs::GaussianImportStats v3Stats;
+    CHECK(decoder.Decode(
+        Fixture("decode-v3.spz"), &cloud, &warnings, &error, &v3Stats));
+    CHECK(v3Stats.sourceVersion == "3");
+}
+
 } // namespace
 
 int main()
@@ -321,6 +354,7 @@ int main()
     TestSemanticFailures();
     TestWarningsForIgnoredData();
     TestInternalMisuse();
+    TestImportStats();
 
     if (failures != 0) {
         std::cerr << failures << " check(s) failed\n";

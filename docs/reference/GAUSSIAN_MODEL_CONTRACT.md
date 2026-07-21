@@ -169,11 +169,14 @@ admits; real ceilings are container facts and stay format-specific (SPZ caps
 
 - Every size derived from `N` and `D` — element counts, the
   `N * ((D+1)^2 - 1)` rest length, and allocation byte sizes — is computed
-  with overflow-checked arithmetic *before* any allocation.
+  with overflow-checked arithmetic *before* any allocation. The shared
+  implementation is `openstrata/gs/GaussianSizeMath.h` (`CheckedMulSize`,
+  `ComputeRestCoefficientCount`, `TryResize`); a decoder computing these
+  sizes bare is re-opening the hole the helpers close.
 - A count whose derived sizes overflow, or whose allocation fails, is a decode
-  failure with the format's own diagnostic. Clamping the count, loading a
-  prefix, or dropping arrays to fit are all forbidden — a partial cloud never
-  reaches the model.
+  failure with the format's own diagnostic (PLY: `GSPLY-E018`; SPZ:
+  `GSPZ-E014`). Clamping the count, loading a prefix, or dropping arrays to
+  fit are all forbidden — a partial cloud never reaches the model.
 - `N = 0` is likewise a decode failure. Decoders should reject it at the
   container level with a specific diagnostic (PLY: empty vertex element); the
   shared gate rejects it regardless.
@@ -188,8 +191,11 @@ travel *beside* the model, never in it:
   `GaussianLayerWriter`, which authors it as stage custom data;
 - the count and SH degree used for metadata-only authoring
   (design policy §12.3);
-- the per-import statistics record (source format and version, counts, sizes,
-  timings) being defined by the v0.4.0 import-statistics seam.
+- the per-import statistics record `GaussianImportStats`
+  (`openstrata/gs/GaussianImportStats.h`): source format and version, counts,
+  byte sizes, bounds, and per-stage timings, filled by the decoder and the
+  file-format plugin and emitted through each bundle's
+  `TF_DEBUG=GS*_IMPORT_STATS` flag.
 
 Anything whose presence would alter the meaning of a model array — axis hints,
 unit scales, quantization tables, format version switches — must not be
@@ -231,6 +237,16 @@ than in a viewer. Every bundle runs it against its own fixtures. SH *ordering*
 is the one property neither check can see — Gaussian-major and channel-major
 layouts have identical lengths — which is why each bundle also verifies
 ordering against hand-computed fixture values (for PLY, `TestShLayout`).
+
+The decoder test kit (`openstrata/gs/testing/DecoderTestKit.h`) closes that
+last gap without a USD stage: canonical one- and multi-Gaussian expected
+models whose values are unique across (gaussian, coefficient, channel),
+tolerance-aware cloud comparison with quaternion sign equivalence and a
+derived-extent check, and the model-level invalid cases every validator must
+reject. A new decoder encodes the canonical models into its own format,
+decodes them back, and requires `CompareClouds` to return empty;
+`libs/gaussian-core/tests/test_decoder_kit.cpp` demonstrates the full loop
+with a mock decoder written against this document alone.
 
 ## 5. What the model deliberately does not have
 

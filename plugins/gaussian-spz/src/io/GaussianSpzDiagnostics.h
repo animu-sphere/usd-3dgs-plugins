@@ -39,6 +39,11 @@ inline constexpr const char* kUnreadableFile = "GSPZ-E010";
 inline constexpr const char* kUnsupportedShDegree = "GSPZ-E011";
 inline constexpr const char* kNonFinitePosition = "GSPZ-E012";
 inline constexpr const char* kCloudValidationFailed = "GSPZ-E013";
+// A count/degree whose derived model size overflows, or whose model
+// allocation the platform refuses (GAUSSIAN_MODEL_CONTRACT.md §3, maximum
+// count and overflow). The container's own payload plausibility bound
+// (E005/E007) usually fires first; this is the model-side backstop.
+inline constexpr const char* kModelAllocationFailed = "GSPZ-E014";
 
 // Internal misuse of the import pipeline (null output parameters,
 // inconsistent container spans). Reported defensively; not reachable from

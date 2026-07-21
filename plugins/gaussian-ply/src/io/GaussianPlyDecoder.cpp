@@ -4,10 +4,14 @@
 #include "io/GaussianPlyDiagnostics.h"
 #include "io/PlyReader.h"
 #include "openstrata/gs/GaussianMath.h"
+#include "openstrata/gs/GaussianSizeMath.h"
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <fstream>
 #include <limits>
 #include <map>
 #include <set>
@@ -185,6 +189,18 @@ bool AllFinite(const std::vector<float>& column) noexcept
     return true;
 }
 
+// Sized the way the readers open files, so the reported source size matches
+// what was actually read; 0 when the size cannot be determined.
+std::uint64_t FileSizeOf(const std::string& path)
+{
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    if (!in) {
+        return 0;
+    }
+    const std::streamoff size = in.tellg();
+    return size < 0 ? 0 : static_cast<std::uint64_t>(size);
+}
+
 void AddCountWarning(
     std::vector<std::string>* warnings,
     const char* code,
@@ -247,7 +263,8 @@ bool GaussianPlyDecoder::Decode(
     const std::string& path,
     GaussianCloudData* cloud,
     std::vector<std::string>* warnings,
-    std::string* error) const
+    std::string* error,
+    GaussianImportStats* stats) const
 {
     if (!cloud) {
         SetError(error, diag::kInternalError,
@@ -255,12 +272,24 @@ bool GaussianPlyDecoder::Decode(
         return false;
     }
 
+    using Clock = std::chrono::steady_clock;
+    const auto seconds = [](Clock::time_point from, Clock::time_point to) {
+        return std::chrono::duration<double>(to - from).count();
+    };
+    double readSeconds = 0.0;
+    const auto decodeStart = Clock::now();
+
     PlyReader reader;
     PlyHeader header;
     std::string readerError;
-    if (!reader.ReadHeader(path, &header, &readerError)) {
-        SetError(error, diag::kUnreadableContainer, readerError);
-        return false;
+    {
+        const auto readStart = Clock::now();
+        const bool ok = reader.ReadHeader(path, &header, &readerError);
+        readSeconds += seconds(readStart, Clock::now());
+        if (!ok) {
+            SetError(error, diag::kUnreadableContainer, readerError);
+            return false;
+        }
     }
 
     std::map<std::size_t, std::string> indexedRest;
@@ -276,9 +305,14 @@ bool GaussianPlyDecoder::Decode(
     }
 
     PlyDocument document;
-    if (!reader.Read(path, requested, &document, &readerError)) {
-        SetError(error, diag::kUnreadableContainer, readerError);
-        return false;
+    {
+        const auto readStart = Clock::now();
+        const bool ok = reader.Read(path, requested, &document, &readerError);
+        readSeconds += seconds(readStart, Clock::now());
+        if (!ok) {
+            SetError(error, diag::kUnreadableContainer, readerError);
+            return false;
+        }
     }
 
     const std::size_t count = header.vertexCount;
@@ -303,6 +337,20 @@ bool GaussianPlyDecoder::Decode(
     result.gaussianCount = count;
     result.shDegree = shDegree;
 
+    // Model allocations go through the shared overflow-checked helpers
+    // (GAUSSIAN_MODEL_CONTRACT.md §3): a count whose derived sizes overflow
+    // or whose allocation fails is a decode failure, never a partial cloud.
+    const auto allocate = [&](auto* array, std::size_t elements) {
+        if (!TryResize(array, elements)) {
+            SetError(error, diag::kModelAllocationFailed,
+                "Gaussian PLY model arrays for " + std::to_string(count) +
+                " Gaussians at SH degree " + std::to_string(shDegree) +
+                " could not be allocated.");
+            return false;
+        }
+        return true;
+    };
+
     {
         std::vector<float> x;
         std::vector<float> y;
@@ -317,7 +365,9 @@ bool GaussianPlyDecoder::Decode(
                 "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
-        result.positions.resize(count);
+        if (!allocate(&result.positions, count)) {
+            return false;
+        }
         for (std::size_t row = 0; row < count; ++row) {
             result.positions[row] = {x[row], y[row], z[row]};
         }
@@ -337,7 +387,9 @@ bool GaussianPlyDecoder::Decode(
                 "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
-        result.scales.resize(count);
+        if (!allocate(&result.scales, count)) {
+            return false;
+        }
         for (std::size_t row = 0; row < count; ++row) {
             if (!DecodeLogScale(
                     {scale0[row], scale1[row], scale2[row]},
@@ -368,7 +420,9 @@ bool GaussianPlyDecoder::Decode(
                 "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
-        result.rotations.resize(count);
+        if (!allocate(&result.rotations, count)) {
+            return false;
+        }
         for (std::size_t row = 0; row < count; ++row) {
             bool identity = false;
             bool changed = false;
@@ -397,7 +451,9 @@ bool GaussianPlyDecoder::Decode(
                 "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
-        result.opacities.resize(count);
+        if (!allocate(&result.opacities, count)) {
+            return false;
+        }
         for (std::size_t row = 0; row < count; ++row) {
             result.opacities[row] = Sigmoid(opacity[row]);
         }
@@ -417,13 +473,27 @@ bool GaussianPlyDecoder::Decode(
                 "Gaussian PLY contains a non-finite or out-of-range value.");
             return false;
         }
-        result.dcCoefficients.resize(count);
+        if (!allocate(&result.dcCoefficients, count)) {
+            return false;
+        }
         for (std::size_t row = 0; row < count; ++row) {
             result.dcCoefficients[row] = {dc0[row], dc1[row], dc2[row]};
         }
     }
 
-    result.restCoefficients.resize(count * restPerChannel);
+    // restPerChannel equals CoefficientsPerGaussian() - 1, so the shared
+    // helper computes exactly the length the fill loop below indexes.
+    std::size_t restLength = 0;
+    if (!ComputeRestCoefficientCount(count, shDegree, &restLength)) {
+        SetError(error, diag::kModelAllocationFailed,
+            "The model size for " + std::to_string(count) +
+            " Gaussians at SH degree " + std::to_string(shDegree) +
+            " overflows this platform's address space.");
+        return false;
+    }
+    if (!allocate(&result.restCoefficients, restLength)) {
+        return false;
+    }
     for (std::size_t coefficient = 0;
          coefficient < restPerChannel;
          ++coefficient) {
@@ -484,6 +554,18 @@ bool GaussianPlyDecoder::Decode(
         unknownProperties,
         "unrecognized vertex property was ignored.",
         "unrecognized vertex properties were ignored.");
+
+    if (stats) {
+        stats->sourceFormat = kSourceFormatToken;
+        stats->sourceVersion = header.binary ? "binary_little_endian" : "ascii";
+        stats->gaussianCount = result.gaussianCount;
+        stats->shDegree = result.shDegree;
+        stats->sourceBytes = FileSizeOf(path);
+        stats->decodedBytes = ComputeDecodedByteSize(result);
+        stats->readSeconds = readSeconds;
+        stats->decodeSeconds =
+            seconds(decodeStart, Clock::now()) - readSeconds;
+    }
 
     *cloud = std::move(result);
     return true;

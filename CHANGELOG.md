@@ -38,6 +38,37 @@ coordinate-system ADR, a decoder test kit) before a third format depends on it
   unsupported layout) is now rejected with the new diagnostic `GSPLY-E017`
   instead of being imported. SPZ behavior is unchanged; its degree ceiling now
   reads from the shared constant.
+- Model-array allocation in both decoders now goes through shared
+  overflow-checked helpers (`openstrata/gs/GaussianSizeMath.h`): a Gaussian
+  count whose derived sizes overflow, or whose allocation the platform
+  refuses, fails the decode with the new diagnostics `GSPLY-E018` /
+  `GSPZ-E014` instead of raising an uncaught allocation error. Authored
+  output is unchanged.
+- The authored-extent computation moved from the shared writer into
+  `gaussianCore` (`ComputeCloudExtent`) so the writer and the decoder test
+  kit compare against one implementation; authored extents are unchanged.
+
+### Added
+
+- Decoder test kit (`openstrata/gs/testing/DecoderTestKit.h`): canonical
+  one- and multi-Gaussian expected models with values unique across
+  (gaussian, coefficient, channel), tolerance-aware cloud comparison with
+  quaternion sign equivalence and a derived-extent check, and the model-level
+  invalid cases every validator must reject — everything needed to test a
+  decoder against the
+  [model contract](docs/reference/GAUSSIAN_MODEL_CONTRACT.md) without
+  authoring a USD stage. A mock decoder
+  (`libs/gaussian-core/tests/test_decoder_kit.cpp`) demonstrates the loop
+  end to end using no PLY or SPZ code — the release's "a third decoder needs
+  only the contract" criterion, held by a test.
+- Import-statistics seam: the shared `GaussianImportStats` record
+  (`openstrata/gs/GaussianImportStats.h`) — source format and version,
+  Gaussian count, SH degree, source and decoded byte sizes, model-frame
+  bounds, and reader / semantic-decode / USD-authoring times — filled by both
+  decoders through one code path and printed as one stable line per import
+  under the new debug flags `TF_DEBUG=GSPLY_IMPORT_STATS` and
+  `TF_DEBUG=GSPZ_IMPORT_STATS`. Statistics collection is skipped entirely
+  when the flags are off, and nothing is added to the authored stage.
 
 ## [0.3.0] - 2026-07-20
 
