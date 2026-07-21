@@ -30,6 +30,7 @@ inline constexpr const char* kInvalidQuaternion = "GSPLY-E013";
 inline constexpr const char* kPropertyCountMismatch = "GSPLY-E014";
 inline constexpr const char* kUnreadableContainer = "GSPLY-E015";
 inline constexpr const char* kCloudValidationFailed = "GSPLY-E016";
+inline constexpr const char* kUnsupportedShDegree = "GSPLY-E017";
 
 // Internal misuse of the import pipeline (null output parameters). Reported
 // defensively; not reachable from file content.

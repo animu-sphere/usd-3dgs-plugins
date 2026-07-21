@@ -58,5 +58,6 @@ tests:
     - tests/fixtures/non-contiguous-sh.ply
     - tests/fixtures/sh-count-not-rgb.ply
     - tests/fixtures/sh-invalid-degree.ply
+    - tests/fixtures/degree-4-sh.ply
     - tests/fixtures/nan-opacity-binary-le.ply
     - tests/fixtures/overflow-scale.ply

@@ -138,6 +138,12 @@ bool ValidateGaussianCloud(
         SetError(error, "Gaussian SH degree is invalid.");
         return false;
     }
+    if (cloud.shDegree > kMaxShDegree) {
+        // The message spells the ceiling out because SetError takes a static
+        // string; it must move with kMaxShDegree.
+        SetError(error, "Gaussian SH degree exceeds the supported maximum of 3.");
+        return false;
+    }
     const std::size_t restPerGaussian = cloud.CoefficientsPerGaussian() - 1;
     if (cloud.restCoefficients.size() != count * restPerGaussian) {
         SetError(error, "Gaussian SH coefficient array length does not match.");
@@ -154,6 +160,14 @@ bool ValidateGaussianCloud(
             cloud.opacities[i] < 0.0f || cloud.opacities[i] > 1.0f ||
             !IsFinite(cloud.dcCoefficients[i])) {
             SetError(error, "Gaussian cloud contains an invalid numeric value.");
+            return false;
+        }
+        // Decoders normalize (GAUSSIAN_MODEL_CONTRACT.md §3); the gate holds
+        // them to it. The tolerance mirrors testing::CheckCloudContract.
+        const float norm = std::sqrt(
+            q.real * q.real + q.i * q.i + q.j * q.j + q.k * q.k);
+        if (std::fabs(norm - 1.0f) > 1.0e-4f) {
+            SetError(error, "Gaussian rotation quaternion is not normalized.");
             return false;
         }
     }

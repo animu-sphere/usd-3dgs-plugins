@@ -24,7 +24,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Scale | supported | stable finite `exp(scale_*)` conversion |
 | Rotation | supported | scalar-first quaternion normalization; zero becomes identity with warning |
 | Opacity | supported | numerically stable sigmoid to `[0,1]` |
-| SH degrees 0-3 | supported | exact-coefficient fixtures at every degree; corpus assets at degree 3 |
+| SH degrees 0-3 | supported | exact-coefficient fixtures at every degree; corpus assets at degree 3; degree 4 reported unsupported (`GSPLY-E017`), not malformed |
 | Property declaration order | supported | name-based resolution; scrambled-order fixture and Brush's lexicographic `f_rest` order both decode identically |
 | Real trained assets | supported | committed 8,192-Gaussian corpus (Brush, CC0); locally verified against Graphdeco `garden` (5.83M), Postshot cactus series (up to 1.94M) — see [PLY_DIALECTS.md](PLY_DIALECTS.md) and [PERFORMANCE_BASELINES.md](PERFORMANCE_BASELINES.md) |
 | Missing/non-contiguous SH data | supported rejection | malformed fixtures for every header-layout diagnostic |

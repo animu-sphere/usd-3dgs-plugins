@@ -99,6 +99,12 @@
             "action": "Internal consistency check; report the asset if this occurs on a file other tools accept."
         },
         {
+            "code": "GSPLY-E017",
+            "severity": "error",
+            "summary": "The SH degree is a whole degree but exceeds the supported maximum of 3.",
+            "action": "Re-export at degree 3 or below; unsupported degrees are rejected rather than silently truncated."
+        },
+        {
             "code": "GSPLY-E100",
             "severity": "error",
             "summary": "An import entry point was called with a null output parameter.",

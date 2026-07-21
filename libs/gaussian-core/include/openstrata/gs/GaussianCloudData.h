@@ -21,6 +21,12 @@ struct Quaternion {
     float k = 0.0f;
 };
 
+// Supported SH degrees are 0..kMaxShDegree (GAUSSIAN_MODEL_CONTRACT.md §3):
+// the Graphdeco training convention's range and the most every targeted
+// format (PLY, SPZ, SOG v2) can carry. ValidateGaussianCloud rejects a higher
+// degree; decoders reject it earlier with their own format diagnostic.
+inline constexpr int kMaxShDegree = 3;
+
 struct GaussianCloudData {
     std::vector<Float3> positions;
     std::vector<Float3> scales;

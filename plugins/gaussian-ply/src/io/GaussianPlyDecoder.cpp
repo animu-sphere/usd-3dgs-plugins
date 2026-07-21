@@ -161,6 +161,17 @@ bool ValidateHeaderLayout(
             "Gaussian PLY SH property count does not form a valid degree.");
         return false;
     }
+    // The shared model carries SH degrees 0-kMaxShDegree
+    // (GAUSSIAN_MODEL_CONTRACT.md §3). A higher whole degree is well-formed
+    // PLY, so the rejection says "not supported" rather than "malformed",
+    // and it is never silently truncated to fit.
+    if (*shDegree > kMaxShDegree) {
+        SetError(error, diag::kUnsupportedShDegree,
+            "Gaussian PLY SH degree " + std::to_string(*shDegree) +
+            " is not supported; supported degrees are 0-" +
+            std::to_string(kMaxShDegree) + ".");
+        return false;
+    }
     return true;
 }
 

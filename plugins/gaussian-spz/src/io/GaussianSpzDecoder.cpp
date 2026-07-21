@@ -17,10 +17,11 @@
 namespace openstrata::gs::spz {
 namespace {
 
-// The shared model carries SH degrees 0-3 (GAUSSIAN_MODEL_CONTRACT.md §3).
-// Degree 4 is valid SPZ and passes the container stage, so the rejection here
-// must say "not supported", never "malformed" (SPZ_FORMAT.md §7).
-constexpr int kModelMaxShDegree = 3;
+// The shared model carries SH degrees 0-kMaxShDegree
+// (GAUSSIAN_MODEL_CONTRACT.md §3). Degree 4 is valid SPZ and passes the
+// container stage, so the rejection here must say "not supported", never
+// "malformed" (SPZ_FORMAT.md §7).
+constexpr int kModelMaxShDegree = kMaxShDegree;
 
 // Dequantization constants from the reference serializer, recorded in
 // SPZ_MAPPING.md §3: the DC color scale and the smallest-three component

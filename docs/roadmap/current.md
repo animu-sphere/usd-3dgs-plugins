@@ -38,34 +38,39 @@ Release-engineering items that remain live across releases:
 - ⬜ Add a lightweight link/language check to CI so public Markdown remains
   English and local links resolve.
 
-## 1. Formal decoder contract 🚧
+## 1. Formal decoder contract ✅
 
 *Goal: a revised, normative `GaussianCloudData` output contract that a decoder
 targets without reading PLY or SPZ code.*
 
-- ⬜ Revise [GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md)
+- ✅ Revise [GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md)
   to state, normatively: decoded physical positions; strictly positive linear
   scales; normalized scalar-first quaternions; opacity in `[0, 1]`; supported
   SH degrees and canonical coefficient ordering; Gaussian-major array layout;
   required and optional arrays and their length relationships; finite-value
   requirements; empty-cloud behavior; maximum-count and overflow policy; and
   which source metadata may be retained without affecting semantics.
-- ⬜ State explicitly that format-native representations never enter the shared
+- ✅ State explicitly that format-native representations never enter the shared
   model: PLY log-scales and opacity logits, SPZ quantized planes, and SOG WebP
   pixels, codebook indices, and palette labels are all converted first.
 
-## 2. Shared semantic validation ⬜
+## 2. Shared semantic validation 🚧
 
 *Goal: one implementation of the validation identical for every decoded cloud,
 run by each decoder rather than copied per bundle. The existing
 `gaussianCore` contract checker is the seed.*
 
-- ⬜ Extract or consolidate under `libs/`: component-array length consistency,
+- 🚧 Extract or consolidate under `libs/`: component-array length consistency,
   finite values, strictly positive scales, normalized-or-normalizable
   rotations, opacity range, SH degree/coefficient-count consistency,
   count-overflow and allocation checks, and extent-computation preconditions.
-- ⬜ Keep container-structure validation format-specific — readers remain
-  responsible for their own containers.
+  Landed so far: the shared gate now enforces the SH degree ceiling
+  (`kMaxShDegree`, shared with the SPZ decoder; PLY rejects with
+  `GSPLY-E017`) and quaternion normalization at the contract tolerance.
+  Still open: shared overflow-checked size/allocation helpers for readers.
+- ✅ Keep container-structure validation format-specific — readers remain
+  responsible for their own containers; the contract's §3 *Maximum count and
+  overflow* section records the split.
 
 ## 3. Coordinate-system ADR ⬜
 

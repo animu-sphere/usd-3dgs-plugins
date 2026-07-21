@@ -12,6 +12,21 @@ reusable contract (normative model contract, shared semantic validation, the
 coordinate-system ADR, a decoder test kit) before a third format depends on it
 ([release plan](docs/roadmap/release-plan.md)).
 
+### Changed
+
+- The [Gaussian model contract](docs/reference/GAUSSIAN_MODEL_CONTRACT.md) is
+  revised into the normative decoder contract: supported SH degrees pinned to
+  0-3, required arrays and length relationships, maximum-count and overflow
+  policy, retained-source-metadata rules, and the SOG encodings named among
+  the representations that never enter the shared model.
+- Shared cloud validation now enforces the contract's SH degree ceiling and
+  quaternion normalization (tolerance `1e-4`); both were previously pinned
+  only by the test-side contract checker.
+- A Gaussian PLY declaring SH degree 4 or higher (a well-formed but
+  unsupported layout) is now rejected with the new diagnostic `GSPLY-E017`
+  instead of being imported. SPZ behavior is unchanged; its degree ceiling now
+  reads from the shared constant.
+
 ## [0.3.0] - 2026-07-20
 
 Read-only SPZ import through the shared `GaussianCloudData` pipeline, plus the
