@@ -4,13 +4,21 @@ All notable user-visible changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 semantic versioning for tagged releases.
 
-## [Unreleased]
+## [0.4.0] - 2026-07-22
 
-Development target: **v0.4.0 — Gaussian Import Foundation** — no new end-user
-format; the decoder-to-USD seam proven by PLY and SPZ becomes a formal,
-reusable contract (normative model contract, shared semantic validation, the
-coordinate-system ADR, a decoder test kit) before a third format depends on it
-([release plan](docs/roadmap/release-plan.md)).
+**Gaussian Import Foundation.** No new end-user format: the
+`format reader → semantic decoder → GaussianCloudData → GaussianLayerWriter`
+seam proven by PLY and SPZ becomes a formal, documented, reusable contract
+before a third format depends on it
+([release plan](docs/roadmap/release-plan.md)). The authored model frame moves
+to RUB (Y-up) to match the `upAxis = "Y"` every stage already declared
+([ADR 0001](docs/adr/0001-model-frame-is-rub.md)) — a pre-1.0 correction to
+v0.1.0-v0.3.0 output. The contract is now normative and enforced; shared
+validation, overflow-checked size math, a stage-free decoder test kit, and an
+import-statistics seam back it; the header/API tiers are documented; and a
+`gaussian-sog` skeleton proves a third bundle scales by declaration. PLY and
+SPZ still produce equivalent authored structure through one writer with no
+material regression.
 
 ### Changed
 
