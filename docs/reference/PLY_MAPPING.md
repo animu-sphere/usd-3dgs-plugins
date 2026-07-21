@@ -54,7 +54,13 @@ Let `R` be the number of `f_rest_*` scalar properties and
 ```text
 R % 3 == 0
 K == (degree + 1)^2
+degree <= 3
 ```
+
+A higher whole degree (`K = 25`, degree 4, and beyond) is well-formed PLY but
+exceeds what the shared model carries
+([GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md) §3); it is rejected
+as unsupported (`GSPLY-E017`), never silently truncated.
 
 Graphdeco stores rest coefficients channel-major:
 

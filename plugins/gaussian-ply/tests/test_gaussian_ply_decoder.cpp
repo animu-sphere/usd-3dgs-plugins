@@ -201,6 +201,7 @@ void TestFailures()
         {"non-contiguous-sh.ply", "GSPLY-E007"},
         {"sh-count-not-rgb.ply", "GSPLY-E008"},
         {"sh-invalid-degree.ply", "GSPLY-E009"},
+        {"degree-4-sh.ply", "GSPLY-E017"},
         {"nan-opacity-binary-le.ply", "GSPLY-E010"},
         {"out-of-range-double.ply", "GSPLY-E010"},
         {"overflow-scale.ply", "GSPLY-E012"},

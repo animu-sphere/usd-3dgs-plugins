@@ -71,6 +71,35 @@ void TestValidation()
     cloud.positions.clear();
     CHECK(!gs::ValidateGaussianCloud(cloud, &error));
     CHECK(!error.empty());
+
+    const auto oneGaussian = [] {
+        gs::GaussianCloudData valid;
+        valid.gaussianCount = 1;
+        valid.positions.push_back({1.0f, 2.0f, 3.0f});
+        valid.scales.push_back({1.0f, 1.0f, 1.0f});
+        valid.rotations.push_back({});
+        valid.opacities.push_back(0.5f);
+        valid.dcCoefficients.push_back({0.1f, 0.2f, 0.3f});
+        return valid;
+    };
+
+    // GAUSSIAN_MODEL_CONTRACT.md §3: a degree above kMaxShDegree is rejected
+    // even when the rest array is sized consistently for it.
+    gs::GaussianCloudData degree4 = oneGaussian();
+    degree4.shDegree = gs::kMaxShDegree + 1;
+    degree4.restCoefficients.resize(
+        degree4.CoefficientsPerGaussian() - 1);
+    CHECK(!gs::ValidateGaussianCloud(degree4, &error));
+
+    // §4: the gate rejects an unnormalized quaternion, while one within the
+    // 1e-4 normalization tolerance passes.
+    gs::GaussianCloudData unnormalized = oneGaussian();
+    unnormalized.rotations[0] = {2.0f, 0.0f, 0.0f, 0.0f};
+    CHECK(!gs::ValidateGaussianCloud(unnormalized, &error));
+
+    gs::GaussianCloudData nearUnit = oneGaussian();
+    nearUnit.rotations[0] = {1.00005f, 0.0f, 0.0f, 0.0f};
+    CHECK(gs::ValidateGaussianCloud(nearUnit, &error));
 }
 
 // The contract checker is what every decoder is held to, so it needs its own
