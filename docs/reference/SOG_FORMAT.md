@@ -71,7 +71,7 @@ are a release criterion, and wholesale-vendored decoders cannot express them.
 | Concern | Decision | Licence | Pin |
 | --- | --- | --- | --- |
 | ZIP reading (bundled `.sog`) | Reuse the already-vendored **miniz 3.0.2** (`third_party/miniz/`), enabling its archive-reading API for this bundle only — `gaussian-spz` keeps compiling it with `MINIZ_NO_ARCHIVE_APIS`. No new dependency. | MIT (already reviewed for v0.3.0, [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)) | already vendored at 3.0.2 |
-| Lossless WebP decoding | Vendor the decoder subset of Google's **libwebp** into `third_party/libwebp/`, trimmed to lossless decode (no encoder, no lossy VP8, no I/O helpers), mirroring how miniz is trimmed by compile definitions. | BSD-3-Clause | **v1.6.0** (latest upstream stable); the exact commit and the licence text land in `third_party/libwebp/` and THIRD_PARTY_NOTICES.md **at vendoring time, before any decoder code lands** |
+| Lossless WebP decoding | Vendor the **decoder subset** of Google's **libwebp** into `third_party/libwebp/` (upstream's `libwebpdecoder` composition — `dec/` + decode-path `dsp/`/`utils/`); the encoder, mux, demux, and `sharpyuv` trees are dropped, mirroring how miniz is trimmed by excluded APIs. The decode driver is kept intact (VP8 + VP8L); lossy input is rejected at the reader, not removed from the library. | BSD-3-Clause + PATENTS | **v1.6.0**, commit `4fa2191233…` (`third_party/libwebp/VENDORING.md`, THIRD_PARTY_NOTICES.md) |
 
 Rejected alternatives: a system/package-manager WebP (breaks the hermetic,
 digest-reproducible package gate), and image libraries larger than the need
@@ -160,9 +160,11 @@ they settle are in [SOG_MAPPING.md](SOG_MAPPING.md).
     `quats`, `sh0`) each carrying their `files` array. The strict shape keeps
     the broad `.json` registration from claiming unrelated JSON; a defective
     SOG `meta.json` past that gate still reaches `Read()` for a specific
-    diagnostic rather than a silent routing refusal. (The `.json` registration
-    is the one non-obvious consequence — flagged for maintainer confirmation
-    before the reader lands.)
+    diagnostic rather than a silent routing refusal. The broad `.json`
+    registration is the deliberate, maintainer-ratified (2026-07-22)
+    consequence of supporting the stock unbundled layout; the strict
+    `version == 2` + SOG-keys gate is what keeps it from claiming unrelated
+    JSON.
 
 - **libwebp pin — decided: v1.6.0** (§3), the current upstream stable. The
   exact commit and the BSD-3-Clause notice land with the vendored source,

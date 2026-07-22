@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 cmake_minimum_required(VERSION 3.22)
 
+# C is enabled alongside C++ for the vendored libwebp decoder translation units.
 project(GaussianSogPlugin
     VERSION 0.5.0
     DESCRIPTION "OpenUSD sog file-format plugin (v0.5.0 decoder skeleton)"
-    LANGUAGES CXX)
+    LANGUAGES C CXX)
 
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
@@ -32,6 +33,32 @@ if(NOT TARGET openstrata::gaussianCore)
     find_package(gaussianCore CONFIG REQUIRED)
 endif()
 
+# Vendored libwebp decoder subset (third_party/libwebp, see its VENDORING.md).
+# Built as one static library the SOG reader links for lossless-WebP (VP8L)
+# property-plane decoding; the ZIP container, meta.json, and every
+# Gaussian-specific dequantization stay in this repository. The subset self-
+# selects its SIMD paths per target, so no architecture flag is needed here.
+set(LIBWEBP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/libwebp")
+if(NOT EXISTS "${LIBWEBP_ROOT}/src/webp/decode.h")
+    message(FATAL_ERROR "Vendored libwebp was not found at ${LIBWEBP_ROOT}")
+endif()
+file(GLOB_RECURSE LIBWEBP_SOURCES CONFIGURE_DEPENDS "${LIBWEBP_ROOT}/src/*.c")
+add_library(webpdecoder STATIC ${LIBWEBP_SOURCES})
+set_target_properties(webpdecoder PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# libwebp's own sources are root-relative (`src/dec/...`); consumers use the
+# public `webp/decode.h` (whose nested include is relative), so they only need
+# the `src` directory.
+target_include_directories(webpdecoder
+    PRIVATE "${LIBWEBP_ROOT}"
+    INTERFACE "${LIBWEBP_ROOT}/src")
+# Vendored third-party C: silence its warnings so a strict bundle build (e.g.
+# /WX) is not held hostage to upstream style, and keep MSVC builds reproducible.
+if(MSVC)
+    target_compile_options(webpdecoder PRIVATE /w /Brepro)
+else()
+    target_compile_options(webpdecoder PRIVATE -w)
+endif()
+
 set(PLUGIN_NAME GaussianSogFileFormat)
 
 add_library(${PLUGIN_NAME} SHARED
@@ -41,8 +68,11 @@ target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 target_include_directories(${PLUGIN_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     ${PXR_INCLUDE_DIRS})
+# webpdecoder is linked now so a normal bundle build compiles and validates the
+# vendored decoder subset; the SogReader (next workstream) is its first caller.
 target_link_libraries(${PLUGIN_NAME} PRIVATE
-    openstrata::gaussianCore)
+    openstrata::gaussianCore
+    webpdecoder)
 # /Brepro: MSVC embeds wall-clock timestamps in object files, the PE header,
 # and the debug directory, so two builds of identical sources produce
 # different bytes. The release lane gates on package digest reproducibility;
