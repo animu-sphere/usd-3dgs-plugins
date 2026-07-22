@@ -32,9 +32,9 @@ layouts, converging on one semantic decode:
 
 Legacy SOG v1 (no `version` field, per-channel `mins`/`maxs` instead of
 codebooks) and streamed SOG (`lod-meta.json`, spatial chunks, LOD) are **not**
-read: v1 is rejected with an unsupported-version diagnostic, streamed SOG is
-SOG M2-M4. See [SOG_FORMAT.md](SOG_FORMAT.md) for the version and layout
-decisions and the container diagnostics.
+read: v1 is rejected with an unsupported-version diagnostic, and streamed SOG is
+deferred to SOG milestones M2-M4. See [SOG_FORMAT.md](SOG_FORMAT.md) for the
+version and layout decisions and the container diagnostics.
 
 ## 2. meta.json schema and property planes
 
@@ -51,7 +51,8 @@ plane would corrupt positions and is rejected as malformed.
 | `sh0` | `codebook[256]` (raw DC) | `sh0.webp` | RGB = codebook index per channel, A = opacity |
 | `shN` (optional) | `count`, `bands` (1-3), `codebook[256]` | `shN_centroids.webp`, `shN_labels.webp` | see §6 |
 
-`count <= W*H` for every plane. `count == 0` is a valid empty cloud. The plane
+`meta.count <= W*H` for every plane (`meta.count` is the Gaussian count, distinct
+from `meta.shN.count` above). `meta.count == 0` is a valid empty cloud. The plane
 dimensions and presence, and the codebook lengths, are validated by the reader
 ([SOG_FORMAT.md](SOG_FORMAT.md)) before the decoder runs.
 
