@@ -113,9 +113,8 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-**v0.4.0 — Gaussian Import Foundation — is tagged and published**, and
-**v0.5.0 — SOG v2 import — is in development**
-([current plan](docs/roadmap/current.md)).
+**v0.5.0 — SOG v2 import — is tagged and published**
+([release record](docs/releases/v0.5.0.md)).
 
 v0.4.0 turned the decoder-to-USD seam PLY and SPZ share into a normative,
 enforced contract: shared semantic validation and overflow-checked size math, a

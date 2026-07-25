@@ -30,7 +30,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.2.0 | Production-ready Graphdeco PLY import | Phase 1 stabilization | ✅ tagged & published — [record](../releases/v0.2.0.md) |
 | v0.3.0 | SPZ import | M5, Phase 2 | ✅ tagged & published — [record](../releases/v0.3.0.md) |
 | v0.4.0 | Gaussian Import Foundation | design policy §7.4 | ✅ tagged & published — [record](../releases/v0.4.0.md) |
-| v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | 🚧 current target |
+| v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged & published — [record](../releases/v0.5.0.md) |
 | v0.6.0 | Import tooling and diagnostics | — | ⬜ |
 | v0.7.0 | Performance and large-asset readiness | Phase 4 | ⬜ |
 | v0.8.0 | USD packaging and asset composition | — | ⬜ |

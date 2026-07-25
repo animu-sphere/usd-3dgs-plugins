@@ -6,10 +6,12 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
-Development target: **v0.5.0 — SOG v2 one-object import** — the first format
-added on top of the v0.4.0 contract
-([release plan](docs/roadmap/release-plan.md),
-[current plan](docs/roadmap/current.md)).
+Future changes will be recorded here.
+
+## [0.5.0] - 2026-07-25
+
+**SOG v2 one-object import.** The first format added on top of the v0.4.0
+Gaussian Import Foundation contract.
 
 ### Added
 
