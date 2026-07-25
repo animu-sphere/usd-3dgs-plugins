@@ -1,0 +1,55 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "leica-sofort-top8192.ply",
+    "repo_path": "plugins/gaussian-ply/tests/corpus/leica-sofort/leica-sofort-top8192.ply",
+    "sha256": "853cd6d8f1c59c471f5a53333d752282daea42ff4f70b89fb1b7d9d7f968d847",
+    "bytes": 1935011,
+    "gaussian_count": 8192,
+    "sh_degree": 3
+  },
+  "derivation": {
+    "tool": "@playcanvas/splat-transform",
+    "tool_version": "3.1.6",
+    "tool_commit": "04b6d15",
+    "command": "splat-transform leica-sofort-top8192.ply leica-sofort-top8192.sog",
+    "options": "defaults (--sh-iterations 10, --max-workers 4, GPU adapter 0)",
+    "device": "NVIDIA RTX A5000",
+    "selection": "format conversion only: every source Gaussian is retained, in source order, with no filtering, decimation, or Morton reordering",
+    "determinism": "partial: the shN palette is a k-means fit with random initialization, so shN_centroids.webp, shN_labels.webp and the shN section of meta.json differ on every run; every other entry, including the means/scales/quats/sh0 planes and their meta.json sections, regenerates byte-for-byte from the recorded source",
+    "reproducible_entries": [
+      "means_l.webp",
+      "means_u.webp",
+      "quats.webp",
+      "scales.webp",
+      "sh0.webp"
+    ],
+    "nondeterministic_entries": [
+      "meta.json",
+      "shN_centroids.webp",
+      "shN_labels.webp"
+    ],
+    "date_utc": "2026-07-25"
+  },
+  "output": {
+    "file": "leica-sofort-top8192.sog",
+    "sha256": "58b9d1db0e15af28683e064d47cb76ddffe0feca154bd4d38abf889d18687384",
+    "bytes": 462511,
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "sog_version": 2,
+    "layout": "bundled",
+    "generator": "splat-transform v3.1.6",
+    "sh_palette_count": 8192,
+    "entry_sha256": {
+      "means_l.webp": "d4d4903e43730eb70fcee7dc9dfce80c6a318c4eb609f658109f0b2f45bbfe5b",
+      "means_u.webp": "34450c019f39d05a6f7d9d017698dbc3c725246c7ebfba9a3b005d99bf088474",
+      "meta.json": "2b3792679854722508fa6bf55601553d590fa5e585336b76fb3aa9ad40babd5e",
+      "quats.webp": "3f7a2e130a839ed414f4b4dbd694ba91d62b62675d7e3c5fabc002634f61daaf",
+      "scales.webp": "30a73d1ef443efb2a512036205954e4e24b957f75c8229905352079da7982666",
+      "sh0.webp": "035b8fab77af07f13fa3e2c7c24b39f49f1b66b84f6e28726b04acc57b958686",
+      "shN_centroids.webp": "0568e09717cc1b9a1bd6987c4f9ee1474144c14cf26b899a91724e861ce2d26a",
+      "shN_labels.webp": "bf46c672d92e6c8fdd5d27b2116603869b34c2ba9cb0d505f45955933ee68e7a"
+    }
+  }
+}

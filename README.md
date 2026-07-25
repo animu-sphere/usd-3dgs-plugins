@@ -55,7 +55,7 @@ PlayCanvas `.sog` capture directly in `usdview` or any USD pipeline as OpenUSD
 
 | Container | Status |
 | --- | --- |
-| SOG v2, bundled `.sog` (ZIP) | ✅ decoded, fixture-covered; real-asset corpus pending |
+| SOG v2, bundled `.sog` (ZIP) | ✅ decoded, fixture-covered, and verified against a committed CC0 real-asset corpus |
 | SOG v2, unbundled `meta.json` + `.webp` planes | ✅ decoded through the asset resolver, fixture-covered |
 | SOG v1 (per-channel `mins`/`maxs`, no `version`) | ❌ rejected with a specific unsupported-version diagnostic |
 | Streamed SOG (`lod-meta.json`, LOD chunks) | ❌ not read; a later SOG milestone |

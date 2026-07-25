@@ -77,7 +77,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Zero-Gaussian file (`count: 0`) | supported rejection | well-formed SOG, but rejected with `GSSOG-E012`: the shared model requires at least one Gaussian and no stage may misrepresent its source |
 | `.json` routing | supported | `.json` is registered for the unbundled layout, and claimed only when a bounded prefix parses as a SOG v2 `meta.json`; unrelated JSON is declined ([SOG_FORMAT.md §6](SOG_FORMAT.md)) |
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from `meta.json` alone, decoding no plane |
-| Real trained SOG assets | unverified | no corpus asset committed yet; the smoke test validates any asset placed in `tests/corpus/` against its provenance record ([current.md](../roadmap/current.md) workstream 9) |
+| Real trained SOG assets | supported | committed 8,192-Gaussian corpus (`yashica-t4`, `leica-sofort`) at degree 3, checked semantically by the smoke test |
 | Stable diagnostics | supported | `GSSOG-E***`/`GSSOG-W***` codes with a machine-readable catalog cross-checked against the sources in both directions |
 
 ## USD authoring

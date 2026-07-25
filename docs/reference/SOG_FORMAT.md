@@ -103,7 +103,7 @@ third format:
   through `GaussianSizeMath.h`; quaternions through `NormalizeQuaternion`;
   the SOG source frame converted to the model's RUB frame per
   [ADR 0001](../adr/0001-model-frame-is-rub.md) (the exact conversion is a
-  §6 open item, resolved against real assets before decoding lands).
+  §6 open item, resolved in [SOG_MAPPING.md](SOG_MAPPING.md)).
 - USD authoring through the unchanged shared `GaussianLayerWriter`;
   format-specific USD construction remains forbidden.
 - Diagnostics: the `GSSOG-****` namespace first shipped with the skeleton
@@ -126,10 +126,11 @@ third format:
 - **Cross-format equivalence** — `tools/generate_equivalence_fixtures.py`
   grows a SOG encoder so the existing one-source-model PLY/SPZ pairs become
   PLY/SPZ/SOG triples in `tests/equivalence/`.
-- **Real assets** — at least one provenance-recorded real SOG asset (own
-  capture converted with a pinned SplatTransform release, provenance and
-  checksums recorded as for the SPZ corpus, design policy §17), validated
-  automatically and manually, with §12.1 performance baselines recorded.
+- **Real assets** — two provenance-recorded real SOG assets (the CC0
+  `yashica-t4` and `leica-sofort` corpus conversions, made with pinned
+  SplatTransform v3.1.6) are committed and validated automatically by the
+  semantic smoke test. Cross-format equivalence remains covered by synthetic
+  triples only.
 
 ## 6. Open items
 
@@ -176,9 +177,5 @@ they settle are in [SOG_MAPPING.md](SOG_MAPPING.md).
 
 Still open:
 
-- **A provenance-recorded real SOG asset** for the corpus (own capture
-  converted with a pinned SplatTransform release, provenance and checksums
-  recorded as for the SPZ corpus, design policy §17), validated automatically
-  and manually with §12.1 performance baselines. Deterministic fixtures and the
-  decoder-test-kit round-trip (§5) do not need it; the real-asset validation
-  gate does.
+- §12.1 performance baselines for the committed real SOG corpus; these require
+  a dedicated benchmark pass and are tracked in the roadmap.
