@@ -65,9 +65,11 @@ owns it), declare `requires.libraries: gaussianCore` (and `gaussianUsd` once
 you author), and add `openusd: ">=26.05,<27.0"`. The root `CMakeLists.txt`
 discovers `plugins/*` by glob, so no root edit is needed.
 
-The `gaussian-sog` skeleton is a worked example of exactly this state: a
-registered bundle that builds, tests, packages, and rejects every file with a
-stable not-implemented diagnostic, before any decoding exists.
+`gaussian-sog` was landed in exactly this shape one release before it decoded
+anything — a registered bundle that built, tested, and packaged while rejecting
+every file with a stable not-implemented diagnostic — and its history is worth
+reading as a worked example: `git log plugins/gaussian-sog` shows the skeleton,
+then the vendored dependency, then the reader and decoder, as separate steps.
 
 ### 2. Reader — container only (`src/io/<Fmt>Reader.*`)
 

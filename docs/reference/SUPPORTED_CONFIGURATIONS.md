@@ -85,13 +85,48 @@ PLY/SPZ cross-format equivalence *is* verified for SPZ v2 and v3 by synthetic
 pairs that encode one source model into both formats; see
 [EQUIVALENCE.md](EQUIVALENCE.md).
 
+## SOG input contract
+
+Supported:
+
+- SOG v2 (`meta.json` `"version": 2`) in both layouts — the bundled `.sog` ZIP
+  archive, and an unbundled `meta.json` whose property planes are loaded as
+  resolver-backed companion files from its directory;
+- 8-bit RGBA **lossless** WebP property planes, stored or DEFLATE-compressed
+  inside the archive;
+- position (16-bit split precision across a per-axis log-domain range), scale
+  (log-domain codebook), rotation (smallest-three with the largest-component
+  tag), opacity (`sh0` alpha), DC (`sh0` codebook), and higher-order SH
+  (palette labels into centroid texels and a shared codebook) — converted from
+  SOG's PLY-native Graphdeco columns into the model's RUB reference frame
+  ([ADR 0001](../adr/0001-model-frame-is-rub.md));
+- SH degrees 0-3, which is SOG v2's entire `bands` range;
+- metadata-only reads from `meta.json` alone.
+
+Not supported or not verified:
+
+- legacy SOG v1 (no `version` field, per-channel `mins`/`maxs`) — rejected with
+  the unsupported-version diagnostic;
+- streamed SOG: `lod-meta.json`, spatial chunks, LOD levels, deferred or partial
+  loading;
+- lossy WebP property planes — rejected rather than decoded approximately;
+- real trained SOG assets — no provenance-recorded corpus asset is committed
+  yet, so the real-asset gate and §12.1 performance baselines are open
+  ([current.md](../roadmap/current.md) workstream 9);
+- writing or exporting SOG;
+- network resource loading, streaming, partial reads, or memory mapping.
+
+PLY/SOG cross-format equivalence *is* verified by synthetic triples that encode
+one source model into all three formats; see [EQUIVALENCE.md](EQUIVALENCE.md).
+
 ## Output contract
 
-Both bundles are read-only shared-library `SdfFileFormat` plugins. Each authors
+Every bundle is a read-only shared-library `SdfFileFormat` plugin. Each authors
 one `ParticleField3DGaussianSplat` under `/Asset/Splat`; `/Asset` is the default
-prim. The output contract is described in [PLY_MAPPING.md](PLY_MAPPING.md) and,
-for SPZ, [SPZ_MAPPING.md](SPZ_MAPPING.md); the authored stage is identical
-because both author through the shared `gaussianUsd` writer.
+prim. The output contract is described in [PLY_MAPPING.md](PLY_MAPPING.md),
+[SPZ_MAPPING.md](SPZ_MAPPING.md), and [SOG_MAPPING.md](SOG_MAPPING.md); the
+authored stage is identical because all of them author through the shared
+`gaussianUsd` writer.
 
 This repository supplies data interoperability, not a renderer. Visible splat
 rendering depends on the active Hydra implementation.

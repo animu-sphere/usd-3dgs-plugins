@@ -1,21 +1,21 @@
 # Current
 
-The active development target is **v0.4.0 — Gaussian Import Foundation**,
-defined in the [release plan](release-plan.md): turn the decoder-to-USD seam
-proven by PLY and SPZ into a formal, documented, reusable contract before a
-third format depends on it. This release adds no end-user file format; it
-formalizes the existing
-`format reader → semantic decoder → GaussianCloudData → GaussianLayerWriter →
-ParticleField3DGaussianSplat` pipeline (design policy §7.4) so SOG (v0.5.0) and
-later decoders can be added without format-specific USD authoring, duplicated
-validation, inconsistent coordinate handling, or incompatible diagnostics.
+The active development target is **v0.5.0 — SOG v2 one-object import**, defined
+in the [release plan](release-plan.md#v050--sog-v2-one-object-import): import one
+complete PlayCanvas SOG v2 object into the same standard USD representation PLY
+and SPZ produce, exercising the v0.4.0 contract with a third format.
 
-v0.1.0, v0.2.0, and v0.3.0 are tagged and published; their completed milestone
-detail is recorded in the [delivery history](../reports/delivery-history.md)
-and the [release records](../releases/README.md). In the qualified sequences of
-the [roadmap README](README.md), v0.4.0 delivers the design-policy §7.4
-conversion-layer formalization and precedes format Phase 3, whose first
-candidate — SOG M1 (one object) — is the v0.5.0 theme.
+This is the first release that *uses* the Gaussian Import Foundation rather than
+building it. Nothing in `libs/` changed to accommodate SOG: the bundle targets
+the published `GaussianCloudData` contract, validates through the shared gate,
+allocates through the shared overflow-checked helpers, converts frames with the
+shared `FlipYZAxes`, and authors through the unchanged `GaussianLayerWriter`.
+That the v0.4.0 seam needed no adjustment for a format as unlike PLY as a
+codebook-and-image container is the release's real result.
+
+v0.1.0 through v0.4.0 are tagged and published; their completed milestone detail
+is recorded in the [delivery history](../reports/delivery-history.md) and the
+[release records](../releases/README.md).
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
@@ -38,182 +38,174 @@ Release-engineering items that remain live across releases:
 - ⬜ Add a lightweight link/language check to CI so public Markdown remains
   English and local links resolve.
 
-## 1. Formal decoder contract ✅
+## 1. Format facts and dependency decisions ✅
 
-*Goal: a revised, normative `GaussianCloudData` output contract that a decoder
-targets without reading PLY or SPZ code.*
+*Goal: every SOG v2 constant quoted from the reference implementation, and the
+container libraries vendored and pinned, before decoder code exists.*
 
-- ✅ Revise [GAUSSIAN_MODEL_CONTRACT.md](../reference/GAUSSIAN_MODEL_CONTRACT.md)
-  to state, normatively: decoded physical positions; strictly positive linear
-  scales; normalized scalar-first quaternions; opacity in `[0, 1]`; supported
-  SH degrees and canonical coefficient ordering; Gaussian-major array layout;
-  required and optional arrays and their length relationships; finite-value
-  requirements; empty-cloud behavior; maximum-count and overflow policy; and
-  which source metadata may be retained without affecting semantics.
-- ✅ State explicitly that format-native representations never enter the shared
-  model: PLY log-scales and opacity logits, SPZ quantized planes, and SOG WebP
-  pixels, codebook indices, and palette labels are all converted first.
+- ✅ [SOG_MAPPING.md](../reference/SOG_MAPPING.md): the normative semantic
+  mapping — split-precision inverse-log positions, the scale/DC/SH codebooks,
+  smallest-three quaternions with the largest-component tag, the SH
+  palette/label/centroid encoding, and the OpenUSD mapping — with every formula
+  quoted from PlayCanvas SplatTransform (`write-sog.ts`, `read-sog.ts`,
+  `math.ts`) rather than inferred.
+- ✅ **Coordinate frame decided: SOG stores PLY-native (Graphdeco RDF)
+  columns**, so the decoder applies the same shared `FlipYZAxes` the PLY decoder
+  applies. This confirms the duty [ADR 0001](../adr/0001-model-frame-is-rub.md)
+  anticipated for SOG. The developer documentation's contradictory y-up/z-back
+  prose describes the PlayCanvas *engine* frame, not the on-disk columns; the
+  discrepancy is resolved in favour of the implementation and pinned by the
+  equivalence triples ([SOG_MAPPING.md §5](../reference/SOG_MAPPING.md)).
+- ✅ libwebp v1.6.0 decoder subset vendored (BSD-3-Clause, exact commit
+  recorded in `third_party/libwebp/VENDORING.md` and
+  [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)); ZIP reading reuses
+  the already-vendored miniz 3.0.2 with its archive API enabled for this bundle
+  only. No new dependency beyond the WebP decoder.
 
-## 2. Shared semantic validation ✅
+## 2. Container reader ✅
 
-*Goal: one implementation of the validation identical for every decoded cloud,
-run by each decoder rather than copied per bundle. The existing
-`gaussianCore` contract checker is the seed.*
+*Goal: one reader owning every SOG container concern, with diagnostics granular
+enough to tell a user which part of their file is wrong.*
 
-- ✅ Extract or consolidate under `libs/`: component-array length consistency,
-  finite values, strictly positive scales, normalized-or-normalizable
-  rotations, opacity range, SH degree/coefficient-count consistency,
-  count-overflow and allocation checks, and extent-computation preconditions.
-  The shared gate enforces the SH degree ceiling (`kMaxShDegree`, shared with
-  the SPZ decoder; PLY rejects with `GSPLY-E017`) and quaternion
-  normalization at the contract tolerance. The overflow-checked
-  size/allocation helpers live in `openstrata/gs/GaussianSizeMath.h` and both
-  decoders allocate through them (failure diagnostics `GSPLY-E018` /
-  `GSPZ-E014`); the authored-extent computation moved into `gaussianCore`
-  (`ComputeCloudExtent`) so the writer and the decoder test kit share one
-  implementation.
-- ✅ Keep container-structure validation format-specific — readers remain
-  responsible for their own containers; the contract's §3 *Maximum count and
-  overflow* section records the split.
+- ✅ `plugins/gaussian-sog/src/io/SogReader.*`: layout detection by content, ZIP
+  central-directory walking, `meta.json` schema and version validation, codebook
+  and range checks, lossless-WebP plane decoding, and plane presence/dimension
+  checks. A lossy plane is rejected rather than decoded approximately, because
+  it would silently corrupt positions.
+- ✅ `meta.json` is parsed by a strict in-repo reader (`src/io/SogJson.*`)
+  rather than a vendored JSON library, per
+  [SOG_FORMAT.md §2](../reference/SOG_FORMAT.md): every malformed shape has to
+  surface as a specific `GSSOG` code. It rejects comments, trailing commas,
+  duplicate keys, and `NaN`/`Infinity`, bounds nesting depth, and reads numbers
+  under the classic locale so a host with a decimal comma cannot change how
+  positions decode.
+- ✅ The unbundled layout's companion planes load through an injected loader;
+  the plugin supplies an `ArResolver`-backed one, which keeps the reader
+  USD-free and unit-testable while a SOG whose planes sit behind a custom
+  resolver still resolves them the way USD resolves any companion asset.
+- ✅ Hardening: plane names are confined to bare file names, so a hostile
+  `meta.json` cannot reach outside its own directory; every declared size is
+  bounded before allocation; and routing reads a bounded prefix only.
 
-## 3. Coordinate-system ADR ✅
+## 3. Semantic decoder ✅
 
-*Goal: a normative decision, before SOG decoding lands, for the canonical
-coordinate frame and how formats convert into it.*
+*Goal: SOG's stored form becomes the shared model, with no format-specific USD
+authoring anywhere.*
 
-- ✅ [ADR 0001](../adr/0001-model-frame-is-rub.md) (accepted 2026-07-22):
-  the canonical frame of `GaussianCloudData` is **RUB (Y-up)**, matching the
-  authored `upAxis = "Y"` — the pre-1.0 authored-USD correction taken in
-  v0.4.0 rather than deferred to a major bump. PLY (and later SOG) convert
-  RDF→RUB through the shared `FlipYZAxes` helper in `gaussianCore`; SPZ is
-  natively RUB and converts nothing. The quaternion/SH sign derivations, the
-  alternatives considered (corrective `xformOp`, status quo), and the
-  migration consequences for v0.1.0-v0.3.0 output are recorded in the ADR;
-  goldens and equivalence fixtures were regenerated in the same change.
+- ✅ `plugins/gaussian-sog/src/io/GaussianSogDecoder.*`: split-precision
+  inverse-log positions, exponential scale codebooks, smallest-three quaternion
+  unpacking through the shared `NormalizeQuaternion`, raw-DC and opacity
+  decoding, palette-resolved higher-order SH, then the shared `FlipYZAxes` into
+  the model's RUB frame and the shared validation gate. Allocation goes through
+  `GaussianSizeMath.h`.
+- ✅ SOG `bands` 1-3 are exactly SH degrees 1-3 and no `shN` is degree 0, so the
+  whole format range sits inside the model's supported degrees: unlike SPZ, SOG
+  needs no degree-ceiling rejection.
+- ✅ The import-statistics seam is filled and emitted under
+  `TF_DEBUG=GSSOG_IMPORT_STATS`, and `Read(metadataOnly=true)` authors the
+  contract from `meta.json` alone with no plane decoded.
 
-## 4. Decoder test kit ✅
+## 4. Diagnostics ✅
 
-*Goal: reusable helpers to test a decoder against the shared contract without
-authoring a USD stage.*
+- ✅ `GSSOG-E002`-`E015` cover the container and semantic failures with the
+  malformed / unsupported / internal distinction intact — a legacy SOG v1 file
+  is told its version is unsupported, not that it is corrupt — plus `GSSOG-W001`
+  for palette labels past the palette. The shipped catalog
+  (`plugin/resources/gaussian-sog/diagnostics.json`) and the source constants
+  are cross-checked in both directions.
+- ✅ `GSSOG-E001` (the v0.4.0 skeleton's not-implemented code) is retired from
+  the header and the catalog, and never reused.
 
-- ✅ `openstrata/gs/testing/DecoderTestKit.h`: canonical one- and
-  multi-Gaussian expected models with values unique across (gaussian,
-  coefficient, channel), quaternion comparison with sign equivalence, SH
-  layout/degree checks, tolerance-aware comparison, invalid shared-model
-  cases, and deterministic extent comparison through the shared
-  `ComputeCloudExtent`.
-- ✅ Demonstrated with a minimal mock decoder
-  (`libs/gaussian-core/tests/test_decoder_kit.cpp`) that decodes a
-  deliberately format-native mock encoding (RDF frame, log scales, opacity
-  logits, vector-first quaternions, channel-major SH) into the shared
-  contract using no PLY or SPZ code.
+## 5. Routing ✅
 
-## 5. Import statistics seam ✅
+- ✅ Bundled `.sog` is claimed by extension plus the ZIP signature. The
+  unbundled layout means registering the far broader `.json` extension, so its
+  gate is strict: `version == 2` plus the four required SOG property
+  descriptions with their `files` arrays. Unrelated JSON is declined, while a
+  defective SOG `meta.json` past the gate still reaches `Read()` for a specific
+  diagnostic instead of a silent routing refusal
+  ([SOG_FORMAT.md §6](../reference/SOG_FORMAT.md), maintainer-ratified).
 
-*Goal: a common optional result structure so per-format instrumentation cannot
-diverge. The plugin API need not expose all of it in v0.4.0.*
+## 6. Fixtures, tests, and equivalence ✅
 
-- ✅ `GaussianImportStats` (`openstrata/gs/GaussianImportStats.h`) defines
-  source format and version, Gaussian count, SH degree, source byte size,
-  decoded semantic byte size, bounding box, and reader / semantic-decode /
-  USD-authoring times, with one shared formatter. Both decoders fill it on
-  request; the file-format plugins add the authoring time and emit one stable
-  line under `TF_DEBUG=GSPLY_IMPORT_STATS` / `GSPZ_IMPORT_STATS`. The plugin
-  API deliberately does not expose the record in v0.4.0; the v0.6.0 tooling
-  consumes this same seam.
+- ✅ `tools/generate_fixtures.py` writes every SOG fixture from source with no
+  third-party dependency: it contains a minimal lossless-WebP (VP8L) writer, so
+  no WebP *encoder* is vendored merely to build test data, and applies the
+  reference encoder's own quantization equations. Fixtures are byte-reproducible
+  on every platform.
+- ✅ Decoder-test-kit round trip: the positive fixtures encode the kit's
+  canonical clouds, and the decoder test requires `CompareClouds` to be empty at
+  tolerances derived from the documented quantization steps — which pins Gaussian
+  order, coefficient order, channel order, the quaternion convention, the frame,
+  and the derived extent at once.
+- ✅ One negative fixture per container diagnostic, both layouts covered, and the
+  Python smoke test asserting the same stage contract PLY and SPZ assert plus the
+  routing gates and the read-only entry point.
+- ✅ Cross-format equivalence is now PLY/SPZ/SOG triples
+  ([EQUIVALENCE.md](../reference/EQUIVALENCE.md)). PLY and SOG each apply the
+  frame conversion while SPZ applies none, so agreement pins the frame and the
+  15-entry SH sign table from both directions. SOG's position bound is derived
+  relatively — half a log-domain code step amplified by `|p|+1` — and its
+  codebooks are exact, which keeps the SH comparison at 1e-6.
+- ✅ `ost plugin test plugins/gaussian-sog` is green through L5, including the
+  golden roundtrip.
 
-## 6. Public/internal API boundary ✅
+## 7. Build, package, and release onboarding ✅
 
-*Goal: classify headers and targets deliberately, with no ABI promise before
-v1.0.0.*
-
-- ✅ [API_BOUNDARY.md](../architecture/API_BOUNDARY.md) classifies every
-  installed header into public / contributor / internal / plugin-private,
-  states that the end-user compatibility surface is the authored stage, the
-  file-format arguments, and the diagnostic codes (never a C++ header before
-  v1.0.0), and imposes the rules that keep the tiers honest (no OpenUSD in
-  `gaussianCore`, no cross-bundle `#include`, contributor-header changes
-  update the guide and every decoder together). A header no longer reads as
-  public merely because it is installed.
-
-## 7. Build, package, and CI scaling ✅
-
-*Goal: adding a third bundle (`gaussian-sog`) requires declarative
-configuration, not copied release logic.*
-
-- ✅ Verified with the `gaussian-sog` skeleton (item 9): the root plain-CMake
-  composition picks the bundle up by glob with no root edit; `ost plugin
-  build|test|package` work standalone; the PR lane gained three sog cells by
-  declaration in `openstrata.ci.yaml` (`ost ci generate github` regenerated
-  the workflow); the release matrix stays derived from the same source cells,
-  with the new `publish: never` marker excluding the skeleton from the
-  release lane (`scripts/release.py matrix`); the per-bundle diagnostic
-  catalog is cross-checked by the bundle's own test, as in PLY/SPZ; and the
-  packaged skeleton passes `ost plugin test --from-package`. The
-  aggregate-artifact policy is recorded in the
-  [backlog](backlog.md#packaging-and-release): per-bundle packages remain the
-  release unit.
+- ✅ The bundle builds standalone through `ost` and in the plain root
+  composition; the equivalence directory grew a second executable because two
+  bundles cannot share one vendored `miniz` translation unit (recorded in
+  [EQUIVALENCE.md §6](../reference/EQUIVALENCE.md)).
+- ✅ The CI cells moved to the shipping shape (Windows L4, macOS/Linux L5) and
+  the skeleton's `publish: never` marker is gone, which is the *entire* release
+  onboarding for the bundle: `scripts/release.py` derives three
+  `gaussian-sog-release-*` cells from the same source cells with no copied
+  logic. This is the v0.4.0 declarative-scaling claim paying out.
 
 ## 8. Documentation synchronization 🚧
 
-*Goal: bring the roadmap, release, and reference docs onto the adopted
-v0.4.0/v0.5.0 direction and remove drift left by the v0.3.0 release.*
+- ✅ Bundle README rewritten from skeleton notice to importer documentation;
+  root README lists SOG among the formats it reads, with its own container
+  table.
+- ✅ [SOG_MAPPING.md](../reference/SOG_MAPPING.md) corrected against the
+  implementation in two places: SOG needs **no** PLY-style `f_rest` transpose
+  (each centroid texel already interleaves one coefficient's three channels),
+  and `count == 0` is well-formed SOG that is rejected at import rather than
+  authored as an empty stage.
+- ✅ This file reframed from the v0.4.0 breakdown to the v0.5.0 workstreams;
+  release plan sequence table updated.
+- 🚧 Capability matrix, supported configurations, and the documentation index
+  extended to a third format.
+- ⬜ Release record for v0.5.0.
 
-- ✅ README release status: v0.3.0 published, v0.4.0 the current target, v0.5.0
-  named as SOG import.
-- ✅ Current development target: this file reframed from the completed v0.3.0
-  breakdown to the v0.4.0 workstreams; the v0.3.0 detail moved to the
-  [delivery history](../reports/delivery-history.md).
-- ✅ Release plan: sequence table, v0.3.0 marked shipped, and the v0.4.0 and
-  v0.5.0 sections rewritten to Gaussian Import Foundation and SOG v2 import.
-- ✅ Backlog priority and milestone ladders: M5/SPZ recorded as shipped, SOG M1
-  promoted to the v0.5.0 theme, glTF/GLB reconsidered after SOG.
-- ✅ v0.3.0 release-record status finalized to published, and its
-  forward-looking version pins corrected (SPZ v4 is no longer a v0.5.0 item).
-- ✅ Documentation index and the SPZ scope note corrected so no doc still calls
-  v0.3.0 the current target or schedules SPZ v4 for v0.5.0.
-- ✅ Contributor guide
-  [ADDING_A_FORMAT_DECODER.md](../contributing/ADDING_A_FORMAT_DECODER.md)
-  generalizes the PLY-specific path in [CONTRIBUTING.md](../../CONTRIBUTING.md)
-  to the shared decoder contract, the reader/decoder/diagnostics split, and
-  the shared writer — the whole loop followable with no PLY or SPZ source,
-  including the decoder-test-kit round-trip and the declarative CI/packaging
-  onboarding. `CONTRIBUTING.md` links it.
+## 9. Real-asset validation ⛔
 
-## 9. SOG skeleton and v0.5.0 plan ✅
+*Goal: the design-policy §17 real-asset gate and §12.1 performance baselines,
+which synthetic fixtures cannot substitute for.*
 
-*Goal: land the `gaussian-sog` bundle skeleton and an approved fixture plan so
-v0.5.0 begins against proven CI and packaging, without forcing unresolved
-shared-contract decisions into v0.4.0.*
-
-- ✅ `plugins/gaussian-sog` skeleton: builds, tests (pyramid to L2 —
-  discovery), and packages through the same declarative path as the shipping
-  bundles; `.sog` files are recognized and rejected with the stable
-  `GSSOG-E001` not-implemented diagnostic rather than opened as an empty
-  stage or disowned to USD's "no plugin found". Its CI cells are
-  `publish: never`, so no skeleton package ships.
-- ✅ SOG dependency decisions recorded in
-  [SOG_FORMAT.md](../reference/SOG_FORMAT.md) §3: ZIP reading reuses the
-  already-vendored miniz 3.0.2 (MIT); lossless WebP decoding vendors the
-  libwebp decoder subset (BSD-3-Clause), with the exact upstream revision and
-  notices landing at vendoring time — gated by SOG_FORMAT §6 to happen
-  before any production decoding.
-- ✅ SOG implementation and fixture plan approved in
-  [SOG_FORMAT.md](../reference/SOG_FORMAT.md) §4-§5: both layouts through one
-  reader/decoder, the `GSSOG-****` catalog allocation, decoder-test-kit
-  round-trips, PLY/SPZ/SOG equivalence triples, and a provenance-recorded
-  real asset, per the
-  [release plan](release-plan.md#v050--sog-v2-one-object-import).
+- ⛔ **Blocked on a provenance-recorded real SOG asset.** The corpus needs an
+  own capture converted with a pinned SplatTransform release, with provenance
+  and checksums recorded as for the SPZ corpus, then validated automatically and
+  manually with §12.1 baselines recorded in
+  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md). The
+  deterministic fixtures and the decoder-test-kit round trip do not need it; the
+  real-asset gate does, and it is the one v0.5.0 completion criterion still
+  open. The Python smoke test already walks `tests/corpus/*/*.sog` and validates
+  any asset found there against its provenance record, so adding the asset is
+  the whole remaining step.
 
 ## Completion criteria
 
-v0.4.0 is complete when:
+v0.5.0 is complete when:
 
-1. PLY and SPZ still produce equivalent authored structure through one writer.
-2. Both decoders pass the same shared-model validation tests.
-3. Coordinate conversion and stage-axis policy are normative and consistent.
-4. A minimal mock decoder can target the shared contract without PLY or SPZ code.
-5. Adding a bundle does not require duplicated release-matrix logic.
-6. Documentation clearly defines where parsing ends and shared semantics begin.
-7. Existing v0.2.0/v0.3.0 performance and correctness baselines show no material
-   regression.
+1. Both SOG layouts open through the plugin on the same semantic path. ✅
+2. Position, scale, rotation, opacity, SH0, and optional higher-order SH decode
+   correctly, verified against known values and the decoder test kit. ✅
+3. Cross-format fixtures demonstrate coordinate and SH consistency with PLY and
+   SPZ at tolerances derived from the SOG equations. ✅
+4. Failures use stable, actionable `GSSOG-****` diagnostics with a shipped
+   catalog. ✅
+5. A provenance-recorded real SOG asset is validated automatically and manually,
+   with §12.1 performance baselines recorded. ⛔
+6. Windows, macOS, and Linux source and package cells pass. 🚧 (local Windows
+   green through L5; hosted cells run on the pull request)

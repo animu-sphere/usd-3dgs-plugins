@@ -31,16 +31,17 @@ SOG M2-M4 is post-1.0 work.
   and the [release record](../releases/v0.3.0.md). Decoded into
   `GaussianCloudData`, reused the PLY USD contract, and added tolerance-aware
   PLY/SPZ equivalence tests plus real-size performance measurements.
-- 🚧 **Gaussian Import Foundation.** Active as [v0.4.0](release-plan.md); the
-  task breakdown is in [current.md](current.md). Revise the shared model
-  contract, consolidate semantic validation, decide the coordinate-system ADR,
-  add a decoder test kit, define a shared import-statistics seam, clarify the
-  public/internal header boundary, and scale build/packaging/CI to a third
+- ✅ **Gaussian Import Foundation.** Shipped as [v0.4.0](release-plan.md);
+  recorded in the [release record](../releases/v0.4.0.md). Revised the shared
+  model contract, consolidated semantic validation, decided the coordinate-system
+  ADR, added a decoder test kit and an import-statistics seam, clarified the
+  public/internal header boundary, and scaled build/packaging/CI to a third
   bundle.
-- 🚧 **SOG M1 — one object.** The [v0.5.0](release-plan.md) theme: decode one
-  SOG v2 object (bundled `.sog` and unbundled `meta.json`, lossless WebP)
-  through the common model and the shared writer, with a stable `GSSOG-****`
-  catalog. Pin the ZIP and WebP dependencies before production decoding lands.
+- 🚧 **SOG M1 — one object.** Active as [v0.5.0](release-plan.md); the task
+  breakdown is in [current.md](current.md). The reader, decoder, both layouts,
+  the `GSSOG-****` catalog, the fixtures, and the PLY/SPZ/SOG equivalence
+  triples have landed against pinned ZIP and WebP dependencies; the open item is
+  the provenance-recorded real SOG asset and its §12.1 baselines.
 - ⬜ **glTF/GLB Gaussian ADR.** Reconsidered after SOG v2 ships. Decide plugin
   ownership, ordinary scene-graph scope, Gaussian extension scope, external
   resources, and SPZ extension interaction before creating a bundle.

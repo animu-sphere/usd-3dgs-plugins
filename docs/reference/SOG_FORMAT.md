@@ -10,14 +10,17 @@ targets is [GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md); the
 SOG-specific semantic mapping is [SOG_MAPPING.md](SOG_MAPPING.md), mirroring
 [SPZ_MAPPING.md](SPZ_MAPPING.md).
 
-Status: plan accepted 2026-07-22 with the v0.4.0 `gaussian-sog` bundle
-skeleton (`plugins/gaussian-sog/`, no decoding). The v2 container facts were
-confirmed against the reference implementation and the §6 decisions
-(coordinate frame, `CanRead()` bounds, libwebp pin) recorded 2026-07-22 for
-the v0.5.0 cycle; the full semantic mapping is now
-[SOG_MAPPING.md](SOG_MAPPING.md). The remaining §6 item — a provenance-recorded
-real SOG asset — stays open. Production decoding follows the confirmed facts
-below.
+Status: **implemented.** The plan was accepted 2026-07-22 with the v0.4.0
+`gaussian-sog` skeleton; the v2 container facts were confirmed against the
+reference implementation and the §6 decisions (coordinate frame, `CanRead()`
+bounds, libwebp pin) recorded the same day. The v0.5.0 reader and decoder then
+landed against exactly those facts — `SogReader`, `GaussianSogDecoder`, both
+layouts, the `GSSOG-****` catalog, and the fixture and equivalence plan of §4-§5
+— with two mapping corrections recorded in
+[SOG_MAPPING.md](SOG_MAPPING.md) (no `f_rest` transpose is needed; `count == 0`
+is rejected at import). The one remaining §6 item, a provenance-recorded real
+SOG asset, stays open. This document keeps the decisions; the normative semantic
+mapping is [SOG_MAPPING.md](SOG_MAPPING.md).
 
 ## 1. Specification source
 
@@ -103,10 +106,11 @@ third format:
   §6 open item, resolved against real assets before decoding lands).
 - USD authoring through the unchanged shared `GaussianLayerWriter`;
   format-specific USD construction remains forbidden.
-- Diagnostics: the `GSSOG-****` namespace already shipped with the skeleton
-  (`GSSOG-E001` not-implemented). The catalog follows the allocation plan in
-  `GaussianSogDiagnostics.h` (E0xx container/semantic, E1xx internal/USD,
-  E2xx entry point, W0xx warnings); codes are never renumbered or reused.
+- Diagnostics: the `GSSOG-****` namespace first shipped with the skeleton
+  (`GSSOG-E001` not-implemented, now retired). The catalog follows the
+  allocation plan in `GaussianSogDiagnostics.h` (E0xx container/semantic, E1xx
+  internal/USD, E2xx entry point, W0xx warnings); codes are never renumbered or
+  reused.
 
 ## 5. Fixture and equivalence plan
 

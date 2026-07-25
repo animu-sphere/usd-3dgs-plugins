@@ -256,6 +256,7 @@ Every error and warning starts with a stable bracketed identifier
 between bundles. The container series and the full allocation are documented in
 [SOG_FORMAT.md](SOG_FORMAT.md) and shipped in the machine-readable catalog
 `plugin/resources/gaussian-sog/diagnostics.json`, which the smoke test
-cross-checks against the source constants in both directions. The skeleton's
-`GSSOG-E001` (SOG not implemented) is retired once decoding lands and is never
-reused. Codes are never renumbered or reused.
+cross-checks against the source constants in both directions. The v0.4.0
+skeleton's `GSSOG-E001` (SOG not implemented) is retired now that decoding has
+landed, and is absent from both the header and the catalog. Codes are never
+renumbered or reused.

@@ -52,20 +52,38 @@ This table describes the current tree. Planned capabilities belong in the
 | Native-RUB reference frame (no conversion) | supported | SPZ's RUB convention is the model frame (ADR 0001); dequantized verbatim, verified through the decoder and USD |
 | Extension records, antialiased flag | supported (ignored) | preserved by the reader, ignored by the decoder with warnings `GSPZ-W001`/`W002` |
 | Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test |
-| PLY/SPZ cross-format equivalence | supported | synthetic pairs encode one source model into both formats; `gaussian_ply_spz_equivalence` compares every model attribute at documented quantization-aware tolerances, covering SPZ v2 and v3 — see [EQUIVALENCE.md](EQUIVALENCE.md) |
+| Cross-format equivalence | supported | synthetic triples encode one source model into PLY, SPZ, and SOG; `gaussian_ply_spz_equivalence` and `gaussian_ply_sog_equivalence` compare every model attribute against the lossless PLY side at documented quantization-aware tolerances, covering SPZ v2/v3 and both SOG profiles — see [EQUIVALENCE.md](EQUIVALENCE.md) |
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only |
 | Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
 
-## SOG
+## SOG input and semantic mapping
 
 | Capability | Status | Evidence / behavior |
 | --- | --- | --- |
-| SOG import | unsupported | the v0.4.0 `gaussian-sog` skeleton recognizes `.sog` and rejects every read with `GSSOG-E001` ("not implemented in this release"); it ships in no release package (`publish: never` cells). SOG v2 one-object import is the v0.5.0 theme — plan in [SOG_FORMAT.md](SOG_FORMAT.md) |
+| SOG v2 bundled `.sog` (ZIP) | supported | container reader walks the archive's central directory (vendored miniz); reader and decoder fixtures for stored *and* DEFLATE-compressed entries |
+| SOG v2 unbundled `meta.json` | supported | companion WebP planes load through the asset resolver, anchored on the layer's own path; a fixture directory proves both layouts author the same stage |
+| SOG v1 (no `version`, per-channel `mins`/`maxs`) | unsupported | rejected with the specific unsupported-version diagnostic `GSSOG-E003`, not as corruption |
+| Streamed SOG (`lod-meta.json`, chunks, LOD) | unsupported | not read; SOG M2-M4 ([release plan](../roadmap/release-plan.md)) |
+| Lossless WebP property planes | supported | decoded through the vendored libwebp v1.6.0 decoder subset |
+| Lossy WebP property planes | unsupported | rejected as `GSSOG-E009` rather than decoded approximately, because lossy positions would be silently wrong |
+| Position (16-bit split precision, log domain) | supported | `means_l`/`means_u` codes remapped through the per-axis log range and the inverse-log transform; known-value fixtures |
+| Scale (log-domain codebook) | supported | `exp(codebook[byte])`, strictly positive; a used entry that leaves float range is rejected (`GSSOG-E011`) |
+| Rotation (smallest-three + tag) | supported | the three stored bytes fill the non-dropped scalar-first slots; a tag outside 252-255 fails with `GSSOG-E013` rather than becoming identity |
+| Opacity (`sh0` alpha) | supported | `byte/255`, already post-sigmoid |
+| DC (`sh0` codebook) | supported | raw band-0 coefficients, no color transform |
+| SH rest (palette + centroids + codebook) | supported | labels resolve to centroid texels whose RGB are per-channel codebook indices; a label past the palette yields zero coefficients with one aggregated warning (`GSSOG-W001`) |
+| SH degrees 0-3 | supported | `bands` 1-3 are degrees 1-3 and no `shN` is degree 0, so the whole format range is inside the model's; no degree-ceiling rejection exists |
+| RDF→RUB reference-frame conversion | supported | SOG stores PLY-native Graphdeco columns, so the shared `FlipYZAxes` applies exactly as for PLY (ADR 0001, [SOG_MAPPING.md §5](SOG_MAPPING.md)); pinned by the equivalence triples |
+| Zero-Gaussian file (`count: 0`) | supported rejection | well-formed SOG, but rejected with `GSSOG-E012`: the shared model requires at least one Gaussian and no stage may misrepresent its source |
+| `.json` routing | supported | `.json` is registered for the unbundled layout, and claimed only when a bounded prefix parses as a SOG v2 `meta.json`; unrelated JSON is declined ([SOG_FORMAT.md §6](SOG_FORMAT.md)) |
+| Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from `meta.json` alone, decoding no plane |
+| Real trained SOG assets | unverified | no corpus asset committed yet; the smoke test validates any asset placed in `tests/corpus/` against its provenance record ([current.md](../roadmap/current.md) workstream 9) |
+| Stable diagnostics | supported | `GSSOG-E***`/`GSSOG-W***` codes with a machine-readable catalog cross-checked against the sources in both directions |
 
 ## USD authoring
 
-Both `gaussian-ply` and `gaussian-spz` author through the shared
-`libs/gaussian-usd` writer, so the rows below are identical for either format.
+`gaussian-ply`, `gaussian-spz`, and `gaussian-sog` all author through the shared
+`libs/gaussian-usd` writer, so the rows below are identical for every format.
 
 | Capability | Status | USD output |
 | --- | --- | --- |
@@ -77,7 +95,7 @@ Both `gaussian-ply` and `gaussian-spz` author through the shared
 | Extent | supported | conservative three-sigma bounds from position/scale |
 | Source provenance | supported | `customData.gs` with source format, count, and SH degree |
 | USDA inspection | supported | `WriteToString` delegates to USDA |
-| PLY/SPZ write/export | unsupported | `WriteToFile` reports read-only behavior (`GSPLY-E203`/`GSPZ-E201`) |
+| Write/export to any Gaussian format | unsupported | `WriteToFile` reports read-only behavior (`GSPLY-E203`/`GSPZ-E201`/`GSSOG-E201`) |
 | Animated Gaussians | unsupported | static arrays only |
 | Multiple clouds/cameras | unsupported | one `/Asset/Splat`, no camera import |
 
@@ -86,7 +104,7 @@ Both `gaussian-ply` and `gaussian-spz` author through the shared
 | Capability | Status |
 | --- | --- |
 | Standalone OST bundle build | supported |
-| Plain root CMake composition | supported; Release build and all eight tests (core, gaussianUsd, PLY decoder + smoke, SPZ reader + decoder + smoke, PLY/SPZ equivalence) locally green |
+| Plain root CMake composition | supported; Release build and all thirteen tests (core unit + decoder kit, gaussianUsd, PLY decoder + smoke, SPZ reader + decoder + smoke, SOG reader + decoder + smoke, PLY/SPZ and PLY/SOG equivalence) locally green |
 | Workspace plain-library dependency | supported and validated by `ost plugin test --workspace` |
 | Source L0-L5 verification | supported; locally green |
 | Target-specific package | supported; locally generated and tested |
