@@ -245,7 +245,7 @@ def cmd_matrix(args: argparse.Namespace) -> int:
     trust = manifest.get("trust", {})
     minimum_trust = trust.get("release_min_trust", DEFAULT_MIN_TRUST)
 
-    include: list[dict] = []
+    source_cells: list[dict] = []
     for cell in manifest.get("cells", []):
         if cell.get("lane", "scheduled") not in SOURCE_LANES:
             continue
@@ -266,7 +266,7 @@ def cmd_matrix(args: argparse.Namespace) -> int:
         runs_on = [runner["image"]] if hosted else list(runner.get("labels", []))
         remote = cell.get("runtime_remote") or {}
 
-        include.append(
+        source_cells.append(
             {
                 "name": cell["name"].replace("-pr-", "-release-"),
                 "cell": cell["name"],
@@ -285,6 +285,27 @@ def cmd_matrix(args: argparse.Namespace) -> int:
             }
         )
 
+    # A release product is one aggregate archive per target. Group the three
+    # format cells so each target builds/tests every bundle in one workspace,
+    # then `ost plugin package --workspace --product` can emit the product
+    # archive containing the exact member archives and their sidecars.
+    grouped: dict[tuple, dict] = {}
+    for cell in source_cells:
+        key = (
+            tuple(cell["runs_on"]), cell["runner_profile"],
+            cell["runtime_artifact"], cell["runtime_remote"],
+            cell["platform"], cell["profile"], cell["host_python"],
+            cell["minimum_trust"], cell["evidence_flags"],
+        )
+        product = grouped.setdefault(
+            key,
+            {**cell, "name": f"plugin-product-release-{cell['runner_profile']}",
+             "bundles": [], "cells": []},
+        )
+        product["bundles"].append(cell["bundle"])
+        product["cells"].append(cell["cell"])
+
+    include = list(grouped.values())
     if not include:
         raise GateError(
             "openstrata.ci.yaml declares no source cell; the release lane "

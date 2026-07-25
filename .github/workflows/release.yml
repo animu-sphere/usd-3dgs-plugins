@@ -98,6 +98,7 @@ jobs:
       OST_VERSION: ${{ needs.preflight.outputs.ost_version }}
       OST_REPOSITORY: ${{ needs.preflight.outputs.ost_repository }}
       RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+      RELEASE_BUNDLES: ${{ join(matrix.bundles, ' ') }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -209,20 +210,28 @@ jobs:
           python-version: ${{ matrix.host_python }}
       - name: Build the plugin from source
         shell: bash
-        run: ost plugin build ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          for bundle in $RELEASE_BUNDLES; do
+            ost plugin build "$bundle" --target "${{ matrix.platform }}" --profile "${{ matrix.profile }}"
+          done
       # Release gate item 2: the tag re-observes each cell's declared level
       # rather than trusting an earlier green PR run. Windows stays at L4 for
       # the hosted multiline-USDA line-ending finding; the level comes from
       # openstrata.ci.yaml, so lifting the cap there lifts it here too.
       - name: Run the verification pyramid
         shell: bash
-        run: ost plugin test ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json
+        run: |
+          set -euo pipefail
+          for bundle in $RELEASE_BUNDLES; do
+            ost plugin test "$bundle" --target "${{ matrix.platform }}" --profile "${{ matrix.profile }}" --up-to "${{ matrix.up_to }}" --json
+          done
       - name: Package the plugin (lean; debug symbols split off)
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .ost-ci
-          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json | tee .ost-ci/package.json
+          ost plugin package --workspace --product --target "${{ matrix.platform }}" --profile "${{ matrix.profile }}" --json | tee .ost-ci/package.json
       # Release gate item 4. Repackaging reuses the existing build tree, so
       # this costs seconds rather than a second compile -- and unstable
       # digests would make the published SHA256SUMS meaningless.
@@ -231,7 +240,7 @@ jobs:
         run: |
           set -euo pipefail
           first="$(jq -r .data.archive_digest .ost-ci/package.json)"
-          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package-second.json
+          ost plugin package --workspace --product --target "${{ matrix.platform }}" --profile "${{ matrix.profile }}" --json > .ost-ci/package-second.json
           second="$(jq -r .data.archive_digest .ost-ci/package-second.json)"
           if [ "$first" != "$second" ]; then
             echo "::error title=release packaging::two packaging runs of the same build disagree ($first vs $second) -- release checksums would be unstable" ; exit 1
@@ -253,13 +262,15 @@ jobs:
           dist_dir="$(dirname "$archive")"
           stem="$(basename "$archive" .tar.zst)"
           case "$stem" in
-            *"-${RELEASE_VERSION}-"*) : ;;
-            *) echo "::error title=Release::archive '$stem' does not carry version ${RELEASE_VERSION}" ; exit 1 ;;
+            *"-${RELEASE_VERSION}-plugin-product"*) : ;;
+            *) echo "::error title=Release::product archive '$stem' does not carry version ${RELEASE_VERSION}" ; exit 1 ;;
           esac
           mkdir -p release-stage
-          cp "$archive" "release-stage/$(basename "$archive")"
-          cp "$dist_dir/manifest.json" "release-stage/${stem}.manifest.json"
-          cp "$dist_dir/sbom.spdx.json" "release-stage/${stem}.sbom.spdx.json"
+          # The product directory contains the aggregate product plus the
+          # exact PLY/SPZ/SOG member archives and their manifest/SBOM sidecars.
+          find "$dist_dir" -maxdepth 1 -type f \
+            \( -name '*.tar.zst' -o -name '*.manifest.json' -o -name '*.sbom.spdx.json' \) \
+            -exec cp {} release-stage/ \;
           ls -l release-stage/
       - name: Upload the staged release assets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -273,7 +284,7 @@ jobs:
         with:
           name: report-${{ matrix.name }}
           path: |
-            ${{ matrix.bundle }}/.strata/reports/
+            plugins/*/.strata/reports/
             .ost-ci/
 
   release:
