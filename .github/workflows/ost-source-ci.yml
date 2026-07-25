@@ -141,7 +141,7 @@ jobs:
             evidence_flags: "--require-sbom --require-provenance"
             platform: cy2026
             profile: usd
-            up_to: 2
+            up_to: 4
             runs_on: ["windows-2022"]
             hosted: true
             runner_profile: windows-hosted
@@ -157,7 +157,7 @@ jobs:
             evidence_flags: "--require-sbom --require-provenance"
             platform: cy2026
             profile: usd
-            up_to: 2
+            up_to: 5
             runs_on: ["macos-15"]
             hosted: true
             runner_profile: macos-arm64-hosted
@@ -173,7 +173,7 @@ jobs:
             evidence_flags: "--require-sbom --require-provenance"
             platform: cy2026
             profile: usd
-            up_to: 2
+            up_to: 5
             runs_on: ["ubuntu-24.04"]
             hosted: true
             runner_profile: linux-hosted

@@ -109,16 +109,14 @@ cells:
     host_python: "3.13"
     up_to: 5
 
-  # gaussian-sog is the v0.4.0 skeleton for the v0.5.0 SOG decoder. Its cells
-  # exist to prove that a third bundle scales by declaration: the same three
-  # digest-pinned runtimes, no copied release logic. Two deliberate
-  # differences from the shipping bundles:
-  #   - up_to: 2 — the skeleton rejects every .sog with GSSOG-E001, so the
-  #     pyramid stops at USD discovery; L3+ begin when the decoder lands.
-  #   - publish: never — the PR lane builds, tests, and packages it, but
-  #     scripts/release.py excludes publish-never cells from the release
-  #     matrix so no skeleton package ships. Removing the marker is the whole
-  #     release onboarding for the bundle.
+  # gaussian-sog now reads SOG v2, so its cells are the shipping shape: the same
+  # three digest-pinned runtimes and the same per-runner level cap as the other
+  # bundles (Windows stays at L4 for the multiline-USDA line-ending finding
+  # recorded in docs/roadmap/current.md). The v0.4.0 skeleton's `up_to: 2` and
+  # `publish: never` markers are gone — removing them was the whole release
+  # onboarding for the bundle, which is what the declarative scaling claim
+  # predicted, since scripts/release.py derives the release matrix from these
+  # same source cells.
   - name: gaussian-sog-pr-windows
     lane: pull_request
     runner: windows-hosted
@@ -129,8 +127,7 @@ cells:
     bundle: plugins/gaussian-sog
     platform: cy2026
     profile: usd
-    up_to: 2
-    publish: never
+    up_to: 4
 
   - name: gaussian-sog-pr-macos-arm64
     lane: pull_request
@@ -143,8 +140,7 @@ cells:
     platform: cy2026
     profile: usd
     host_python: "3.13"
-    up_to: 2
-    publish: never
+    up_to: 5
 
   - name: gaussian-sog-pr-linux
     lane: pull_request
@@ -157,5 +153,4 @@ cells:
     platform: cy2026
     profile: usd
     host_python: "3.13"
-    up_to: 2
-    publish: never
+    up_to: 5
