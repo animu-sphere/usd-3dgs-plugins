@@ -182,7 +182,9 @@ authoring anywhere.*
   release plan sequence table updated.
 - 🚧 Capability matrix, supported configurations, and the documentation index
   extended to a third format.
-- ⬜ Release record for v0.5.0.
+- ✅ Release record for v0.5.0 is committed at
+  [releases/v0.5.0.md](../releases/v0.5.0.md); hosted release-lane evidence and
+  published artifact checksums remain to be appended after CI completes.
 
 ## 9. Real-asset validation 🚧
 
