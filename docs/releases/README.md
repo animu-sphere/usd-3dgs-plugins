@@ -6,7 +6,7 @@ Release records are history and are not rewritten after publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
-| v0.5.0 | 2026-07-25 | [v0.5.0.md](v0.5.0.md) — SOG v2 one-object import, third-format equivalence, and OST 0.20.0 release packaging |
+| v0.5.0 | 2026-07-25 | [v0.5.0.md](v0.5.0.md) — SOG v2 one-object import, third-format equivalence, and OST 0.20.0 aggregate product packaging; draft assembled |
 | v0.4.0 | 2026-07-22 | [v0.4.0.md](v0.4.0.md) — Gaussian Import Foundation: the decoder-to-USD seam formalized, RUB frame (ADR 0001), decoder test kit, and the `gaussian-sog` skeleton; published 2026-07-22 |
 | v0.3.0 | 2026-07-20 | [v0.3.0.md](v0.3.0.md) — read-only SPZ import through the shared pipeline; published 2026-07-20 |
 | v0.2.0 | 2026-07-19 | [v0.2.0.md](v0.2.0.md) — production-ready Graphdeco PLY import; published 2026-07-19 |

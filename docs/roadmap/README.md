@@ -28,7 +28,8 @@ Never use an unqualified “M1” for SOG work.
 
 ## Status at a glance
 
-- v0.1.0 through v0.5.0 are tagged and published with immutable
+- v0.1.0 through v0.4.0 are tagged and published; v0.5.0 is tagged with its
+  aggregate draft release assembled, all with immutable
   [release records](../releases/README.md); completed milestone detail is in
   the [delivery history](../reports/delivery-history.md).
 - v0.4.0 formalized the shared decoder-to-USD contract, and v0.5.0 shipped the

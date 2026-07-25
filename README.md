@@ -113,7 +113,7 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-**v0.5.0 — SOG v2 import — is tagged and published**
+**v0.5.0 — SOG v2 import — is tagged; its draft release is assembled**
 ([release record](docs/releases/v0.5.0.md)).
 
 v0.4.0 turned the decoder-to-USD seam PLY and SPZ share into a normative,
