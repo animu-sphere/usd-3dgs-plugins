@@ -5,9 +5,8 @@ component identities, dependency directions, root responsibilities, artifact
 naming, and migration invariants. A structural change that contradicts this
 document must change this document first.
 
-Status: `gaussian-ply` and `gaussian-spz` are implemented; the `gaussian-sog`
-skeleton is registered but does not decode (v0.5.0). Future component
-identities are reserved here.
+Status: `gaussian-ply`, `gaussian-spz`, and `gaussian-sog` are implemented.
+Future component identities are reserved here.
 
 ## 1. Components
 
@@ -17,7 +16,7 @@ identities are reserved here.
 | `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, overflow-checked size math, the authored-extent computation, SH layout utilities, the import-statistics record, diagnostic message formatting, and the test-only model-contract checker and decoder test kit every decoder is held to. |
 | `gaussianUsd` | plain CMake/OpenStrata static library | implemented | Shared `GaussianCloudData` → OpenUSD schema authoring. Extracted from `gaussian-ply` in v0.3.0, at the moment design policy §7.4 reserves for it: the SPZ bundle would otherwise duplicate `GaussianLayerWriter`. Diagnostic codes stay owned by the calling bundle. |
 | `gaussian-spz` | plugin bundle (`usd-fileformat`) | implemented | Decode SPZ v1-v3 through `GaussianCloudData` and the shared authoring contract. |
-| `gaussian-sog` | plugin bundle (`usd-fileformat`) | skeleton (v0.4.0) — no decoding | Registers `.sog` and rejects it with `GSSOG-E001`; the v0.5.0 SOG v2 decoder fills the reader/decoder. |
+| `gaussian-sog` | plugin bundle (`usd-fileformat`) | implemented | Decode SOG v2 — bundled `.sog` and unbundled `meta.json` — through `GaussianCloudData` and the shared authoring contract. Owns the vendored libwebp decoder subset and the archive half of miniz. |
 | `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |
 
 `gaussianCore` is not a plugin: it has no `plugInfo.json`, performs no plugin
@@ -90,8 +89,19 @@ plugins/gaussian-spz/src/io/GaussianSpzDecoder.*
     SPZ dequantization into GaussianCloudData
 
 plugins/gaussian-sog/src/GaussianSogFileFormat.*
-    thin SdfFileFormat integration; rejects with GSSOG-E001 until the
-    v0.5.0 reader/decoder land under src/io/
+    thin SdfFileFormat integration; also supplies the resolver-backed
+    companion loader for the unbundled layout
+
+plugins/gaussian-sog/src/io/SogReader.*
+    SOG container reading: layout detection, ZIP central directory,
+    meta.json schema, lossless-WebP planes; miniz/libwebp isolation
+
+plugins/gaussian-sog/src/io/SogJson.*
+    strict JSON reader for meta.json, so a malformed document maps to a
+    specific GSSOG diagnostic
+
+plugins/gaussian-sog/src/io/GaussianSogDecoder.*
+    SOG codebook/palette decoding into GaussianCloudData
 
 libs/gaussian-core/
     format- and USD-independent Gaussian model, math, size math,

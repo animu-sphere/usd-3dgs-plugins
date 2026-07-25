@@ -2,9 +2,9 @@
 
 OpenUSD file-format plugins that import
 [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
-assets as standard USD stages: open a trained `.ply` or Niantic `.spz` capture
-directly in `usdview` or any USD pipeline as OpenUSD 26.05's
-`ParticleField3DGaussianSplat` schema.
+assets as standard USD stages: open a trained `.ply`, a Niantic `.spz`, or a
+PlayCanvas `.sog` capture directly in `usdview` or any USD pipeline as OpenUSD
+26.05's `ParticleField3DGaussianSplat` schema.
 
 <p align="center">
   <img src="docs/assets/usd3dgs_with_hdparticlefield.gif" alt="Imported Gaussian PLY in usdview" width="700" />
@@ -19,12 +19,16 @@ directly in `usdview` or any USD pipeline as OpenUSD 26.05's
   little-endian, SH degrees 0-3) into `/Asset/Splat` with positions, scales,
   orientations, opacities, and spherical-harmonic radiance.
 - Read-only import of Niantic SPZ (container versions 1-3, SH degrees 0-3),
-  dequantized and converted into the same `/Asset/Splat` stage. PLY and SPZ
-  author the identical hierarchy, schema, and metadata through one shared
-  writer.
+  dequantized and converted into the same `/Asset/Splat` stage.
+- Read-only import of PlayCanvas SOG v2 (SH degrees 0-3) in both layouts — the
+  bundled `.sog` ZIP archive and an unbundled `meta.json` with its companion
+  lossless-WebP property planes — decoded from codebooks and image planes into
+  the same stage. All three formats author the identical hierarchy, schema, and
+  metadata through one shared writer.
 - Header-only metadata reads (~5 ms at any size), PLY import arguments
   (`shDegree`, `opacityThreshold`, `scaleMultiplier`), and stable
-  `GSPLY-****` / `GSPZ-****` diagnostics with machine-readable catalogs.
+  `GSPLY-****` / `GSPZ-****` / `GSSOG-****` diagnostics with machine-readable
+  catalogs.
 - Import only — rendering is owned by the sibling project
   [`hydra-merlin`](https://github.com/animu-sphere/hydra-merlin).
 
@@ -46,6 +50,16 @@ directly in `usdview` or any USD pipeline as OpenUSD 26.05's
 | --- | --- |
 | SPZ versions 1-3 (gzip) | ✅ decoded, fixture-covered, and verified against a committed CC0 real-asset corpus |
 | SPZ version 4 (ZSTD) | ❌ rejected with a specific unsupported-version diagnostic |
+
+`gaussian-sog` — PlayCanvas `.sog` / `meta.json`:
+
+| Container | Status |
+| --- | --- |
+| SOG v2, bundled `.sog` (ZIP) | ✅ decoded, fixture-covered; real-asset corpus pending |
+| SOG v2, unbundled `meta.json` + `.webp` planes | ✅ decoded through the asset resolver, fixture-covered |
+| SOG v1 (per-channel `mins`/`maxs`, no `version`) | ❌ rejected with a specific unsupported-version diagnostic |
+| Streamed SOG (`lod-meta.json`, LOD chunks) | ❌ not read; a later SOG milestone |
+| Lossy WebP property planes | ❌ rejected rather than decoded approximately |
 
 Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
 [capability matrix](docs/reference/CAPABILITY_MATRIX.md) ·
@@ -99,27 +113,35 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-**v0.4.0 — Gaussian Import Foundation — is tagged and published.** The
-decoder-to-USD seam PLY and SPZ share is now a normative, enforced contract:
-shared semantic validation and overflow-checked size math, a stage-free
-[decoder test kit](docs/reference/GAUSSIAN_MODEL_CONTRACT.md), an
+**v0.4.0 — Gaussian Import Foundation — is tagged and published**, and
+**v0.5.0 — SOG v2 import — is in development**
+([current plan](docs/roadmap/current.md)).
+
+v0.4.0 turned the decoder-to-USD seam PLY and SPZ share into a normative,
+enforced contract: shared semantic validation and overflow-checked size math, a
+stage-free [decoder test kit](docs/reference/GAUSSIAN_MODEL_CONTRACT.md), an
 import-statistics seam, and a documented
-[header/API boundary](docs/architecture/API_BOUNDARY.md) — with a
-`gaussian-sog` skeleton proving a third bundle scales by declaration. This
-release also corrects authored orientation to **RUB / Y-up**
+[header/API boundary](docs/architecture/API_BOUNDARY.md). It also corrected
+authored orientation to **RUB / Y-up**
 ([ADR 0001](docs/adr/0001-model-frame-is-rub.md)) to match the `upAxis` every
-stage already declared; it is a pre-1.0 change to v0.1.0-v0.3.0 output, so
-re-import to update. The next target is **v0.5.0 — SOG v2 import**
-([current plan](docs/roadmap/current.md)). Releases are tag-driven,
-digest-reproducible, and published as drafts for human review
+stage already declared; that is a pre-1.0 change to v0.1.0-v0.3.0 output, so
+re-import to update.
+
+v0.5.0 is the first format added *on top of* that contract: `gaussian-sog`
+reads SOG v2 in both layouts, targets the shared model with no format-specific
+USD authoring, and joins the cross-format equivalence triples. Releases are
+tag-driven, digest-reproducible, and published as drafts for human review
 ([release records](docs/releases/README.md)).
 
 ## Architecture
 
 ```text
-.ply -> PlyReader (tinyPLY adapter)     -> GaussianPlyDecoder --\
-.spz -> SpzReader (miniz DEFLATE/gzip)  -> GaussianSpzDecoder --/
-                                                                |
+.ply       -> PlyReader (tinyPLY adapter)     -> GaussianPlyDecoder --+
+.spz       -> SpzReader (miniz DEFLATE/gzip)  -> GaussianSpzDecoder --+
+.sog    \                                                            |
+         -> SogReader (miniz ZIP + libwebp    -> GaussianSogDecoder --+
+meta.json/     lossless property planes)                             |
+                                                                     v
                         GaussianCloudData (gaussianCore; no USD types)
                         -> GaussianLayerWriter (libs/gaussian-usd)
                         -> UsdVolParticleField3DGaussianSplat
@@ -127,8 +149,8 @@ digest-reproducible, and published as drafts for human review
 
 The workspace separates format-independent Gaussian modelling
 (`libs/gaussian-core`) and shared USD authoring (`libs/gaussian-usd`) from
-format-specific import (`plugins/gaussian-ply`, `plugins/gaussian-spz`), each
-independently buildable and testable. It is
+format-specific import (`plugins/gaussian-ply`, `plugins/gaussian-spz`,
+`plugins/gaussian-sog`), each independently buildable and testable. It is
 built, tested, packaged, and released with OpenStrata's `ost` CLI
 (measured usage: [dogfooding reports](docs/reports/ost/)) and remains
 dual-mode with plain CMake. The sibling project
@@ -139,12 +161,14 @@ this layout and process. Policy: [DESIGN_POLICY.md](docs/design/DESIGN_POLICY.md
 
 The minimal development path is in [CONTRIBUTING.md](CONTRIBUTING.md); the
 documentation index is [docs/README.md](docs/README.md). The normative mapping
-contracts are [PLY_MAPPING.md](docs/reference/PLY_MAPPING.md) and
-[SPZ_MAPPING.md](docs/reference/SPZ_MAPPING.md).
+contracts are [PLY_MAPPING.md](docs/reference/PLY_MAPPING.md),
+[SPZ_MAPPING.md](docs/reference/SPZ_MAPPING.md), and
+[SOG_MAPPING.md](docs/reference/SOG_MAPPING.md).
 
 ## License
 
-Project code is Apache-2.0. SPZ is implemented from Niantic's published, MIT
--licensed specification rather than vendored. Third-party retained notices and
-fixed source revisions (tinyPLY, miniz) are documented in
+Project code is Apache-2.0. SPZ and SOG are implemented from their publishers'
+open specifications and MIT-licensed reference toolchains rather than vendored;
+only container mechanics use libraries. Third-party retained notices and fixed
+source revisions (tinyPLY, miniz, libwebp) are documented in
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

@@ -26,8 +26,12 @@ the top of `third_party/tinyply/tinyply.h` and in the vendored README.
 - License: MIT
 
 miniz provides the raw-DEFLATE decompression and CRC32 used by the
-`gaussian-spz` container reader; the gzip member framing itself is parsed in
-this repository. The complete MIT license text is retained at
+`gaussian-spz` container reader — the gzip member framing itself is parsed in
+this repository — and the ZIP archive *reading* used by the `gaussian-sog`
+container reader for bundled `.sog` files. The two bundles compile it with
+different definitions (`gaussian-spz` excludes the archive APIs entirely, and
+neither enables archive writing, stdio, or time), so each carries its own
+translation unit. The complete MIT license text is retained at
 `third_party/miniz/LICENSE`.
 
 ## libwebp 1.6.0

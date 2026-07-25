@@ -12,6 +12,13 @@ SPZ rows come from one implementation measuring one seam. Any difference
 between the tables below is a property of the formats, not of two benchmarks
 that drifted apart.
 
+**SOG has no baselines yet.** The v0.5.0 decoder is complete and covered by
+deterministic fixtures, but §12.1 measurements need a provenance-recorded real
+asset, which the corpus does not have yet
+([current.md](../roadmap/current.md) workstream 9). Adding SOG rows here is part
+of that gate, not something the synthetic fixtures can stand in for: a
+few-Gaussian fixture measures process startup, not decoding.
+
 ## Environment
 
 Measured 2026-07-19 at v0.2.0 development head:

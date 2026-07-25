@@ -20,11 +20,19 @@ ost plugin doctor plugins/gaussian-ply
 ost plugin test --workspace --up-to 5
 ```
 
-The workspace ships two independent plugin bundles: `gaussian-ply` for
-Graphdeco-style `.ply` and `gaussian-spz` for Niantic `.spz` (container
-versions 1-3). They install and activate the same way — substitute
-`plugins/gaussian-spz` in the per-bundle commands throughout this guide.
-Install only the one you need; neither depends on the other.
+The workspace ships three independent plugin bundles: `gaussian-ply` for
+Graphdeco-style `.ply`, `gaussian-spz` for Niantic `.spz` (container versions
+1-3), and `gaussian-sog` for PlayCanvas SOG v2 (bundled `.sog` and unbundled
+`meta.json`). They install and activate the same way — substitute
+`plugins/gaussian-spz` or `plugins/gaussian-sog` in the per-bundle commands
+throughout this guide. Install only the ones you need; none depends on another.
+
+One caveat specific to `gaussian-sog`: because the stock unbundled layout is
+named `meta.json`, that bundle registers the `.json` extension as well as
+`.sog`. It claims a `.json` file only when the file actually parses as a SOG v2
+metadata document, so unrelated JSON is left alone — but if your environment
+already has a plugin claiming `.json`, install `gaussian-sog` deliberately
+rather than by default.
 
 Run a USD tool with the plugin environment composed automatically:
 

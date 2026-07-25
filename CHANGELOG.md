@@ -6,13 +6,57 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
-Development target: **v0.5.0 — SOG v2 one-object import** — the `gaussian-sog`
-skeleton gains its container reader and `GaussianSogDecoder`, importing one
-complete SOG v2 object (bundled `.sog` and unbundled `meta.json` layouts) into
-the same authored USD representation PLY and SPZ produce, targeting the v0.4.0
-model contract and developed against the decoder test kit
+Development target: **v0.5.0 — SOG v2 one-object import** — the first format
+added on top of the v0.4.0 contract
 ([release plan](docs/roadmap/release-plan.md),
-[SOG_FORMAT.md](docs/reference/SOG_FORMAT.md)).
+[current plan](docs/roadmap/current.md)).
+
+### Added
+
+- **PlayCanvas SOG v2 import** (`gaussian-sog`), replacing the v0.4.0 skeleton.
+  Both layouts are read — the bundled `.sog` ZIP archive and an unbundled
+  `meta.json` whose lossless-WebP property planes load through the asset
+  resolver — and converge on one container reader, one semantic decoder, and the
+  unchanged shared `GaussianLayerWriter`, so a SOG import authors the same
+  hierarchy, schema, metadata policy, and stage metrics as PLY and SPZ. SH
+  degrees 0-3 (SOG's whole `bands` range), metadata-only reads from `meta.json`
+  alone, and import statistics under `TF_DEBUG=GSSOG_IMPORT_STATS`. The
+  normative mapping is [SOG_MAPPING.md](docs/reference/SOG_MAPPING.md).
+- `.json` is registered alongside `.sog`, because the stock unbundled layout is
+  literally named `meta.json`. The registration is broad, so `CanRead()` is
+  strict: a `.json` file is claimed only when a bounded prefix parses as a JSON
+  object with `version == 2` and the four required SOG property descriptions.
+  Unrelated JSON is declined; a defective SOG `meta.json` past that gate still
+  reaches `Read()` for a specific diagnostic
+  ([SOG_FORMAT.md §6](docs/reference/SOG_FORMAT.md)).
+- Stable `GSSOG-****` diagnostics with a shipped machine-readable catalog,
+  cross-checked against the sources in both directions: E002-E015 for container
+  and semantic failures, W001 for spherical-harmonic palette labels that point
+  past the palette. Legacy SOG v1 and lossy WebP planes are rejected with
+  specific codes rather than decoded approximately.
+- Cross-format equivalence is now PLY/SPZ/**SOG** triples
+  ([EQUIVALENCE.md](docs/reference/EQUIVALENCE.md)): one source model encoded
+  three ways. PLY and SOG each apply the RDF→RUB frame conversion while SPZ
+  applies none, so agreement pins the frame and the SH sign table from both
+  directions.
+
+### Changed
+
+- The vendored libwebp decoder subset (v1.6.0, BSD-3-Clause) and the archive
+  half of the already-vendored miniz are compiled into the `gaussian-sog`
+  bundle; notices are recorded in
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Every Gaussian-specific
+  decision — `meta.json` schema, codebooks, dequantization — stays in this
+  repository, which is what keeps the `GSSOG-****` distinctions possible.
+- `gaussian-sog` CI cells move to the shipping shape (Windows L4, macOS/Linux
+  L5) and lose the skeleton's `publish: never` marker, so the bundle is part of
+  the release matrix. Removing that marker was the entire release onboarding.
+
+### Removed
+
+- `GSSOG-E001` ("SOG import is not implemented in this release"), the v0.4.0
+  skeleton's only diagnostic, is retired now that decoding lands. The code is
+  never reused.
 
 ## [0.4.0] - 2026-07-22
 
