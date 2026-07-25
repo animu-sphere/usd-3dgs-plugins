@@ -77,7 +77,7 @@ ctest --test-dir build/default --output-on-failure
 ```
 
 The repo is dual-mode: with
-[OpenStrata](https://github.com/animu-sphere/open-strata) `ost` 0.18.0 the
+[OpenStrata](https://github.com/animu-sphere/open-strata) `ost` 0.20.0 the
 same tree gets the full verification ladder, packaging, and viewer tooling —
 see [BUILDING.md](docs/guides/BUILDING.md):
 

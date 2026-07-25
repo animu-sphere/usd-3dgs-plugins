@@ -51,6 +51,13 @@ added on top of the v0.4.0 contract
 - `gaussian-sog` CI cells move to the shipping shape (Windows L4, macOS/Linux
   L5) and lose the skeleton's `publish: never` marker, so the bundle is part of
   the release matrix. Removing that marker was the entire release onboarding.
+- The build and verification toolchain moves from OpenStrata **0.18.0 to
+  0.20.0** (`openstrata.ci.yaml` bootstrap, regenerated workflow, and the
+  documented baseline). Nothing in the plugins depends on the change, but it
+  resolves a standing gap: package-origin L5 executes and passes instead of
+  skipping, because 0.20.0 stages the golden beside its roundtrip fixture. The
+  scaffold manifests still record 0.18.0, which is a provenance fact about how
+  the bundles were generated, not a requirement.
 
 ### Removed
 

@@ -8,7 +8,7 @@ support contract.
 
 | Item | Contract |
 | --- | --- |
-| OpenStrata | 0.18.0 |
+| OpenStrata | 0.20.0 (v0.1.0-v0.4.0 were built with 0.18.0) |
 | OpenUSD tolerated range | `>=26.05,<27.0` |
 | OpenUSD exercised locally | 26.05 |
 | OpenStrata platform/profile | `cy2026` / `usd` |
