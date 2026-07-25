@@ -184,21 +184,18 @@ authoring anywhere.*
   extended to a third format.
 - ⬜ Release record for v0.5.0.
 
-## 9. Real-asset validation ⛔
+## 9. Real-asset validation 🚧
 
 *Goal: the design-policy §17 real-asset gate and §12.1 performance baselines,
 which synthetic fixtures cannot substitute for.*
 
-- ⛔ **Blocked on a provenance-recorded real SOG asset.** The corpus needs an
-  own capture converted with a pinned SplatTransform release, with provenance
-  and checksums recorded as for the SPZ corpus, then validated automatically and
-  manually with §12.1 baselines recorded in
-  [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md). The
-  deterministic fixtures and the decoder-test-kit round trip do not need it; the
-  real-asset gate does, and it is the one v0.5.0 completion criterion still
-  open. The Python smoke test already walks `tests/corpus/*/*.sog` and validates
-  any asset found there against its provenance record, so adding the asset is
-  the whole remaining step.
+- ✅ Two provenance-recorded real SOG assets (`yashica-t4` and `leica-sofort`)
+  are committed under `plugins/gaussian-sog/tests/corpus/`. The Python smoke
+  test discovers them and validates their decoded stages semantically. They
+  are format-conversion corpus inputs, not cross-format equivalence fixtures;
+  the latter remain the synthetic PLY/SPZ/SOG triples.
+- ⬜ §12.1 performance baselines still need a dedicated measurement pass over
+  the committed SOG corpus; the corpus admission itself is complete.
 
 ## Completion criteria
 

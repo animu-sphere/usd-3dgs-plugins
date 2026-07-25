@@ -110,9 +110,6 @@ Not supported or not verified:
 - streamed SOG: `lod-meta.json`, spatial chunks, LOD levels, deferred or partial
   loading;
 - lossy WebP property planes — rejected rather than decoded approximately;
-- real trained SOG assets — no provenance-recorded corpus asset is committed
-  yet, so the real-asset gate and §12.1 performance baselines are open
-  ([current.md](../roadmap/current.md) workstream 9);
 - writing or exporting SOG;
 - network resource loading, streaming, partial reads, or memory mapping.
 
@@ -140,4 +137,3 @@ authored stage is identical because all of them author through the shared
 
 This repository supplies data interoperability, not a renderer. Visible splat
 rendering depends on the active Hydra implementation.
-
