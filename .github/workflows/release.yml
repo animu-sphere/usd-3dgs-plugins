@@ -239,13 +239,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          first="$(jq -r .data.archive_digest .ost-ci/package.json)"
+          first="$(find . -type f -name '*-plugin-product.tar.zst' -print -quit)"
+          if [ -z "$first" ]; then echo "::error title=release packaging::aggregate product archive not found"; exit 1; fi
+          first_digest="$(sha256sum "$first" | cut -d' ' -f1)"
           ost plugin package --workspace --product --target "${{ matrix.platform }}" --profile "${{ matrix.profile }}" --json > .ost-ci/package-second.json
-          second="$(jq -r .data.archive_digest .ost-ci/package-second.json)"
-          if [ "$first" != "$second" ]; then
-            echo "::error title=release packaging::two packaging runs of the same build disagree ($first vs $second) -- release checksums would be unstable" ; exit 1
+          second="$(find . -type f -name '*-plugin-product.tar.zst' -print -quit)"
+          if [ -z "$second" ]; then echo "::error title=release packaging::aggregate product archive missing on second run"; exit 1; fi
+          second_digest="$(sha256sum "$second" | cut -d' ' -f1)"
+          if [ "$first_digest" != "$second_digest" ]; then
+            echo "::error title=release packaging::two packaging runs of the same build disagree ($first_digest vs $second_digest) -- release checksums would be unstable" ; exit 1
           fi
-          echo "reproducible: $first"
+          echo "reproducible: $first_digest"
       # Flatten into the target-qualified asset names
       # docs/contributing/RELEASE_NOTES_TEMPLATE.md publishes. The archive
       # basename is already `<bundle>-<version>-<target>`, and `ost` resolves
@@ -254,7 +258,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive="$(jq -r .data.archive .ost-ci/package.json)"
+          archive="$(find . -type f -name '*-plugin-product.tar.zst' -print -quit)"
+          if [ -z "$archive" ]; then echo "::error title=Release::aggregate product archive not found" ; exit 1; fi
           if command -v cygpath > /dev/null; then archive="$(cygpath -u "$archive")"; fi
           if [ ! -f "$archive" ]; then
             echo "::error title=Release::packaged archive not found at $archive" ; exit 1
