@@ -10,7 +10,7 @@ Legend: 🚧 in progress · ⬜ not started · ⛔ blocked
 | Document | Contents |
 | --- | --- |
 | [release-plan.md](release-plan.md) | The versioned release sequence (v0.1.0 → v1.0.0) with per-release themes and completion criteria. |
-| [current.md](current.md) | The v0.5.0 carry-over work and release follow-up. |
+| [current.md](current.md) | Near-term work after the v0.5.0 release. |
 | [backlog.md](backlog.md) | Ordered but unscheduled format and cross-cutting work. |
 
 ## Sequences
@@ -28,12 +28,12 @@ Never use an unqualified “M1” for SOG work.
 
 ## Status at a glance
 
-- v0.1.0 through v0.4.0 are tagged and published; v0.5.0 is tagged with its
-  aggregate draft release assembled, all with immutable
+- v0.1.0 through v0.5.0 are tagged and published, all with immutable
   [release records](../releases/README.md); completed milestone detail is in
   the [delivery history](../reports/delivery-history.md).
 - v0.4.0 formalized the shared decoder-to-USD contract, and v0.5.0 shipped the
-  first format built on it: SOG v2 one-object import.
+  first format built on it: SOG v2 one-object import. The active follow-up is
+  release polish, installation UX, and import hardening; see [current.md](current.md).
 - M5 (`gaussian-spz`) shipped in v0.3.0: SPZ decodes into `GaussianCloudData`
   and reuses the shared USD authoring contract; a second USD authoring path is
   not permitted, and making that invariant normative is v0.4.0's purpose.
