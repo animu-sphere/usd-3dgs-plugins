@@ -1,29 +1,34 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Generate paired PLY/SPZ fixtures that encode one identical source model.
+"""Generate PLY/SPZ/SOG fixture triples that encode one identical source model.
 
-Both bundles decode into the same format-independent `GaussianCloudData`
+All three bundles decode into the same format-independent `GaussianCloudData`
 (GAUSSIAN_MODEL_CONTRACT.md). This script defines Gaussians *in that shared
 model space* — RUB reference frame (ADR 0001), linear positive scales, opacity
 in [0, 1], normalized scalar-first quaternions, Gaussian-major RGB spherical
-harmonics — and then encodes the same values twice:
+harmonics — and then encodes the same values three times:
 
   * to a Graphdeco-style binary PLY, by inverting PLY_MAPPING.md §3-§4
     (RUB->RDF sign flips, log scales, opacity logit, channel-major
-    `f_rest_*`); and
+    `f_rest_*`);
   * to an SPZ v2/v3 container, by inverting SPZ_MAPPING.md §3-§4 (the
-    reference quantization; SPZ is natively RUB, so no frame conversion).
+    reference quantization; SPZ is natively RUB, so no frame conversion); and
+  * to a bundled SOG v2 archive, by inverting SOG_MAPPING.md §3-§6 (codebooks,
+    split-precision log positions, smallest-three quaternions, an SH palette;
+    SOG stores PLY-native RDF columns, so it flips the same signs PLY does).
 
-`tests/equivalence/test_equivalence.cpp` decodes both members of a pair and
-asserts the two clouds agree within the quantization envelope documented in
-EQUIVALENCE.md. Because the PLY side is float32-exact, the entire error budget
-belongs to SPZ quantization.
+`tests/equivalence/test_equivalence.cpp` decodes every member of a triple and
+asserts the clouds agree within the per-format quantization envelopes
+documented in EQUIVALENCE.md. Because the PLY side is float32-exact, it is the
+reference each quantizing format is compared against; the two frame-flipping
+formats (PLY, SOG) and the one that flips nothing (SPZ) all having to agree is
+what makes a sign error impossible to hide.
 
-The SPZ encoders are imported from the `gaussian-spz` bundle's fixture
-generator rather than reimplemented here, so the reference quantization
-formulas exist once in the repository and cannot drift between the SPZ decoder
-suite and this one. That is safe as a cross-check because the PLY side is an
-independent implementation: a compensating encoder/decoder bug on the SPZ side
-would still show up as disagreement with PLY.
+The SPZ and SOG encoders are imported from their bundles' fixture generators
+rather than reimplemented here, so the reference quantization formulas exist
+once in the repository and cannot drift between a bundle's decoder suite and
+this one. That is safe as a cross-check because the PLY side is an independent
+implementation: a compensating encoder/decoder bug on the SPZ or SOG side would
+still show up as disagreement with PLY.
 """
 
 from __future__ import annotations
@@ -52,6 +57,9 @@ spz = _load(
 ply = _load(
     "_ply_fixtures",
     REPO / "plugins" / "gaussian-ply" / "tools" / "generate_fixtures.py")
+sog = _load(
+    "_sog_fixtures",
+    REPO / "plugins" / "gaussian-sog" / "tools" / "generate_fixtures.py")
 
 FRACTIONAL_BITS = 12
 
@@ -275,6 +283,28 @@ def write_spz(name: str, gaussians: list[Gaussian], version: int) -> None:
 
 
 # --------------------------------------------------------------------------
+# SOG encoding — the inverse of SOG_MAPPING.md §3-§6
+# --------------------------------------------------------------------------
+
+def write_sog(name: str, gaussians: list[Gaussian]) -> float:
+    """One bundled SOG v2 archive, and the widest log-domain position span it
+    declares. The span is what bounds the position disagreement the test
+    allows: SOG quantizes `sign(v)*ln(|v|+1)` into 16 bits per axis, so half a
+    code step is `span/131070` in the log domain and `(|p|+1)` times that in
+    model space (EQUIVALENCE.md §2)."""
+    rest_count = len(gaussians[0].rest)
+    bands = int(round(math.sqrt(rest_count + 1))) - 1
+    cloud = [
+        sog.Gaussian(g.position, g.scale, g.rotation, g.opacity, g.dc, g.rest)
+        for g in gaussians]
+    meta, planes = sog.encode_sog(cloud, bands=bands)
+    sog.write_bundle(name, meta, planes, root=ROOT)
+    return max(
+        maximum - minimum
+        for minimum, maximum in zip(meta["means"]["mins"], meta["means"]["maxs"]))
+
+
+# --------------------------------------------------------------------------
 
 def main() -> None:
     ROOT.mkdir(parents=True, exist_ok=True)
@@ -290,11 +320,26 @@ def main() -> None:
     # attributable to the rotation path and nothing else.
     write_spz("equiv-degree3-exact-v3.spz", exact, version=3)
 
+    # The same source model as a bundled SOG v2 archive. SOG flips the same
+    # RDF/RUB signs PLY does while SPZ flips none, so a triple that agrees pins
+    # the sign table from both directions.
+    exact_span = write_sog("equiv-degree3-exact.sog", exact)
+
     # Arbitrary off-grid values: proves the documented envelope, not just the
     # round-trip of hand-picked points.
     arbitrary = off_grid()
     write_ply("equiv-degree1-offgrid-binary-le.ply", arbitrary)
     write_spz("equiv-degree1-offgrid-v2.spz", arbitrary, version=2)
+    offgrid_span = write_sog("equiv-degree1-offgrid.sog", arbitrary)
+
+    # The spans the SOG position tolerances in test_equivalence.cpp are derived
+    # from; printed so the constants there can be re-checked after any change
+    # to the source clouds.
+    print(f"SOG log-domain position spans: "
+          f"degree3-exact {exact_span:.6f} (half step "
+          f"{exact_span / 131070.0:.3e}), "
+          f"degree1-offgrid {offgrid_span:.6f} (half step "
+          f"{offgrid_span / 131070.0:.3e})")
 
 
 if __name__ == "__main__":

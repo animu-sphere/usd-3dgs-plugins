@@ -78,6 +78,7 @@ endforeach()
 # file, so the guard below keeps the root usable if a bundle is removed.
 if(USD3DGS_BUILD_TESTS
    AND TARGET gaussianPlyDecoder
-   AND TARGET gaussianSpzDecoder)
+   AND TARGET gaussianSpzDecoder
+   AND TARGET gaussianSogDecoder)
     add_subdirectory("tests/equivalence")
 endif()

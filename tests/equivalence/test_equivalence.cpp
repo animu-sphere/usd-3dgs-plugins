@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Cross-format equivalence: the PLY and SPZ decoders, given two encodings of
-// one source model, must produce the same GaussianCloudData.
+// Cross-format equivalence, PLY against SPZ: the two decoders, given two
+// encodings of one source model, must produce the same GaussianCloudData. The
+// SOG side of the same source models lives in test_sog_equivalence.cpp, which
+// is a separate executable for the reason equivalence_common.h records.
 //
 // tools/generate_equivalence_fixtures.py defines Gaussians in shared-model
-// space and encodes each one twice — into a Graphdeco binary PLY and into an
-// SPZ container. This test decodes both members of a pair through the two
-// independent decoders and compares every attribute the model carries.
+// space and encodes each one into a Graphdeco binary PLY, an SPZ container, and
+// a bundled SOG archive. This test decodes the PLY/SPZ members of a triple
+// through the two independent decoders and compares every attribute the model
+// carries.
 //
 // The PLY encoding is lossless at float32, so the whole disagreement budget
 // belongs to SPZ quantization. Tolerances are therefore derived from the SPZ
@@ -18,36 +21,21 @@
 // layouts (PLY channel-major, SPZ Gaussian-major) are each asserted against
 // an independent implementation rather than against a re-derived formula.
 
+#include "equivalence_common.h"
+
 #include "io/GaussianPlyDecoder.h"
 #include "io/GaussianSpzDecoder.h"
 #include "openstrata/gs/GaussianCloudData.h"
-#include "openstrata/gs/testing/CloudContract.h"
 
-#include <cmath>
 #include <cstddef>
-#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
 
 namespace gs = openstrata::gs;
+using namespace openstrata::gs::equivalence;
 
 namespace {
-
-int failures = 0;
-
-#define CHECK(expr)                                                      \
-    do {                                                                 \
-        if (!(expr)) {                                                   \
-            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-            ++failures;                                                  \
-        }                                                                \
-    } while (false)
-
-std::string Fixture(const char* name)
-{
-    return (std::filesystem::path(EQUIVALENCE_FIXTURE_DIR) / name).string();
-}
 
 // Per-attribute agreement bounds. `scale` is relative because SPZ quantizes
 // the *logarithm* of the scale, so its absolute error grows with the value.
@@ -97,38 +85,6 @@ constexpr Tolerance kExact{
     1.0e-5f, 1.0e-5f, 1.0e-5f, 1.0e-4f, 1.0e-5f, 8.0e-3f,
 };
 
-void CheckClose(
-    float ply, float spz, float tolerance, const char* what, std::size_t index)
-{
-    if (!(std::fabs(ply - spz) <= tolerance)) {
-        std::cerr << what << '[' << index << "]: ply " << ply << " vs spz "
-                  << spz << " (delta " << std::fabs(ply - spz)
-                  << " > tolerance " << tolerance << ")\n";
-        ++failures;
-    }
-}
-
-void CheckRelative(
-    float ply, float spz, float tolerance, const char* what, std::size_t index)
-{
-    const float bound = tolerance * std::fabs(ply);
-    if (!(std::fabs(ply - spz) <= bound)) {
-        std::cerr << what << '[' << index << "]: ply " << ply << " vs spz "
-                  << spz << " (relative "
-                  << std::fabs(ply - spz) / std::fabs(ply) << " > " << tolerance
-                  << ")\n";
-        ++failures;
-    }
-}
-
-void CheckContract(const gs::GaussianCloudData& cloud, const char* which)
-{
-    for (const std::string& violation : gs::testing::CheckCloudContract(cloud)) {
-        std::cerr << which << " contract: " << violation << "\n";
-        ++failures;
-    }
-}
-
 bool Decode(
     const char* plyFixture,
     const char* spzFixture,
@@ -173,16 +129,7 @@ void CompareClouds(
     const gs::GaussianCloudData& spz,
     const Tolerance& tolerance)
 {
-    const int beforeShape = failures;
-    CHECK(ply.gaussianCount == spz.gaussianCount);
-    CHECK(ply.shDegree == spz.shDegree);
-    CHECK(ply.positions.size() == spz.positions.size());
-    CHECK(ply.scales.size() == spz.scales.size());
-    CHECK(ply.rotations.size() == spz.rotations.size());
-    CHECK(ply.opacities.size() == spz.opacities.size());
-    CHECK(ply.dcCoefficients.size() == spz.dcCoefficients.size());
-    CHECK(ply.restCoefficients.size() == spz.restCoefficients.size());
-    if (failures != beforeShape) {
+    if (!ShapesAgree(ply, spz)) {
         return; // Sizes disagree; per-element comparison would be noise.
     }
 
@@ -204,20 +151,8 @@ void CompareClouds(
         CheckClose(ply.opacities[i], spz.opacities[i],
                    tolerance.opacity, "opacity", i);
 
-        // q and -q are the same rotation, and SPZ's `first-three` encoding
-        // forces w >= 0 while PLY stores whatever sign the source used. Align
-        // the signs before comparing so a legitimate double-cover difference
-        // is not reported as disagreement.
         const gs::Quaternion& a = ply.rotations[i];
-        gs::Quaternion b = spz.rotations[i];
-        const float dot =
-            a.real * b.real + a.i * b.i + a.j * b.j + a.k * b.k;
-        if (dot < 0.0f) {
-            b.real = -b.real;
-            b.i = -b.i;
-            b.j = -b.j;
-            b.k = -b.k;
-        }
+        const gs::Quaternion b = AlignSign(a, spz.rotations[i]);
         CheckClose(a.real, b.real, tolerance.rotation, "rotation.real", i);
         CheckClose(a.i, b.i, tolerance.rotation, "rotation.i", i);
         CheckClose(a.j, b.j, tolerance.rotation, "rotation.j", i);
@@ -305,10 +240,5 @@ int main()
         "equiv-degree1-offgrid-v2.spz",
         kEnvelope, 3, 1);
 
-    if (failures != 0) {
-        std::cerr << failures << " equivalence check(s) failed\n";
-        return 1;
-    }
-    std::cout << "all equivalence checks passed\n";
-    return 0;
+    return Report("PLY/SPZ equivalence");
 }

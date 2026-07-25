@@ -348,16 +348,19 @@ def write_bundle(
     planes: dict[str, bytes],
     compress: bool = False,
     extra: dict[str, bytes] | None = None,
+    root: pathlib.Path | None = None,
 ) -> None:
     """A bundled `.sog`: `meta.json` plus its planes in one ZIP archive.
-    `meta=None` omits the entry entirely, which is a ZIP but not a SOG."""
+    `meta=None` omits the entry entirely, which is a ZIP but not a SOG.
+    `root` overrides the destination, which lets the cross-format equivalence
+    generator reuse this encoder for its own fixture directory."""
     entries: dict[str, bytes] = {}
     if meta is not None:
         entries["meta.json"] = meta if isinstance(meta, bytes) else meta_bytes(meta)
     entries.update(planes)
     if extra:
         entries.update(extra)
-    path = ROOT / name
+    path = (root or ROOT) / name
     path.parent.mkdir(parents=True, exist_ok=True)
     method = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
     with zipfile.ZipFile(path, "w") as archive:
