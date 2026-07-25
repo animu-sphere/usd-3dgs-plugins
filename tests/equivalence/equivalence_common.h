@@ -63,12 +63,15 @@ inline void CheckRelative(
     const char* what,
     std::size_t index)
 {
+    // Reported as delta against bound rather than as a ratio: a reference of
+    // zero makes the bound zero too, and dividing by it would print nan for
+    // what is a perfectly readable mismatch.
+    const float delta = std::fabs(reference - other);
     const float bound = tolerance * std::fabs(reference);
-    if (!(std::fabs(reference - other) <= bound)) {
+    if (!(delta <= bound)) {
         std::cerr << what << '[' << index << "]: ply " << reference << " vs "
-                  << other << " (relative "
-                  << std::fabs(reference - other) / std::fabs(reference)
-                  << " > " << tolerance << ")\n";
+                  << other << " (delta " << delta << " > bound " << bound
+                  << ", relative tolerance " << tolerance << ")\n";
         ++failures;
     }
 }

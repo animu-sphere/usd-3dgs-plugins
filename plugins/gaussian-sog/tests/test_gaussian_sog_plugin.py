@@ -44,8 +44,17 @@ NEGATIVE_FIXTURES = {
     # Valid SOG, but a zero-Gaussian cloud is not an importable model.
     "empty-count.sog": "GSSOG-E012",
     "bad-quat-tag.sog": "GSSOG-E013",
-    # A plane name that tries to escape its directory is malformed metadata.
+    # A plane name that tries to escape its directory is malformed metadata,
+    # and so is one naming a Windows character device.
     "escaping-plane-name.sog": "GSSOG-E005",
+    "device-plane-name.sog": "GSSOG-E005",
+    # Integral JSON numbers past the range of a 64-bit integer still reach the
+    # diagnostic that reports them, with the code the value's own range check
+    # chose.
+    "huge-version.sog": "GSSOG-E003",
+    "huge-count.sog": "GSSOG-E006",
+    "huge-bands.sog": "GSSOG-E007",
+    "huge-palette-count.sog": "GSSOG-E005",
 }
 
 

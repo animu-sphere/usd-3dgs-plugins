@@ -13,7 +13,10 @@
 #include <cstdint>
 #include <fstream>
 #include <limits>
+#include <locale>
+#include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -62,6 +65,28 @@ struct Failure {
         return false;
     }
 };
+
+// Renders an integral-valued JSON number for a diagnostic message.
+//
+// `RequireIntegral` admits any double whose value is integral, which includes
+// magnitudes far outside `long long` — and converting one of those to an
+// integer type is undefined behaviour, not a wrapped or saturated result. The
+// out-of-range diagnostics are exactly the ones handed such a value, so the
+// conversion is guarded here rather than at each call site. 2^63 is exactly
+// representable as a double, so the bound below is exact.
+std::string FormatIntegral(double value)
+{
+    constexpr double kLongLongBound = 9223372036854775808.0; // 2^63
+    if (value >= -kLongLongBound && value < kLongLongBound) {
+        return std::to_string(static_cast<long long>(value));
+    }
+    // Beyond that range only the magnitude is meaningful to a reader, and the
+    // classic locale keeps the spelling independent of the host's.
+    std::ostringstream text;
+    text.imbue(std::locale::classic());
+    text << value;
+    return text.str();
+}
 
 bool LoadFile(
     const std::string& path,
@@ -129,6 +154,43 @@ bool LooksLikeJsonObject(const std::vector<unsigned char>& data) noexcept
     return false;
 }
 
+bool RejectOversizedMetadata(std::uint64_t size, std::string* error)
+{
+    return Failure{error}(diag::kMalformedMetadata,
+        "meta.json is " + std::to_string(size) + " bytes, above the " +
+        std::to_string(kMaxMetadataBytes) +
+        "-byte bound for a SOG v2 document.");
+}
+
+// Reads a container whole, under the bound its own layout admits.
+//
+// The layout is decided from the 4-byte ZIP signature before the bulk read,
+// because the two bounds differ by orders of magnitude: a bundled archive is
+// as large as its planes require, while a `meta.json` above kMaxMetadataBytes
+// is refused outright. Probing first is what keeps a mis-named or hostile
+// multi-gigabyte `.json` from being loaded in full only to be rejected by the
+// parser afterwards. ParseMetaJson keeps its own check as the backstop: the
+// file may grow between the two opens.
+bool LoadContainer(
+    const std::string& path,
+    std::vector<unsigned char>* data,
+    std::uint64_t* fileSize,
+    bool* bundled,
+    std::string* error)
+{
+    std::vector<unsigned char> prefix;
+    std::uint64_t probedSize = 0;
+    if (!LoadFile(path, sizeof kZipSignature, &prefix, &probedSize, error)) {
+        return false;
+    }
+    *bundled = HasZipSignature(prefix);
+    if (!*bundled && probedSize > kMaxMetadataBytes) {
+        return RejectOversizedMetadata(probedSize, error);
+    }
+    return LoadFile(path, std::numeric_limits<std::size_t>::max(), data,
+                    fileSize, error);
+}
+
 std::string DirectoryOf(const std::string& path)
 {
     const std::size_t slash = path.find_last_of("/\\");
@@ -159,10 +221,51 @@ bool LoadCompanionFromDirectory(
 
 // --- meta.json ---------------------------------------------------------------
 
+// Windows resolves these names to character devices in *every* directory and
+// with any extension, so an unbundled plane named "COM1" or "NUL.webp" beside
+// `meta.json` opens a device rather than a file — a serial port open can even
+// block. Rejected on every platform, so a given `meta.json` is accepted or
+// refused identically everywhere rather than only on the host that is exposed.
+bool IsReservedDeviceName(const std::string& name) noexcept
+{
+    static constexpr const char* kReserved[] = {
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
+
+    // Only the stem is reserved, and Windows strips trailing spaces and dots
+    // before resolving, so "NUL.webp" and "nul " are the device too. Compared
+    // through a view rather than a built-up string: the caller is noexcept.
+    std::string_view stem(name);
+    stem = stem.substr(0, stem.find('.'));
+    while (!stem.empty() && (stem.back() == ' ' || stem.back() == '.')) {
+        stem.remove_suffix(1);
+    }
+    for (const char* reserved : kReserved) {
+        const std::string_view candidate(reserved);
+        if (candidate.size() != stem.size()) {
+            continue;
+        }
+        bool same = true;
+        for (std::size_t i = 0; i < stem.size() && same; ++i) {
+            char c = stem[i];
+            if (c >= 'a' && c <= 'z') {
+                c = static_cast<char>(c - 'a' + 'A');
+            }
+            same = c == candidate[i];
+        }
+        if (same) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // A `files` entry names one plane in the archive, or one companion beside
 // `meta.json`. Both are looked up verbatim, so the name is confined to a bare
 // file name: a hostile `meta.json` must not be able to reach outside its own
-// directory through '..' or an absolute path.
+// directory through '..' or an absolute path, nor name something that is not a
+// file at all.
 bool IsSafePlaneName(const std::string& name) noexcept
 {
     if (name.empty() || name.size() > 255 || name == "." || name == "..") {
@@ -174,7 +277,7 @@ bool IsSafePlaneName(const std::string& name) noexcept
             return false;
         }
     }
-    return true;
+    return !IsReservedDeviceName(name);
 }
 
 // Every `meta.json` fact this reader needs, still in container terms.
@@ -317,7 +420,8 @@ bool RequireFiles(
         if (!item.IsString() || !IsSafePlaneName(item.text)) {
             return fail(diag::kMalformedMetadata,
                 std::string("meta.json \"") + propertyName +
-                "\".files must list plain file names without a path.");
+                "\".files must list plain file names: no directory component, "
+                "and no name reserved for a character device.");
         }
         names->push_back(item.text);
     }
@@ -331,10 +435,7 @@ bool ParseMetaJson(
 {
     const Failure fail{error};
     if (bytes.size() > kMaxMetadataBytes) {
-        return fail(diag::kMalformedMetadata,
-            "meta.json is " + std::to_string(bytes.size()) +
-            " bytes, above the " + std::to_string(kMaxMetadataBytes) +
-            "-byte bound for a SOG v2 document.");
+        return RejectOversizedMetadata(bytes.size(), error);
     }
 
     JsonValue root;
@@ -365,7 +466,7 @@ bool ParseMetaJson(
     }
     if (versionNumber != static_cast<double>(kSupportedVersion)) {
         return fail(diag::kUnsupportedVersion,
-            "SOG version " + std::to_string(static_cast<long long>(versionNumber)) +
+            "SOG version " + FormatIntegral(versionNumber) +
             " is not supported by this release; supported version is " +
             std::to_string(kSupportedVersion) + ".");
     }
@@ -378,7 +479,7 @@ bool ParseMetaJson(
     }
     if (count < 0.0 || count > static_cast<double>(kMaxGaussianCount)) {
         return fail(diag::kInvalidGaussianCount,
-            "meta.json declares " + std::to_string(static_cast<long long>(count)) +
+            "meta.json declares " + FormatIntegral(count) +
             " Gaussians, outside the supported range 0-" +
             std::to_string(kMaxGaussianCount) + ".");
     }
@@ -458,8 +559,7 @@ bool ParseMetaJson(
     }
     if (bands < 1.0 || bands > 3.0) {
         return fail(diag::kInvalidShBands,
-            "meta.json declares " +
-            std::to_string(static_cast<long long>(bands)) +
+            "meta.json declares " + FormatIntegral(bands) +
             " spherical-harmonic band(s); SOG v2 admits 1-3.");
     }
     meta->metadata.shBands = static_cast<int>(bands);
@@ -472,8 +572,7 @@ bool ParseMetaJson(
     if (paletteCount < 0.0 ||
         paletteCount > static_cast<double>(kMaxGaussianCount)) {
         return fail(diag::kMalformedMetadata,
-            "meta.json \"shN\".count is " +
-            std::to_string(static_cast<long long>(paletteCount)) +
+            "meta.json \"shN\".count is " + FormatIntegral(paletteCount) +
             ", outside the supported range.");
     }
     meta->shPaletteCount = static_cast<std::size_t>(paletteCount);
@@ -636,8 +735,7 @@ public:
             return fail(missingCode, missingMessage);
         }
         mz_zip_archive_file_stat stat;
-        if (!mz_zip_reader_file_stat(
-                const_cast<mz_zip_archive*>(&_zip), *index, &stat)) {
+        if (!mz_zip_reader_file_stat(&_zip, *index, &stat)) {
             return fail(diag::kMalformedArchive,
                 "The .sog archive entry '" + name + "' has an unreadable "
                 "header.");
@@ -657,8 +755,7 @@ public:
         }
         if (!out->empty() &&
             !mz_zip_reader_extract_to_mem(
-                const_cast<mz_zip_archive*>(&_zip), *index, out->data(),
-                out->size(), 0)) {
+                &_zip, *index, out->data(), out->size(), 0)) {
             return fail(diag::kMalformedArchive,
                 "The .sog archive entry '" + name + "' could not be "
                 "decompressed; its data is corrupt.");
@@ -677,7 +774,10 @@ private:
         return nullptr;
     }
 
-    mz_zip_archive _zip{};
+    // miniz's reader API takes a non-const archive even to stat an entry, so
+    // the handle is mutable rather than cast away at each call: extraction
+    // does not change the archive as this class exposes it.
+    mutable mz_zip_archive _zip{};
     bool _initialized = false;
     std::vector<std::pair<std::string, mz_uint>> _entries;
 };
@@ -767,13 +867,13 @@ bool SogReader::ReadMetadata(
 
     std::vector<unsigned char> data;
     std::uint64_t fileSize = 0;
-    if (!LoadFile(path, std::numeric_limits<std::size_t>::max(), &data,
-                  &fileSize, error)) {
+    bool bundled = false;
+    if (!LoadContainer(path, &data, &fileSize, &bundled, error)) {
         return false;
     }
 
     MetaDocument meta;
-    if (HasZipSignature(data)) {
+    if (bundled) {
         ZipArchive archive;
         if (!archive.Init(data, error)) {
             return false;
@@ -813,16 +913,15 @@ bool SogReader::Read(
             "SogReader received a null document output.");
     }
 
+    // Layout detection by content (SOG_FORMAT.md §1): a ZIP signature is the
+    // bundled layout, anything else is read as an unbundled meta.json.
     std::vector<unsigned char> data;
     std::uint64_t fileSize = 0;
-    if (!LoadFile(path, std::numeric_limits<std::size_t>::max(), &data,
-                  &fileSize, error)) {
+    bool bundled = false;
+    if (!LoadContainer(path, &data, &fileSize, &bundled, error)) {
         return false;
     }
 
-    // Layout detection by content (SOG_FORMAT.md §1): a ZIP signature is the
-    // bundled layout, anything else is read as an unbundled meta.json.
-    const bool bundled = HasZipSignature(data);
     ZipArchive archive;
     std::vector<unsigned char> metaBytes;
     if (bundled) {

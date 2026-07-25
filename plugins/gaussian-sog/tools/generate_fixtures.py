@@ -501,6 +501,33 @@ def main() -> None:
     escaping["scales"]["files"] = ["../scales.webp"]
     write_bundle("escaping-plane-name.sog", escaping, one_planes)
 
+    # A plane named for a Windows character device. The name carries no path
+    # separator, so only the reserved-name rule refuses it; without that rule
+    # the unbundled loader would open the device instead of a file.
+    device = json.loads(json.dumps(one_meta))
+    device["scales"]["files"] = ["NUL.webp"]
+    write_bundle("device-plane-name.sog", device, one_planes)
+
+    # Integral JSON numbers far outside the range of a 64-bit integer. Each one
+    # fails its own range check, and the diagnostic must render the value
+    # without converting it to an integer type -- that conversion is undefined
+    # behaviour for an out-of-range double, not a saturating one.
+    huge_version = json.loads(json.dumps(one_meta))
+    huge_version["version"] = 1e300
+    write_bundle("huge-version.sog", huge_version, one_planes)
+
+    huge_count = json.loads(json.dumps(one_meta))
+    huge_count["count"] = 1e300
+    write_bundle("huge-count.sog", huge_count, one_planes)
+
+    huge_bands = json.loads(json.dumps(multi_meta))
+    huge_bands["shN"]["bands"] = 1e300
+    write_bundle("huge-bands.sog", huge_bands, multi_planes)
+
+    huge_palette = json.loads(json.dumps(multi_meta))
+    huge_palette["shN"]["count"] = 1e300
+    write_bundle("huge-palette-count.sog", huge_palette, multi_planes)
+
     missing = dict(one_planes)
     del missing["scales.webp"]
     write_bundle("missing-plane.sog", one_meta, missing)

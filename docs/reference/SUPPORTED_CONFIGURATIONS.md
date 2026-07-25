@@ -119,6 +119,16 @@ Not supported or not verified:
 PLY/SOG cross-format equivalence *is* verified by synthetic triples that encode
 one source model into all three formats; see [EQUIVALENCE.md](EQUIVALENCE.md).
 
+Because the stock unbundled layout is named `meta.json`, `gaussian-sog`
+registers `.json` as a primary `SdfFileFormat` extension alongside `.sog`. That
+claim is process-wide: only one plugin can be the primary format for an
+extension, so if another plugin in the same runtime also claims `.json`,
+OpenUSD resolves the collision by registration order and warns. `CanRead()`
+declines anything that is not a SOG v2 metadata document, so a `.json` this
+bundle wins but does not recognise fails with `GSSOG-E002` rather than being
+mis-imported — but the other plugin never sees the file. Install `gaussian-sog`
+deliberately in an environment that already has a `.json` format registered.
+
 ## Output contract
 
 Every bundle is a read-only shared-library `SdfFileFormat` plugin. Each authors
