@@ -267,7 +267,7 @@ jobs:
           dist_dir="$(dirname "$archive")"
           stem="$(basename "$archive" .tar.zst)"
           case "$stem" in
-            *"-${RELEASE_VERSION}-plugin-product"*) : ;;
+            *"-${RELEASE_VERSION}-"*"-plugin-product"*) : ;;
             *) echo "::error title=Release::product archive '$stem' does not carry version ${RELEASE_VERSION}" ; exit 1 ;;
           esac
           mkdir -p release-stage
