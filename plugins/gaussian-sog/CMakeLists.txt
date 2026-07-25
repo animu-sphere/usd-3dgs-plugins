@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 cmake_minimum_required(VERSION 3.22)
 
-# C is enabled alongside C++ for the vendored libwebp decoder translation units.
+# C is enabled alongside C++ for the vendored libwebp and miniz translation units.
 project(GaussianSogPlugin
     VERSION 0.5.0
-    DESCRIPTION "OpenUSD sog file-format plugin (v0.5.0 decoder skeleton)"
+    DESCRIPTION "OpenUSD sog file-format plugin"
     LANGUAGES C CXX)
 
 if(NOT CMAKE_CXX_STANDARD)
@@ -31,6 +31,9 @@ endif()
 # before configuring the bundle. A composed root build already owns the alias.
 if(NOT TARGET openstrata::gaussianCore)
     find_package(gaussianCore CONFIG REQUIRED)
+endif()
+if(NOT TARGET openstrata::gaussianUsd)
+    find_package(gaussianUsd CONFIG REQUIRED)
 endif()
 
 # Vendored libwebp decoder subset (third_party/libwebp, see its VENDORING.md).
@@ -59,6 +62,49 @@ else()
     target_compile_options(gaussianSogWebpDecoder PRIVATE -w)
 endif()
 
+# Container reader and semantic decoder are deliberately USD-free and shared by
+# the plugin and unit tests, mirroring the PLY and SPZ reader/decoder split.
+# miniz is isolated behind SogReader, this time with its archive-reading API
+# enabled for the bundled `.sog` ZIP; libwebp is isolated behind the same class
+# for lossless property planes. Every Gaussian-specific decision — meta.json
+# schema, codebooks, dequantization — stays in this repository, so container
+# diagnostics keep their required granularity (SOG_FORMAT.md §2).
+set(MINIZ_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/miniz")
+if(NOT EXISTS "${MINIZ_ROOT}/miniz.h")
+    message(FATAL_ERROR "Vendored miniz was not found at ${MINIZ_ROOT}")
+endif()
+
+add_library(gaussianSogDecoder STATIC
+    src/io/SogJson.cpp
+    src/io/SogReader.cpp
+    src/io/GaussianSogDecoder.cpp
+    "${MINIZ_ROOT}/miniz.c")
+set_target_properties(gaussianSogDecoder PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_features(gaussianSogDecoder PUBLIC cxx_std_17)
+target_include_directories(gaussianSogDecoder
+    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    PRIVATE "${MINIZ_ROOT}")
+# The bundled layout needs miniz's archive *reading* API, which gaussian-spz
+# compiles out (MINIZ_NO_ARCHIVE_APIS) because SPZ is a bare gzip member. The
+# writing, stdio, and time facilities stay off here too: no archive is ever
+# produced, and keeping wall-clock and filesystem access out of the decode path
+# is what the reproducible-package gate depends on.
+target_compile_definitions(gaussianSogDecoder PRIVATE
+    MINIZ_NO_ARCHIVE_WRITING_APIS
+    MINIZ_NO_STDIO
+    MINIZ_NO_TIME)
+target_link_libraries(gaussianSogDecoder
+    PUBLIC openstrata::gaussianCore
+    PRIVATE gaussianSogWebpDecoder)
+# /Brepro here and on the shared library below: MSVC embeds wall-clock
+# timestamps in object files, the PE header, and the debug directory, so two
+# builds of identical sources produce different bytes. The release lane gates
+# on package digest reproducibility; /Brepro replaces those stamps with
+# content hashes.
+if(MSVC)
+    target_compile_options(gaussianSogDecoder PRIVATE /utf-8 /Brepro)
+endif()
+
 set(PLUGIN_NAME GaussianSogFileFormat)
 
 add_library(${PLUGIN_NAME} SHARED
@@ -68,12 +114,10 @@ target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 target_include_directories(${PLUGIN_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     ${PXR_INCLUDE_DIRS})
-# gaussianSogWebpDecoder is linked now so a normal bundle build compiles and
-# validates the vendored decoder subset; the SogReader (next workstream) is its
-# first caller.
 target_link_libraries(${PLUGIN_NAME} PRIVATE
+    gaussianSogDecoder
     openstrata::gaussianCore
-    gaussianSogWebpDecoder)
+    openstrata::gaussianUsd)
 # /Brepro: MSVC embeds wall-clock timestamps in object files, the PE header,
 # and the debug directory, so two builds of identical sources produce
 # different bytes. The release lane gates on package digest reproducibility;
@@ -94,7 +138,7 @@ endif()
 
 openstrata_link_openusd(
     TARGET ${PLUGIN_NAME}
-    COMPONENTS arch tf gf vt sdf usd)
+    COMPONENTS arch tf gf vt kind sdf ar usd usdGeom usdVol)
 
 # The copied helper keeps output/install mechanics identical in standalone and
 # add_subdirectory workspace builds. This file still owns the target, OpenUSD
@@ -117,6 +161,7 @@ openstrata_install_plugin_bundle(
 
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../LICENSE"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../THIRD_PARTY_NOTICES.md"
     DESTINATION "share/doc/usd-3dgs-plugins"
     OPTIONAL)
 
