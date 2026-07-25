@@ -1,8 +1,30 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# The skeleton has no decoder, so there is no C++ unit tier yet; the plugin
-# integration test pins the only behavior the bundle has (rejection with
-# GSSOG-E001) and the catalog cross-check.
+# Three tiers, as in gaussian-ply and gaussian-spz: the container reader and the
+# semantic decoder are unit tested without USD, and the Python smoke test pins
+# the authored stage contract and the diagnostic catalog.
+
+add_executable(gaussianSogReader_tests test_gaussian_sog_reader.cpp)
+target_link_libraries(gaussianSogReader_tests PRIVATE
+    gaussianSogDecoder
+    openstrata::gaussianCore)
+target_compile_definitions(gaussianSogReader_tests PRIVATE
+    GAUSSIAN_SOG_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+if(MSVC)
+    target_compile_options(gaussianSogReader_tests PRIVATE /utf-8)
+endif()
+add_test(NAME gaussianSog_reader_unit COMMAND gaussianSogReader_tests)
+
+add_executable(gaussianSogDecoder_tests test_gaussian_sog_decoder.cpp)
+target_link_libraries(gaussianSogDecoder_tests PRIVATE
+    gaussianSogDecoder
+    openstrata::gaussianCore)
+target_compile_definitions(gaussianSogDecoder_tests PRIVATE
+    GAUSSIAN_SOG_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+if(MSVC)
+    target_compile_options(gaussianSogDecoder_tests PRIVATE /utf-8)
+endif()
+add_test(NAME gaussianSog_decoder_unit COMMAND gaussianSogDecoder_tests)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(NOT Python3_Interpreter_FOUND)

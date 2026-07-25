@@ -1,0 +1,32 @@
+#usda 1.0
+(
+    defaultPrim = "Asset"
+    doc = """Generated from Composed Stage of root layer C:\\dev\\usd-3dgs-plugins\\plugins\\gaussian-sog\\tests\\fixtures\\decode-degree1.sog
+"""
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "Asset" (
+    customData = {
+        dictionary gs = {
+            uint64 gaussianCount = 2
+            int shDegree = 1
+            string sourceFormat = "Gaussian Splatting SOG"
+        }
+    }
+    kind = "component"
+)
+{
+    def ParticleField3DGaussianSplat "Splat"
+    {
+        float3[] extent = [(-7.9461637, -6.154845, -8.654845), (9.154845, 10.154845, 8.946163)]
+        float[] opacities = [0.8, 0.6]
+        quatf[] orientations = [(0.99998844, 0.0027730097, -0.0027730097, -0.0027730097), (0.7070959, 0.70710677, -0.0027730097, -0.0027730097)]
+        point3f[] positions = [(1, 2, -0.5), (-3, 0.25, 4)]
+        float3[] radiance:sphericalHarmonicsCoefficients = [(0, 0.5, -0.5), (0.1, 0.2, 0.3), (-0.1, -0.2, -0.3), (0.4, -0.4, 0.5), (0.9, -0.9, 0), (0.6, 0.7, 0.8), (-0.6, -0.7, -0.8), (0.9, -0.9, 0.25)]
+        uniform int radiance:sphericalHarmonicsDegree = 1
+        float3[] scales = [(1, 2.7182817, 0.36787945), (1.6487212, 0.60653067, 1)]
+    }
+}
+

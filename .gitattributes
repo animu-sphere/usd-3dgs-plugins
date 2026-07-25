@@ -27,3 +27,8 @@ tests/equivalence/fixtures/*.ply -text
 
 # Bundled SOG assets are ZIP containers; never treat them as text.
 *.sog -text
+
+# SOG property planes are lossless WebP images. The unbundled layout stores
+# them as loose files beside meta.json, so without this rule a checkout on a
+# CRLF platform would rewrite bytes inside the compressed bitstream.
+*.webp -text

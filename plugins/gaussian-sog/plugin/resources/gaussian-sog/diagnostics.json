@@ -1,12 +1,132 @@
 {
     "schema": "gaussian-sog.diagnostics/v1",
-    "description": "Stable diagnostic identifiers emitted by the gaussian-sog plugin. Codes are never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[GSSOG-E001] ...\".",
+    "description": "Stable diagnostic identifiers emitted by the gaussian-sog plugin. Codes are never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[GSSOG-E003] ...\". GSSOG-E001 (\"SOG import is not implemented\") was emitted only by the v0.4.0 skeleton; it is retired in v0.5.0 and never reused.",
     "diagnostics": [
         {
-            "code": "GSSOG-E001",
+            "code": "GSSOG-E002",
             "severity": "error",
-            "summary": "SOG import is not implemented in this release.",
-            "action": "SOG v2 one-object import is the v0.5.0 theme; upgrade to a release that ships the SOG decoder. This build only recognizes the format."
+            "summary": "The file is not a SOG container.",
+            "action": "Supply a bundled SOG (.sog ZIP archive holding meta.json plus its WebP property planes) or an unbundled SOG meta.json. Streamed SOG (lod-meta.json) is a later milestone."
+        },
+        {
+            "code": "GSSOG-E003",
+            "severity": "error",
+            "summary": "The SOG version is not supported by this release.",
+            "action": "This release reads SOG v2 (meta.json \"version\": 2). Re-export legacy v1 assets — which carry per-channel mins/maxs instead of codebooks — with a current PlayCanvas SplatTransform or SuperSplat."
+        },
+        {
+            "code": "GSSOG-E004",
+            "severity": "error",
+            "summary": "The bundled .sog ZIP archive is malformed.",
+            "action": "The archive's central directory, an entry header, or an entry's compressed data could not be read. Re-download or re-export the .sog file."
+        },
+        {
+            "code": "GSSOG-E005",
+            "severity": "error",
+            "summary": "meta.json is malformed.",
+            "action": "meta.json must parse as a JSON object carrying the SOG v2 property descriptions (means, scales, quats, sh0, optional shN) with their declared types. Re-export the asset."
+        },
+        {
+            "code": "GSSOG-E006",
+            "severity": "error",
+            "summary": "The declared Gaussian count is invalid or exceeds the property planes.",
+            "action": "meta.count must be a non-negative integer that fits the property planes (count <= width*height for every plane). Re-export the asset."
+        },
+        {
+            "code": "GSSOG-E007",
+            "severity": "error",
+            "summary": "The declared spherical-harmonic band count is invalid.",
+            "action": "meta.shN.bands must be 1, 2, or 3 (SH degrees 1-3) when shN is present. Re-export the asset, or drop shN for a degree-0 cloud."
+        },
+        {
+            "code": "GSSOG-E008",
+            "severity": "error",
+            "summary": "A property plane declared by meta.json is missing.",
+            "action": "Every file named in a property's \"files\" array must exist: inside the archive for a bundled .sog, or beside meta.json for the unbundled layout. Keep meta.json and its .webp planes together."
+        },
+        {
+            "code": "GSSOG-E009",
+            "severity": "error",
+            "summary": "A property plane is not a decodable lossless WebP image.",
+            "action": "SOG property planes are 8-bit RGBA lossless WebP. A lossy plane is rejected rather than decoded approximately, because it would corrupt positions. Re-export the asset with lossless planes."
+        },
+        {
+            "code": "GSSOG-E010",
+            "severity": "error",
+            "summary": "The file could not be opened or read.",
+            "action": "Check that the path exists and is readable, and that the asset resolver can reach it."
+        },
+        {
+            "code": "GSSOG-E011",
+            "severity": "error",
+            "summary": "A codebook is malformed.",
+            "action": "The scales, sh0, and shN codebooks must each hold 256 finite numbers. Re-export the asset."
+        },
+        {
+            "code": "GSSOG-E012",
+            "severity": "error",
+            "summary": "The SOG file declares zero Gaussians.",
+            "action": "A count of zero is valid SOG but cannot be imported: the shared Gaussian model requires at least one Gaussian, and this plugin never authors a stage that misrepresents its source. Export an asset with at least one Gaussian."
+        },
+        {
+            "code": "GSSOG-E013",
+            "severity": "error",
+            "summary": "A quaternion plane texel carries an invalid largest-component tag.",
+            "action": "The alpha byte of quats.webp must be 252-255, naming which quaternion component was dropped. A different value has no valid reading and is not replaced with identity. Re-export the asset."
+        },
+        {
+            "code": "GSSOG-E014",
+            "severity": "error",
+            "summary": "The decoded cloud failed shared Gaussian-model validation.",
+            "action": "The file decoded but violates the shared model contract (array lengths, finite values, positive scales, normalized rotations, opacity range, SH layout). Report the file with this message."
+        },
+        {
+            "code": "GSSOG-E015",
+            "severity": "error",
+            "summary": "The decoded model could not be allocated.",
+            "action": "The declared Gaussian count and SH degree need more memory than this process can allocate, or their derived size overflows the platform's address space. Import on a machine with more memory or use a smaller asset."
+        },
+        {
+            "code": "GSSOG-E100",
+            "severity": "error",
+            "summary": "Internal import-pipeline error.",
+            "action": "This indicates a defect in the plugin rather than a problem with the file. Please report it with the file that triggered it."
+        },
+        {
+            "code": "GSSOG-E101",
+            "severity": "error",
+            "summary": "The in-memory USD stage could not be created.",
+            "action": "Verify the OpenUSD runtime is installed correctly and that memory is available."
+        },
+        {
+            "code": "GSSOG-E102",
+            "severity": "error",
+            "summary": "The /Asset scaffold could not be authored.",
+            "action": "Verify the OpenUSD runtime provides the ParticleField3DGaussianSplat schema (OpenUSD 26.02 or newer)."
+        },
+        {
+            "code": "GSSOG-E103",
+            "severity": "error",
+            "summary": "A Gaussian attribute could not be authored.",
+            "action": "Verify the OpenUSD runtime provides the ParticleField3DGaussianSplat schema and that memory is available for the attribute arrays."
+        },
+        {
+            "code": "GSSOG-E104",
+            "severity": "error",
+            "summary": "The authored extent overflowed to a non-finite bound.",
+            "action": "Positions or scales in the file are large enough that the three-sigma extent leaves float range. Check the asset's units and scale."
+        },
+        {
+            "code": "GSSOG-E201",
+            "severity": "error",
+            "summary": "Writing SOG is unsupported.",
+            "action": "gaussian-sog is a read-only file format. Export through a SOG writer such as PlayCanvas SplatTransform instead."
+        },
+        {
+            "code": "GSSOG-W001",
+            "severity": "warning",
+            "summary": "Spherical-harmonic palette labels point past the palette.",
+            "action": "The affected Gaussians decode with zero higher-order coefficients, matching the reference decoder. The asset is degraded; re-export it if the higher-order lighting matters."
         }
     ]
 }

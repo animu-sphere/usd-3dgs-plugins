@@ -11,7 +11,7 @@
                     "GaussianSogFileFormat": {
                         "bases": ["SdfFileFormat"],
                         "displayName": "GaussianSog File Format",
-                        "extensions": ["sog"],
+                        "extensions": ["sog", "json"],
                         "formatId": "sog",
                         "primary": true,
                         "target": "usd"

@@ -52,7 +52,12 @@ plane would corrupt positions and is rejected as malformed.
 | `shN` (optional) | `count`, `bands` (1-3), `codebook[256]` | `shN_centroids.webp`, `shN_labels.webp` | see §6 |
 
 `meta.count <= W*H` for every plane (`meta.count` is the Gaussian count, distinct
-from `meta.shN.count` above). `meta.count == 0` is a valid empty cloud. The plane
+from `meta.shN.count` above); each plane is indexed with **its own** width, so
+the planes need not agree on dimensions. `meta.count == 0` is well-formed SOG but
+is not an importable model: the shared contract requires at least one Gaussian
+and forbids authoring a stage that misrepresents its source
+([model contract](GAUSSIAN_MODEL_CONTRACT.md) §3), so it is rejected with the
+zero-Gaussian diagnostic rather than as a malformed container. The plane
 dimensions and presence, and the codebook lengths, are validated by the reader
 ([SOG_FORMAT.md](SOG_FORMAT.md)) before the decoder runs.
 
@@ -192,13 +197,17 @@ cx    = (label % 64) * shCoeffs + coeff         # centroid texel column
 
 The centroids texel's R/G/B are codebook indices for coefficient `coeff` of the
 red / green / blue channel: `shCodebook[R]`, `shCodebook[G]`, `shCodebook[B]`.
-The reference emits these **channel-major** (all red coefficients, then green,
-then blue) — the Graphdeco `f_rest` order. The model wants Gaussian-major RGB
-triples ([model contract](GAUSSIAN_MODEL_CONTRACT.md) §3), so the decoder
-transposes exactly as the PLY decoder transposes Graphdeco `f_rest`, then
-applies the RDF→RUB SH sign table (§5). The centroids plane width is required to
-equal `64 * shCoeffs`; a label past `count` yields zero rest coefficients for
-that Gaussian (the reference's out-of-range guard).
+One centroid therefore occupies `shCoeffs` consecutive texels — the reason the
+centroids plane width is required to equal `64 * shCoeffs` — and each texel
+already interleaves the three channels of a single coefficient. That is exactly
+the model's Gaussian-major, coefficient-then-RGB layout
+([model contract](GAUSSIAN_MODEL_CONTRACT.md) §3), so **SOG needs no `f_rest`
+transpose**: unlike Graphdeco PLY, whose `f_rest_*` columns are channel-major
+(all red coefficients, then green, then blue) and must be transposed, the SOG
+palette stores coefficient-major triples the decoder copies straight into the
+model. The decoder then applies the RDF→RUB SH sign table (§5). A label at or
+above `count` yields zero rest coefficients for that Gaussian (the reference's
+out-of-range guard), reported once as a warning because the asset is degraded.
 
 ## 7. Supported SH degree
 

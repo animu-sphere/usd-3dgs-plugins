@@ -2,12 +2,11 @@
 # A plugin is a self-describing bundle, not a bare shared library: this file is
 # the contract `ost plugin inspect|build|doctor|test` resolve against.
 #
-# gaussian-sog is the v0.4.0 *skeleton* for the v0.5.0 SOG v2 decoder: it
-# exercises the scaled build/test/package/CI path a third bundle needs before
-# any SOG decoding exists. Opening a .sog file fails with the stable
-# GSSOG-E001 not-implemented diagnostic; the bundle ships in no release until
-# the decoder lands (its CI cells are marked release: false in
-# openstrata.ci.yaml).
+# gaussian-sog reads PlayCanvas SOG v2 in both layouts: the bundled `.sog` ZIP
+# archive and the unbundled `meta.json` with its companion WebP property
+# planes. Both converge on one container reader, one semantic decoder, and the
+# shared Gaussian layer writer, so the authored stage matches PLY and SPZ by
+# construction.
 manifest:
   schema: openstrata.plugin/v1alpha1
 plugin:
@@ -17,6 +16,8 @@ plugin:
 # SPDX license for this plugin's own code. Surfaced by `ost plugin inspect` and
 # recorded in the package manifest.
 license: Apache-2.0
+notices:
+  - THIRD_PARTY_NOTICES.md
 runtime:
   # The OpenUSD version range this plugin tolerates. The runtime supplies the
   # certified point within it.
@@ -32,12 +33,37 @@ requires:
   libraries:
     - id: gaussianCore
       version: ">=0.1,<0.2"
+    - id: gaussianUsd
+      version: ">=0.3,<0.4"
 usd:
   # Where this bundle's plugInfo.json lives, relative to the bundle root.
   plug_info: plugin/resources/gaussian-sog/plugInfo.json
 tests:
-  # No smoke or roundtrip fixtures yet: the skeleton's entire behavior is
-  # "reject with GSSOG-E001", pinned by the negative tier. The v0.5.0 decoder
-  # adds the positive tiers.
+  # Only bundled `.sog` fixtures are declared here: they are self-contained
+  # single files, so they behave identically from the source tree and from a
+  # package. The unbundled layout needs `meta.json` *plus* its companion planes
+  # and is covered by the C++ reader/decoder tests and the Python smoke test,
+  # which read the fixture directory in place.
+  smoke:
+    - tests/fixtures/kit-one-degree0.sog
+    - tests/fixtures/kit-multi-degree3.sog
+    - tests/fixtures/kit-multi-degree3-deflated.sog
+    - tests/fixtures/decode-degree1.sog
+  roundtrip:
+    - tests/fixtures/decode-degree1.sog
   negative:
-    - tests/fixtures/not-implemented.sog
+    - tests/fixtures/not-sog.sog
+    - tests/fixtures/no-meta.sog
+    - tests/fixtures/bad-zip.sog
+    - tests/fixtures/malformed-meta.sog
+    - tests/fixtures/version-1.sog
+    - tests/fixtures/version-3.sog
+    - tests/fixtures/empty-count.sog
+    - tests/fixtures/count-exceeds-plane.sog
+    - tests/fixtures/bad-bands.sog
+    - tests/fixtures/short-codebook.sog
+    - tests/fixtures/escaping-plane-name.sog
+    - tests/fixtures/missing-plane.sog
+    - tests/fixtures/lossy-plane.sog
+    - tests/fixtures/corrupt-plane.sog
+    - tests/fixtures/bad-quat-tag.sog
