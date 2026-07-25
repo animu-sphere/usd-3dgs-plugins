@@ -109,6 +109,6 @@ This table describes the current tree. Planned capabilities belong in the
 | Source L0-L5 verification | supported; locally green |
 | Target-specific package | supported; locally generated and tested |
 | Package-origin L0-L4 | supported; locally green |
-| Package-origin L5 | currently skipped because the golden is not staged by OST |
+| Package-origin L5 | skipped on the CI-pinned OST 0.18.0 (the golden is not staged); passes locally on OST 0.20.0 for `gaussian-ply` and `gaussian-sog` — see [current.md](../roadmap/current.md) |
 | Windows/macOS/Linux generated CI | declared and validated; hosted execution pending |
 | Hydra Gaussian renderer | unsupported here; owned by the sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) ([release plan](../roadmap/release-plan.md) v0.9.0) |

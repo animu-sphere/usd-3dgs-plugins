@@ -28,10 +28,16 @@ Release-engineering items that remain live across releases:
   byte-identical across hosted runs since v0.2.0; see
   [releases/v0.2.0.md](../releases/v0.2.0.md) and
   [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md).
-- ⛔ Make package-origin L5 execute rather than skip. OST 0.18.0 packages the
+- 🚧 Make package-origin L5 execute rather than skip. OST 0.18.0 packages the
   roundtrip PLY fixture but not its adjacent `.golden.usda`, and the bundle
-  manifest has no golden declaration. This is an upstream packaging/test seam;
-  see [dogfooding report 01](../reports/ost/01-2026-07-18-v0.18.0-bootstrap.md).
+  manifest has no golden declaration
+  ([dogfooding report 01](../reports/ost/01-2026-07-18-v0.18.0-bootstrap.md)).
+  **Observed 2026-07-25 on a locally installed OST 0.20.0: package-origin L5
+  now passes** for `gaussian-ply` *and* `gaussian-sog`
+  (`ost plugin test <bundle> --from-package --up-to 5`), so the upstream seam
+  appears to have been closed between 0.18.0 and 0.20.0. The item stays open
+  because `openstrata.ci.yaml` still bootstraps 0.18.0: confirming it means
+  moving that pin, which is a separate decision with its own CI cost.
 - ⬜ Decide whether Windows remains capped at OST L4 or can run the same L5
   golden gate as macOS/Linux. Local Windows L5 passes; the cap is inherited
   from the reference workspace's hosted multiline-USDA line-ending finding.
@@ -148,7 +154,8 @@ authoring anywhere.*
   relatively — half a log-domain code step amplified by `|p|+1` — and its
   codebooks are exact, which keeps the SH comparison at 1e-6.
 - ✅ `ost plugin test plugins/gaussian-sog` is green through L5, including the
-  golden roundtrip.
+  golden roundtrip, and `--from-package` is green through L5 as well (on the
+  locally installed OST 0.20.0; see the carried-over note above).
 
 ## 7. Build, package, and release onboarding ✅
 
