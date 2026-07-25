@@ -13,6 +13,15 @@ PlayCanvas `.sog` capture directly in `usdview` or any USD pipeline as OpenUSD
   renderer that supports the OpenUSD particle-field Gaussian schema.</i></p>
 </p>
 
+## usdview screenshots
+
+These previews show the three supported input formats displayed through the
+OpenUSD `hdParticleField` example delegate:
+
+| PLY | SOG | SPZ |
+| --- | --- | --- |
+| <img src="docs/assets/usdview_hdParticleField_PLY.png" alt="PLY in usdview" width="300" /> | <img src="docs/assets/usdview_hdParticleField_SOG.png" alt="SOG in usdview" width="300" /> | <img src="docs/assets/usdview_hdParticleField_SPZ.png" alt="SPZ in usdview" width="300" /> |
+
 **What it does**
 
 - Read-only import of Graphdeco-style Gaussian PLY (ASCII and binary
@@ -113,7 +122,7 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-**v0.5.0 — SOG v2 import — is tagged; its draft release is assembled**
+**v0.5.0 — SOG v2 import — is released.**
 ([release record](docs/releases/v0.5.0.md)).
 
 v0.4.0 turned the decoder-to-USD seam PLY and SPZ share into a normative,
@@ -129,7 +138,7 @@ re-import to update.
 v0.5.0 is the first format added *on top of* that contract: `gaussian-sog`
 reads SOG v2 in both layouts, targets the shared model with no format-specific
 USD authoring, and joins the cross-format equivalence triples. Releases are
-tag-driven, digest-reproducible, and published as drafts for human review
+tag-driven and digest-reproducible
 ([release records](docs/releases/README.md)).
 
 ## Architecture

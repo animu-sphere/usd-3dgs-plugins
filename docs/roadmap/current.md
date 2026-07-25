@@ -1,216 +1,335 @@
 # Current
 
-The active development target is **v0.5.0 — SOG v2 one-object import**, defined
-in the [release plan](release-plan.md#v050--sog-v2-one-object-import): import one
-complete PlayCanvas SOG v2 object into the same standard USD representation PLY
-and SPZ produce, exercising the v0.4.0 contract with a third format.
+Updated: 2026-07-25
+Scope: post-v0.5.0 near-term work
 
-This is the first release that *uses* the Gaussian Import Foundation rather than
-building it. Nothing in `libs/` changed to accommodate SOG: the bundle targets
-the published `GaussianCloudData` contract, validates through the shared gate,
-allocates through the shared overflow-checked helpers, converts frames with the
-shared `FlipYZAxes`, and authors through the unchanged `GaussianLayerWriter`.
-That the v0.4.0 seam needed no adjustment for a format as unlike PLY as a
-codebook-and-image container is the release's real result.
+## Current position
 
-v0.1.0 through v0.4.0 are tagged and published; their completed milestone detail
-is recorded in the [delivery history](../reports/delivery-history.md) and the
-[release records](../releases/README.md).
+v0.5.0 added PlayCanvas SOG v2 import in both supported layouts:
+
+- bundled `.sog` archives;
+- unbundled `meta.json` files with lossless WebP companion planes.
+
+The project now has three primary input families:
+
+- Graphdeco-style Gaussian PLY;
+- Niantic SPZ v1-v3;
+- PlayCanvas SOG v2.
+
+Each format-specific reader and decoder produces the shared
+`GaussianCloudData` model. The shared `GaussianLayerWriter` authors that model
+as `ParticleField3DGaussianSplat` in the USD stage.
+
+The main result of v0.5.0 is not only the addition of a third format. The
+shared model, validation contract, diagnostics, and USD authoring layer from
+v0.4.0 proved reusable for a substantially different codebook-and-image
+container.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
-## Carried over from earlier stabilization
+## Near-term direction
 
-Release-engineering items that remain live across releases:
+The next step is not an immediate fourth file format. Work is ordered as
+follows:
 
-- ⬜ Investigate the macOS across-run package digest difference (suspected
-  Mach-O `LC_UUID`/timestamp analog). Windows and Linux `tar.zst` archives are
-  byte-identical across hosted runs since v0.2.0; see
-  [releases/v0.2.0.md](../releases/v0.2.0.md) and
-  [dogfooding report 02](../reports/ost/02-2026-07-19-package-provenance-and-reproducibility.md).
-- 🚧 Make package-origin L5 execute rather than skip. OST 0.18.0 packaged the
-  roundtrip PLY fixture but not its adjacent `.golden.usda`, and the bundle
-  manifest has no golden declaration
-  ([dogfooding report 01](../reports/ost/01-2026-07-18-v0.18.0-bootstrap.md)).
-  **Resolved upstream between 0.18.0 and 0.20.0:** on OST 0.20.0,
-  `ost plugin test <bundle> --from-package --up-to 5` executes and passes L5 for
-  `gaussian-ply` and `gaussian-sog` (observed 2026-07-25). The CI pin moved to
-  0.20.0 in the same change, so this closes once a hosted run confirms it on
-  macOS and Linux — the local observation is Windows only.
-- ⬜ Decide whether Windows remains capped at OST L4 or can run the same L5
-  golden gate as macOS/Linux. Local Windows L5 passes; the cap is inherited
-  from the reference workspace's hosted multiline-USDA line-ending finding.
-- ⬜ Add a lightweight link/language check to CI so public Markdown remains
-  English and local links resolve.
+1. finish the v0.5.0 release polish;
+2. improve installation and verification for package consumers;
+3. measure performance and safety on large assets;
+4. select the next input format;
+5. strengthen the integration path to Hydra renderers.
 
-## 1. Format facts and dependency decisions ✅
+The short-term goal is to make the existing PLY, SPZ, and SOG support reliable
+to install, verify, and use before expanding the format matrix.
 
-*Goal: every SOG v2 constant quoted from the reference implementation, and the
-container libraries vendored and pinned, before decoder code exists.*
+## v0.5.x — release polish
 
-- ✅ [SOG_MAPPING.md](../reference/SOG_MAPPING.md): the normative semantic
-  mapping — split-precision inverse-log positions, the scale/DC/SH codebooks,
-  smallest-three quaternions with the largest-component tag, the SH
-  palette/label/centroid encoding, and the OpenUSD mapping — with every formula
-  quoted from PlayCanvas SplatTransform (`write-sog.ts`, `read-sog.ts`,
-  `math.ts`) rather than inferred.
-- ✅ **Coordinate frame decided: SOG stores PLY-native (Graphdeco RDF)
-  columns**, so the decoder applies the same shared `FlipYZAxes` the PLY decoder
-  applies. This confirms the duty [ADR 0001](../adr/0001-model-frame-is-rub.md)
-  anticipated for SOG. The developer documentation's contradictory y-up/z-back
-  prose describes the PlayCanvas *engine* frame, not the on-disk columns; the
-  discrepancy is resolved in favour of the implementation and pinned by the
-  equivalence triples ([SOG_MAPPING.md §5](../reference/SOG_MAPPING.md)).
-- ✅ libwebp v1.6.0 decoder subset vendored (BSD-3-Clause, exact commit
-  recorded in `third_party/libwebp/VENDORING.md` and
-  [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)); ZIP reading reuses
-  the already-vendored miniz 3.0.2 with its archive API enabled for this bundle
-  only. No new dependency beyond the WebP decoder.
+### Release-state synchronization
 
-## 2. Container reader ✅
+README and release records now describe v0.5.0 as released. The remaining
+state-synchronization work is to keep the README, release record, capability
+matrix, and hosted-verification notes consistent as release evidence changes.
 
-*Goal: one reader owning every SOG container concern, with diagnostics granular
-enough to tell a user which part of their file is wrong.*
+### Binary-consumer path
 
-- ✅ `plugins/gaussian-sog/src/io/SogReader.*`: layout detection by content, ZIP
-  central-directory walking, `meta.json` schema and version validation, codebook
-  and range checks, lossless-WebP plane decoding, and plane presence/dimension
-  checks. A lossy plane is rejected rather than decoded approximately, because
-  it would silently corrupt positions.
-- ✅ `meta.json` is parsed by a strict in-repo reader (`src/io/SogJson.*`)
-  rather than a vendored JSON library, per
-  [SOG_FORMAT.md §2](../reference/SOG_FORMAT.md): every malformed shape has to
-  surface as a specific `GSSOG` code. It rejects comments, trailing commas,
-  duplicate keys, and `NaN`/`Infinity`, bounds nesting depth, and reads numbers
-  under the classic locale so a host with a decimal comma cannot change how
-  positions decode.
-- ✅ The unbundled layout's companion planes load through an injected loader;
-  the plugin supplies an `ArResolver`-backed one, which keeps the reader
-  USD-free and unit-testable while a SOG whose planes sit behind a custom
-  resolver still resolves them the way USD resolves any companion asset.
-- ✅ Hardening: plane names are confined to bare file names, so a hostile
-  `meta.json` cannot reach outside its own directory; every declared size is
-  bounded before allocation; and routing reads a bounded prefix only.
+Keep the developer-oriented build path in the root README, but add a short
+package-consumer path before it. The minimum path should cover:
 
-## 3. Semantic decoder ✅
+- selecting an artifact for the OS and OpenUSD cycle;
+- extracting the package;
+- setting `PXR_PLUGINPATH_NAME`;
+- checking plugin discovery;
+- opening `.ply`, `.spz`, and `.sog` inputs;
+- explaining that stock `usdview` can open the stage but does not render the
+  splats without a Gaussian-capable Hydra delegate.
 
-*Goal: SOG's stored form becomes the shared model, with no format-specific USD
-authoring anywhere.*
+Detailed installation instructions belong in
+[docs/guides/INSTALL.md](../guides/INSTALL.md); the root README should show
+only the shortest working path.
 
-- ✅ `plugins/gaussian-sog/src/io/GaussianSogDecoder.*`: split-precision
-  inverse-log positions, exponential scale codebooks, smallest-three quaternion
-  unpacking through the shared `NormalizeQuaternion`, raw-DC and opacity
-  decoding, palette-resolved higher-order SH, then the shared `FlipYZAxes` into
-  the model's RUB frame and the shared validation gate. Allocation goes through
-  `GaussianSizeMath.h`.
-- ✅ SOG `bands` 1-3 are exactly SH degrees 1-3 and no `shN` is degree 0, so the
-  whole format range sits inside the model's supported degrees: unlike SPZ, SOG
-  needs no degree-ceiling rejection.
-- ✅ The import-statistics seam is filled and emitted under
-  `TF_DEBUG=GSSOG_IMPORT_STATS`, and `Read(metadataOnly=true)` authors the
-  contract from `meta.json` alone with no plane decoded.
+### SOG usage examples
 
-## 4. Diagnostics ✅
+Make the SOG release easier to understand by documenting:
 
-- ✅ `GSSOG-E002`-`E015` cover the container and semantic failures with the
-  malformed / unsupported / internal distinction intact — a legacy SOG v1 file
-  is told its version is unsupported, not that it is corrupt — plus `GSSOG-W001`
-  for palette labels past the palette. The shipped catalog
-  (`plugin/resources/gaussian-sog/diagnostics.json`) and the source constants
-  are cross-checked in both directions.
-- ✅ `GSSOG-E001` (the v0.4.0 skeleton's not-implemented code) is retired from
-  the header and the catalog, and never reused.
+- opening a bundled `.sog`;
+- opening an unbundled `meta.json`;
+- converting to `.usdc` with `usdcat`;
+- the `/Asset/Splat` scene graph;
+- an example of `customData.gs`;
+- the relationship between the SOG source, USD stage, and rendered result.
 
-## 5. Routing ✅
+The usdview previews are now linked from the root README. A rendered example
+must continue to identify the Hydra delegate used, because this repository
+owns import and USD authoring, not rendering.
 
-- ✅ Bundled `.sog` is claimed by extension plus the ZIP signature. The
-  unbundled layout means registering the far broader `.json` extension, so its
-  gate is strict: `version == 2` plus the four required SOG property
-  descriptions with their `files` arrays. Unrelated JSON is declined, while a
-  defective SOG `meta.json` past the gate still reaches `Read()` for a specific
-  diagnostic instead of a silent routing refusal
-  ([SOG_FORMAT.md §6](../reference/SOG_FORMAT.md), maintainer-ratified).
+### v0.5.1 position
 
-## 6. Fixtures, tests, and equivalence ✅
+Treat v0.5.1 as a patch release for public quality rather than a new-format
+release. Its expected scope is:
 
-- ✅ `tools/generate_fixtures.py` writes every SOG fixture from source with no
-  third-party dependency: it contains a minimal lossless-WebP (VP8L) writer, so
-  no WebP *encoder* is vendored merely to build test data, and applies the
-  reference encoder's own quantization equations. Fixtures are byte-reproducible
-  on every platform.
-- ✅ Decoder-test-kit round trip: the positive fixtures encode the kit's
-  canonical clouds, and the decoder test requires `CompareClouds` to be empty at
-  tolerances derived from the documented quantization steps — which pins Gaussian
-  order, coefficient order, channel order, the quaternion convention, the frame,
-  and the derived extent at once.
-- ✅ One negative fixture per container diagnostic, both layouts covered, and the
-  Python smoke test asserting the same stage contract PLY and SPZ assert plus the
-  routing gates and the read-only entry point.
-- ✅ Cross-format equivalence is now PLY/SPZ/SOG triples
-  ([EQUIVALENCE.md](../reference/EQUIVALENCE.md)). PLY and SOG each apply the
-  frame conversion while SPZ applies none, so agreement pins the frame and the
-  15-entry SH sign table from both directions. SOG's position bound is derived
-  relatively — half a log-domain code step amplified by `|p|+1` — and its
-  codebooks are exact, which keeps the SH comparison at 1e-6.
-- ✅ `ost plugin test plugins/gaussian-sog` is green through L5, including the
-  golden roundtrip, and `--from-package` is green through L5 as well (on the
-  locally installed OST 0.20.0; see the carried-over note above).
+- documentation-state synchronization;
+- installation UX;
+- SOG performance baselines;
+- package smoke-test improvements;
+- small diagnostic or display improvements;
+- compatibility fixes found during verification.
 
-## 7. Build, package, and release onboarding ✅
+## Performance and large assets
 
-- ✅ The bundle builds standalone through `ost` and in the plain root
-  composition; the equivalence directory grew a second executable because two
-  bundles cannot share one vendored `miniz` translation unit (recorded in
-  [EQUIVALENCE.md §6](../reference/EQUIVALENCE.md)).
-- ✅ The CI cells moved to the shipping shape (Windows L4, macOS/Linux L5) and
-  the skeleton's `publish: never` marker is gone, which is the *entire* release
-  onboarding for the bundle: `scripts/release.py` derives three
-  `gaussian-sog-release-*` cells from the same source cells with no copied
-  logic. This is the v0.4.0 declarative-scaling claim paying out.
+Add a SOG performance baseline using the committed real-asset corpus. Record,
+where measurable:
 
-## 8. Documentation synchronization 🚧
+- input file size and Gaussian count;
+- ZIP directory and entry extraction time;
+- WebP decode time;
+- metadata parsing time;
+- codebook and dequantization time;
+- shared semantic validation time;
+- USD authoring time;
+- total stage-open time;
+- metadata-only read time;
+- peak memory;
+- generated USD layer size.
 
-- ✅ Bundle README rewritten from skeleton notice to importer documentation;
-  root README lists SOG among the formats it reads, with its own container
-  table.
-- ✅ [SOG_MAPPING.md](../reference/SOG_MAPPING.md) corrected against the
-  implementation in two places: SOG needs **no** PLY-style `f_rest` transpose
-  (each centroid texel already interleaves one coefficient's three channels),
-  and `count == 0` is well-formed SOG that is rejected at import rather than
-  authored as an empty stage.
-- ✅ This file reframed from the v0.4.0 breakdown to the v0.5.0 workstreams;
-  release plan sequence table updated.
-- 🚧 Capability matrix, supported configurations, and the documentation index
-  extended to a third format.
-- ✅ Release record for v0.5.0 is committed at
-  [releases/v0.5.0.md](../releases/v0.5.0.md); hosted release-lane evidence and
-  published artifact checksums remain to be appended after CI completes.
+Compare the same or closely matched Gaussian clouds across PLY, SPZ, bundled
+SOG, unbundled SOG, and flattened USDC where practical. The purpose is to
+locate bottlenecks, not to establish a simplistic format ranking.
 
-## 9. Real-asset validation 🚧
+In addition to committed fixtures and corpus assets, maintain local validation
+targets at approximately 8K, 100K, 1M, and, where practical, 5M or more
+Gaussians. Do not commit very large assets; record their source, digest,
+license, and validation date instead.
 
-*Goal: the design-policy §17 real-asset gate and §12.1 performance baselines,
-which synthetic fixtures cannot substitute for.*
+## v0.6.0 — production import hardening
 
-- ✅ Two provenance-recorded real SOG assets (`yashica-t4` and `leica-sofort`)
-  are committed under `plugins/gaussian-sog/tests/corpus/`. The Python smoke
-  test discovers them and validates their decoded stages semantically. They
-  are format-conversion corpus inputs, not cross-format equivalence fixtures;
-  the latter remain the synthetic PLY/SPZ/SOG triples.
-- ⬜ §12.1 performance baselines still need a dedicated measurement pass over
-  the committed SOG corpus; the corpus admission itself is complete.
+Prioritize import-pipeline robustness over another input format.
 
-## Completion criteria
+### Shared import statistics
 
-v0.5.0 is complete when:
+Expose a common import-statistics structure for every importer. Candidate
+fields include:
 
-1. Both SOG layouts open through the plugin on the same semantic path. ✅
-2. Position, scale, rotation, opacity, SH0, and optional higher-order SH decode
-   correctly, verified against known values and the decoder test kit. ✅
-3. Cross-format fixtures demonstrate coordinate and SH consistency with PLY and
-   SPZ at tolerances derived from the SOG equations. ✅
-4. Failures use stable, actionable `GSSOG-****` diagnostics with a shipped
-   catalog. ✅
-5. A provenance-recorded real SOG asset is validated automatically and manually,
-   with §12.1 performance baselines recorded. ⛔
-6. Windows, macOS, and Linux source and package cells pass. 🚧 (local Windows
-   green through L5; hosted cells run on the pull request)
+- source format and version;
+- Gaussian count and SH degree;
+- rejected Gaussian count;
+- opacity-threshold applications;
+- warning count;
+- decoded byte count;
+- decode and authoring time;
+- coordinate conversion;
+- source bounds and authored extent.
+
+The structure should be usable from diagnostics, tests, and any future CLI
+without creating format-specific statistics APIs.
+
+### Limits for large or hostile input
+
+Define and test shared limits for:
+
+- Gaussian count and plane dimensions;
+- ZIP entry count and expanded size;
+- integer overflow and allocation sizes;
+- codebook and palette counts;
+- JSON nesting and token counts;
+- compression-bomb behavior;
+- companion files reached through an asset resolver;
+- duplicate and missing planes.
+
+Prefer shared validation and checked-size utilities over separate copies of the
+same protection in each format bundle.
+
+### Diagnostics and observability
+
+Continue the stable diagnostic-code policy while improving:
+
+- import summaries;
+- warning aggregation;
+- source and companion-path reporting;
+- CI cross-checks for machine-readable diagnostic catalogs;
+- an index searchable by diagnostic code;
+- the boundary between common and format-specific diagnostics.
+
+### Asset-resolver verification
+
+Use unbundled SOG as the driver for a documented resolver test matrix covering
+relative, absolute, package-relative, search-path, and custom-resolver cases,
+as well as missing companions, case sensitivity, Windows paths, URI-like
+identifiers, and metadata-only reads that must not open property planes.
+
+### Package-consumer tests
+
+Test generated packages from a clean consumer environment, not only from the
+development tree. The consumer gate should cover plugin discovery, dependent
+shared libraries, resource catalogs, schema availability, `usdcat`,
+`usdchecker`, Python and C++ stage opens, all three formats, and replacement or
+uninstallation behavior.
+
+## Next format candidates
+
+Choose the next format only after the v0.5.x follow-up and v0.6.0 foundation
+work have been evaluated.
+
+### First candidate: SuperSplat compressed PLY
+
+Reasons to investigate it first:
+
+- it is distributed with a `.ply` extension and can be confused with ordinary
+  Gaussian PLY;
+- the current importer explicitly rejects it, so the user value is clear;
+- it extends the existing PLY dialect and detection work;
+- it may reuse the current PLY plugin without changing the shared model.
+
+The claim gate must distinguish it strictly from canonical Graphdeco PLY. Its
+compressed layout should remain a format-specific reader rather than becoming
+an accidental mode of the ordinary PLY decoder.
+
+### Second candidate: `.splat`
+
+`.splat` is widely exchanged and may be inexpensive to implement. Its missing
+or implicit semantics around provenance, SH, precision, and coordinate systems
+must be documented before support is claimed. “Can be decoded” and “can be
+decoded with preserved meaning” remain separate acceptance criteria.
+
+### Third candidate: `.ksplat`
+
+`.ksplat` may benefit GaussianSplats3D users as a compressed distribution
+format. Investigation must cover version and compression dependencies,
+specification stability, independent implementability, fixtures, and license
+status.
+
+### Later candidates
+
+- streamed SOG and LOD chunks;
+- LCC / LCC2;
+- glTF / GLB Gaussian extensions.
+
+Streamed SOG is a larger composition milestone involving LOD, chunk lifecycle,
+resolver behavior, and multiple payloads. It should not be treated as a small
+extension of one-object import. glTF Gaussian extensions should be reconsidered
+as their specification and ecosystem mature.
+
+## Hydra boundary
+
+`usd-3dgs-plugins` owns import and USD authoring. Rendering remains owned by
+the sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin).
+
+The user-facing integration should still be improved through documentation
+and tests covering:
+
+- compatible OpenUSD versions;
+- the shared schema contract;
+- sample stages and source assets;
+- importer-to-renderer end-to-end smoke tests;
+- reciprocal README links;
+- known renderer limitations;
+- the difference between stock `usdview` and a Gaussian-capable delegate.
+
+Do not move renderer implementation into this repository. Keep the boundary
+explicit through integration tests and documentation.
+
+## Release operations
+
+Keep the tag-driven, digest-reproducible, SBOM-backed release process. Add or
+standardize:
+
+- a release checklist;
+- a documentation-state check;
+- artifact-install smoke tests;
+- checksum verification;
+- release-note and `CHANGELOG.md` consistency checks;
+- release-tag-qualified capability claims;
+- explicit known limitations;
+- a distinction between hosted and local verification;
+- benchmark environment records.
+
+Release records should state not only what was implemented, but also which
+real environments and package paths were actually verified.
+
+## Immediate actions
+
+### Highest priority
+
+- ✅ Update the README's v0.5.0 state to released.
+- ✅ Update the status in `docs/releases/v0.5.0.md`.
+- ⬜ Synchronize the capability matrix with hosted-verification evidence.
+- ⬜ Add the shortest binary-install path to the README.
+- ⬜ Add bundled and unbundled SOG usage examples.
+
+### Next
+
+- ⬜ Measure the SOG performance baseline.
+- ⬜ Confirm the package-consumer smoke test.
+- ✅ Add SOG, PLY, and SPZ usdview screenshots or an equivalent visual example.
+- ⬜ Document manual release-artifact verification.
+- ⬜ Finalize the v0.5.1 scope.
+
+### v0.6.0 preparation
+
+- ⬜ Design the shared import-statistics API.
+- ⬜ Define hostile-input limits.
+- ⬜ Create the asset-resolver test matrix.
+- ⬜ Define the large-asset benchmark corpus.
+- ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
+
+## Proposed milestones
+
+### v0.5.1 — Release polish
+
+- documentation-state synchronization;
+- binary installation path;
+- SOG usage examples;
+- SOG performance baseline;
+- package-verification fixes.
+
+### v0.6.0 — Production import hardening
+
+- shared import statistics;
+- large-input limits;
+- resolver test coverage;
+- package-consumer verification;
+- improved diagnostics and summaries;
+- expanded benchmarks.
+
+### v0.7.0 — Next format
+
+SuperSplat compressed PLY is the first candidate. The final choice requires a
+published or independently implementable specification, redistributable
+fixtures, license clearance, and a viable cross-format equivalence test.
+
+## Decision criteria
+
+Evaluate every proposed format against the following criteria:
+
+1. Is it actually in use?
+2. Is there a public specification or independently implementable reference?
+3. Is the licensing clear?
+4. Can deterministic fixtures be created?
+5. Can a provenance-recorded real-asset corpus be obtained?
+6. Can it map to `GaussianCloudData` without losing meaning?
+7. Can cross-format equivalence tests be built?
+8. Can stable diagnostics be defined?
+9. Does metadata-only read make sense?
+10. Can the result be reproduced in a package-consumer environment?
+
+The number of supported formats is not the goal. A format should be accepted
+only when its specification, semantics, validation, and distribution story can
+be maintained together.
