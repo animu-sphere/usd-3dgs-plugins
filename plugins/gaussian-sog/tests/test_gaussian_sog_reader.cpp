@@ -278,9 +278,22 @@ void TestMalformedContainers()
     ExpectCode("count-exceeds-plane.sog", gssog::diag::kInvalidGaussianCount);
     ExpectCode("bad-bands.sog", gssog::diag::kInvalidShBands);
     ExpectCode("short-codebook.sog", gssog::diag::kInvalidCodebook);
+
+    // Integral JSON numbers beyond the range of a 64-bit integer. Every one of
+    // these reaches the diagnostic that reports the offending value, so the
+    // formatting must not convert it to an integer type: that conversion is
+    // undefined behaviour for an out-of-range double, and a sanitizer build
+    // aborts on it rather than printing a wrapped number.
+    ExpectCode("huge-version.sog", gssog::diag::kUnsupportedVersion);
+    ExpectCode("huge-count.sog", gssog::diag::kInvalidGaussianCount);
+    ExpectCode("huge-bands.sog", gssog::diag::kInvalidShBands);
+    ExpectCode("huge-palette-count.sog", gssog::diag::kMalformedMetadata);
     // A plane name that tries to leave its own directory is rejected as
-    // malformed metadata rather than followed.
+    // malformed metadata rather than followed, and so is one naming a Windows
+    // character device -- which carries no path separator, so only the
+    // reserved-name rule refuses it.
     ExpectCode("escaping-plane-name.sog", gssog::diag::kMalformedMetadata);
+    ExpectCode("device-plane-name.sog", gssog::diag::kMalformedMetadata);
     ExpectCode("missing-plane.sog", gssog::diag::kMissingPlane);
     ExpectCode("lossy-plane.sog", gssog::diag::kMalformedPlane);
     ExpectCode("corrupt-plane.sog", gssog::diag::kMalformedPlane);
