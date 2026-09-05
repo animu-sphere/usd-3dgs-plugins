@@ -20,6 +20,23 @@ semantic versioning for tagged releases.
   it previously passed for `gaussian-ply` and `gaussian-sog` only. The
   documented local baseline also moves to OpenUSD 26.08, CMake 4.4.3, and MSVC
   14.51 — the runtime and host toolchain the 0.22.8 verification ran against.
+- All nine CI cells are **re-pinned to the canonical OpenUSD 26.08 runtime
+  leaves** (`26.08-gl` on Windows and Linux, `26.08-metal` on macOS arm64),
+  adopted from the reference `usd-vrm-plugins` workspace. This was forced, not
+  elective: the hand-driven 26.05 runtimes pinned through v0.5.0 were withdrawn
+  upstream and every digest this repository carried now resolves to
+  `MANIFEST_UNKNOWN`. The new leaves carry an SBOM and SLSA/in-toto provenance
+  and verify `trust: attested`, and consuming them needs the 0.22.8 bootstrap
+  above. 26.08 is inside the plugins' unchanged `>=26.05,<27.0` range.
+- Every Linux cell declares `host_packages: apt: [libx11-dev, libxt-dev]`, and
+  the hand-authored `release.yml` grows the equivalent step: OpenUSD 26.08's
+  MaterialX 1.39.5 exports an unconditional `find_dependency(X11 REQUIRED
+  COMPONENTS Xt)` on non-Apple UNIX, so a Linux consumer of a 26.08 runtime
+  cannot configure without the X11 dev headers.
+- The local development runtime moves onto the same digest-pinned Windows
+  artifact the CI cells pull, so local verification now reports `runtime source
+  is 'artifact' (reproducible)` instead of an uncertified local build, and the
+  packaged bundles are produced against the runtime CI will use.
 
 ## [0.5.0] - 2026-07-25
 

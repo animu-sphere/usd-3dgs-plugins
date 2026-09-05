@@ -11,6 +11,7 @@ support contract.
 | OpenStrata | 0.22.8 (v0.5.0 was built with 0.20.0; v0.1.0-v0.4.0 with 0.18.0) |
 | OpenUSD tolerated range | `>=26.05,<27.0` |
 | OpenUSD exercised locally | 26.08 (26.05 through v0.5.0) |
+| OpenUSD in the pinned CI runtimes | 26.08, tag `v26.08` |
 | OpenStrata platform/profile | `cy2026` / `usd` |
 | Python ABI exercised locally | CPython 3.13 |
 
@@ -32,13 +33,21 @@ inside the declared range.
 
 | OS / architecture | CI contract | Observed in this repository |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | build, L0-L4, package | local Windows build, L0-L5, package, package-origin L0-L5 |
+| Windows 2022 / x86_64 / MSVC 143 | build, L0-L4, package | local Windows build, L0-L5, package, package-origin L0-L5, against the same pinned runtime artifact CI uses |
 | macOS 15 / arm64 / libc++ | build, L0-L5, package | declared; first hosted run pending |
 | Ubuntu 24.04 / x86_64 / glibc 2.38+ | build, L0-L5, package | declared; first hosted run pending |
 
 The matrix uses immutable runtime artifact and OCI digests from the reference
-`usd-vrm-plugins` workspace. `ost ci validate` verifies the matrix and evidence
-requirements; actual hosted support is claimed only after those jobs complete.
+`usd-vrm-plugins` workspace. Since 2026-09-05 those are the OpenUSD 26.08
+imaging leaves of OpenStrata's own canonical runtime matrix — `26.08-gl` on
+Windows and Linux, `26.08-metal` on macOS arm64 — each carrying an SPDX SBOM
+and SLSA/in-toto provenance and verifying `trust: attested`. The macOS leaf's
+target id now names its deployment target (`macos-arm64-macos130-py313`), and
+the Linux leaf sets a glibc 2.38 floor. The 26.05 runtimes used through v0.5.0
+were withdrawn upstream, so re-pinning was forced rather than elective; the
+reasoning is in the header of [`openstrata.ci.yaml`](../../openstrata.ci.yaml).
+`ost ci validate` verifies the matrix and evidence requirements; actual hosted
+support is claimed only after those jobs complete.
 
 ## PLY input contract
 

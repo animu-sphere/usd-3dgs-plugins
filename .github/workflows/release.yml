@@ -106,6 +106,20 @@ jobs:
         if: ${{ matrix.hosted }}
         shell: bash
         run: echo "::notice title=OpenStrata hosted-runner usage::This job uses GitHub-hosted infrastructure. Private repositories may incur GitHub Actions usage charges. Review repository billing and Actions usage settings."
+      # The generated PR lane needs no hand-added step: ost 0.21.0 grew a
+      # per-cell `host_packages` knob and openstrata.ci.yaml declares it, so
+      # regeneration re-renders its apt step. THIS workflow is hand-authored
+      # and outside the generator's contract, so the step below is
+      # hand-maintained -- and a green PR lane says nothing about it. Keep it
+      # beside every Linux job that materializes a 26.08 runtime. Background:
+      # the X11 note in openstrata.ci.yaml's header.
+      - name: Install X11 dev headers required by MaterialX 1.39.5
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libx11-dev libxt-dev
       - name: Bootstrap the pinned ost (release asset, checksum-verified)
         if: ${{ matrix.hosted }}
         shell: bash
