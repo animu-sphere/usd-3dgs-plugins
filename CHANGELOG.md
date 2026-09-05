@@ -6,7 +6,20 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
-Future changes will be recorded here.
+### Changed
+
+- The build and verification toolchain moves from OpenStrata **0.20.0 to
+  0.22.8** (`openstrata.ci.yaml` bootstrap, regenerated `ost-source-ci.yml`,
+  and the documented baseline; the release lane derives the same pin through
+  `scripts/release.py`). Nothing in the plugins depends on the change. The
+  regenerated workflow splits the artifact-registry cache into explicit
+  restore/save steps, drops resumable transfer state before saving, carries
+  the generator's new per-cell host-package fields, and validates the
+  materialized runtime after host Python is set up rather than before.
+- Package-origin L5 now executes and passes locally for **all three bundles**;
+  it previously passed for `gaussian-ply` and `gaussian-sog` only. The
+  documented local baseline also moves to OpenUSD 26.08, CMake 4.4.3, and MSVC
+  14.51 — the runtime and host toolchain the 0.22.8 verification ran against.
 
 ## [0.5.0] - 2026-07-25
 

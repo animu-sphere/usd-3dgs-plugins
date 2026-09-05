@@ -8,9 +8,9 @@ support contract.
 
 | Item | Contract |
 | --- | --- |
-| OpenStrata | 0.20.0 (v0.1.0-v0.4.0 were built with 0.18.0) |
+| OpenStrata | 0.22.8 (v0.5.0 was built with 0.20.0; v0.1.0-v0.4.0 with 0.18.0) |
 | OpenUSD tolerated range | `>=26.05,<27.0` |
-| OpenUSD exercised locally | 26.05 |
+| OpenUSD exercised locally | 26.08 (26.05 through v0.5.0) |
 | OpenStrata platform/profile | `cy2026` / `usd` |
 | Python ABI exercised locally | CPython 3.13 |
 
@@ -22,17 +22,17 @@ inside the declared range.
 
 | Item | Requirement / exercised value |
 | --- | --- |
-| CMake | 3.23 or newer at workspace root; 4.4.0-rc2 exercised |
+| CMake | 3.23 or newer at workspace root; 4.4.3 exercised |
 | C++ | C++17, compiler extensions disabled |
 | Build type | Release by default |
 | Build backend | Ninja 1.13.2 exercised |
-| Windows compiler | MSVC toolset 143 (14.34 exercised) |
+| Windows compiler | MSVC toolset 143 (14.51 exercised) |
 
 ## Platforms
 
 | OS / architecture | CI contract | Observed in this repository |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | build, L0-L4, package | local Windows build, L0-L5, package, package-origin L0-L4 |
+| Windows 2022 / x86_64 / MSVC 143 | build, L0-L4, package | local Windows build, L0-L5, package, package-origin L0-L5 |
 | macOS 15 / arm64 / libc++ | build, L0-L5, package | declared; first hosted run pending |
 | Ubuntu 24.04 / x86_64 / glibc 2.38+ | build, L0-L5, package | declared; first hosted run pending |
 
