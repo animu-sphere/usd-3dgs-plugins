@@ -1,7 +1,41 @@
 # OpenStrata CI support matrix for usd-3dgs-plugins.
 #
 # This file is the CI contract. Regenerate .github/workflows/ost-*.yml with
-# `ost ci generate github` after changing it.
+# `ost ci generate github` after changing it. `.github/workflows/release.yml`
+# is hand-authored and outside the generator's contract, but it is not outside
+# this file's: scripts/release.py derives the release matrix from the cells
+# below, so a pin moved here moves both lanes.
+#
+# RUNTIME DIGEST PROVENANCE (re-pinned 2026-09-05).
+#   The three runtimes below are the OpenUSD 26.08 imaging leaves of ost's own
+#   canonical runtime matrix, published under ost 0.22.3 and adopted from the
+#   reference `usd-vrm-plugins` workspace, which measured them. They replace
+#   the hand-driven 26.05 runtimes this file carried through v0.5.0: upstream
+#   has removed those tags and manifests, so every digest pinned here before
+#   this change now resolves to MANIFEST_UNKNOWN. This is a forced re-pin, not
+#   an upgrade of choice.
+#
+#   windows  leaf 26.08-gl-windows-x86_64,  target windows-x86_64-msvc143-py313
+#   macos    leaf 26.08-metal-macos-arm64,  target macos-arm64-macos130-py313
+#   linux    leaf 26.08-gl-linux-x86_64,    target linux-x86_64-glibc238-py313
+#
+#   All three are OpenUSD 26.08 (tag v26.08) with Python 3.13, exported with
+#   the `sdk` layout profile, carrying an SPDX SBOM and SLSA/in-toto
+#   provenance, and verify `trust: attested` -- which is what the
+#   `--require-sbom --require-provenance` gate the generator renders demands.
+#   Consuming them needs ost >= 0.22.6; the bootstrap below is 0.22.8. The OCI
+#   manifest digest is not stable across republishes, and `runtime_artifact`
+#   does not stay put either: re-pin both from the producer's push output.
+#
+#   The plugins' declared OpenUSD range is `>=26.05,<27.0`, so 26.08 is inside
+#   the contract; the local development runtime is on 26.08 as well.
+#
+# X11 ON LINUX. OpenUSD 26.08's MaterialX 1.39.5 exports an unconditional
+# `find_dependency(X11 REQUIRED COMPONENTS Xt)` on non-Apple UNIX, so a Linux
+# consumer of a 26.08 runtime cannot configure without the X11 dev headers.
+# Every Linux cell declares them as `host_packages` so regeneration re-renders
+# the step. release.yml is hand-authored and carries its own copy of that step
+# -- when you add a Linux job to a hand-authored workflow, add the step with it.
 schema: 1
 
 bootstrap:
@@ -30,10 +64,10 @@ cells:
   - name: gaussian-ply-pr-windows
     lane: pull_request
     runner: windows-hosted
-    runtime_artifact: sha256:c1c54f1e8a31983ad24f2997e419b000d4ad5d030c392d592d20fd6c8ac8b227
+    runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
-      expected_oci_digest: sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+      expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
     bundle: plugins/gaussian-ply
     platform: cy2026
     profile: usd
@@ -42,10 +76,10 @@ cells:
   - name: gaussian-ply-pr-macos-arm64
     lane: pull_request
     runner: macos-arm64-hosted
-    runtime_artifact: sha256:5630132e617c5234fb7a6ddac97dd5716642eeedd096c919c007c81787f3facf
+    runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
-      expected_oci_digest: sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+      expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
     bundle: plugins/gaussian-ply
     platform: cy2026
     profile: usd
@@ -55,14 +89,17 @@ cells:
   - name: gaussian-ply-pr-linux
     lane: pull_request
     runner: linux-hosted
-    runtime_artifact: sha256:f6a2047c1681da4b4038f32d23b10f9713797a3f071945a799dedd73995739e5
+    runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
-      expected_oci_digest: sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+      expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
     bundle: plugins/gaussian-ply
     platform: cy2026
     profile: usd
     host_python: "3.13"
+    # MaterialX 1.39.5 (OpenUSD 26.08) hard-requires X11 on Linux; see header.
+    host_packages:
+      apt: [libx11-dev, libxt-dev]
     up_to: 5
 
   # gaussian-spz runs the same three digest-pinned cells as gaussian-ply: same
@@ -74,10 +111,10 @@ cells:
   - name: gaussian-spz-pr-windows
     lane: pull_request
     runner: windows-hosted
-    runtime_artifact: sha256:c1c54f1e8a31983ad24f2997e419b000d4ad5d030c392d592d20fd6c8ac8b227
+    runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
-      expected_oci_digest: sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+      expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
     bundle: plugins/gaussian-spz
     platform: cy2026
     profile: usd
@@ -86,10 +123,10 @@ cells:
   - name: gaussian-spz-pr-macos-arm64
     lane: pull_request
     runner: macos-arm64-hosted
-    runtime_artifact: sha256:5630132e617c5234fb7a6ddac97dd5716642eeedd096c919c007c81787f3facf
+    runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
-      expected_oci_digest: sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+      expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
     bundle: plugins/gaussian-spz
     platform: cy2026
     profile: usd
@@ -99,14 +136,17 @@ cells:
   - name: gaussian-spz-pr-linux
     lane: pull_request
     runner: linux-hosted
-    runtime_artifact: sha256:f6a2047c1681da4b4038f32d23b10f9713797a3f071945a799dedd73995739e5
+    runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
-      expected_oci_digest: sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+      expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
     bundle: plugins/gaussian-spz
     platform: cy2026
     profile: usd
     host_python: "3.13"
+    # MaterialX 1.39.5 (OpenUSD 26.08) hard-requires X11 on Linux; see header.
+    host_packages:
+      apt: [libx11-dev, libxt-dev]
     up_to: 5
 
   # gaussian-sog now reads SOG v2, so its cells are the shipping shape: the same
@@ -120,10 +160,10 @@ cells:
   - name: gaussian-sog-pr-windows
     lane: pull_request
     runner: windows-hosted
-    runtime_artifact: sha256:c1c54f1e8a31983ad24f2997e419b000d4ad5d030c392d592d20fd6c8ac8b227
+    runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
-      expected_oci_digest: sha256:bf24d8b6af28d3b3be0fc780803da0ae1181fca8f336ee0c79c1b1607073f724
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+      expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
     bundle: plugins/gaussian-sog
     platform: cy2026
     profile: usd
@@ -132,10 +172,10 @@ cells:
   - name: gaussian-sog-pr-macos-arm64
     lane: pull_request
     runner: macos-arm64-hosted
-    runtime_artifact: sha256:5630132e617c5234fb7a6ddac97dd5716642eeedd096c919c007c81787f3facf
+    runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
-      expected_oci_digest: sha256:459ec9a3930dede19b5c8f2ccf2fcdf9b8645fb9c95773e37b25f35ca30ee873
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+      expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
     bundle: plugins/gaussian-sog
     platform: cy2026
     profile: usd
@@ -145,12 +185,15 @@ cells:
   - name: gaussian-sog-pr-linux
     lane: pull_request
     runner: linux-hosted
-    runtime_artifact: sha256:f6a2047c1681da4b4038f32d23b10f9713797a3f071945a799dedd73995739e5
+    runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
     runtime_remote:
-      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
-      expected_oci_digest: sha256:3f785e3088e8701f653b2470c33ef384bcd79dff3781dd69aa861984225a7fa8
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+      expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
     bundle: plugins/gaussian-sog
     platform: cy2026
     profile: usd
     host_python: "3.13"
+    # MaterialX 1.39.5 (OpenUSD 26.08) hard-requires X11 on Linux; see header.
+    host_packages:
+      apt: [libx11-dev, libxt-dev]
     up_to: 5
