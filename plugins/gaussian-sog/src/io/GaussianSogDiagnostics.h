@@ -55,6 +55,9 @@ inline constexpr const char* kCloudValidationFailed = "GSSOG-E014";
 // count and overflow). The container's own `count <= W*H` plane bound (E006)
 // usually fires first; this is the model-side backstop.
 inline constexpr const char* kModelAllocationFailed = "GSSOG-E015";
+// A metadata, archive, plane, or companion input exceeds a shared resource
+// limit before the reader allocates or decodes it.
+inline constexpr const char* kImportLimitExceeded = "GSSOG-E016";
 
 // Internal misuse of the import pipeline (null output parameters,
 // inconsistent reader output). Reported defensively; not reachable from file

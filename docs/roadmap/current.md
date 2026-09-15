@@ -143,7 +143,8 @@ without creating format-specific statistics APIs.
 
 ### Limits for large or hostile input
 
-Define and test shared limits for:
+Define and test shared limits for; the initial shared count and container
+budgets are recorded in [IMPORT_LIMITS.md](../reference/IMPORT_LIMITS.md):
 
 - Gaussian count and plane dimensions;
 - ZIP entry count and expanded size;
@@ -287,7 +288,8 @@ real environments and package paths were actually verified.
 - ✅ Extend the shared import-statistics API with fixed coordinate conversion,
   warning aggregation, and user-filter rejection counts across PLY, SPZ, and
   SOG.
-- ⬜ Define hostile-input limits.
+- 🚧 Define hostile-input limits (shared count and reader resource budgets are
+  implemented; broader adversarial fixture coverage remains).
 - ⬜ Create the asset-resolver test matrix.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.

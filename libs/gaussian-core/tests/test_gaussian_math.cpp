@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "openstrata/gs/GaussianMath.h"
+#include "openstrata/gs/GaussianImportLimits.h"
 #include "openstrata/gs/testing/CloudContract.h"
 
 #include <cmath>
@@ -59,6 +60,13 @@ void TestShLayout()
     CHECK(gs::InferShDegree(4, &degree) && degree == 1);
     CHECK(gs::InferShDegree(16, &degree) && degree == 3);
     CHECK(!gs::InferShDegree(15, &degree));
+}
+
+void TestImportLimits()
+{
+    CHECK(gs::IsGaussianCountWithinLimit(5'834'784));
+    CHECK(gs::IsGaussianCountWithinLimit(gs::kMaxGaussianCount));
+    CHECK(!gs::IsGaussianCountWithinLimit(gs::kMaxGaussianCount + 1));
 }
 
 void TestValidation()
@@ -225,6 +233,7 @@ int main()
 {
     TestTransforms();
     TestShLayout();
+    TestImportLimits();
     TestValidation();
     TestFlipYZAxes();
     TestCloudContractChecker();

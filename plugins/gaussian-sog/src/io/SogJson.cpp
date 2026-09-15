@@ -12,9 +12,8 @@ namespace openstrata::gs::sog {
 namespace {
 
 class Parser {
-public:
-    Parser(const char* data, std::size_t size)
-        : _data(data), _size(size)
+  public:
+    Parser(const char* data, std::size_t size) : _data(data), _size(size)
     {
         // num_get under the classic locale: the decimal separator is '.'
         // regardless of the host's global locale.
@@ -37,11 +36,17 @@ public:
         return true;
     }
 
-private:
+  private:
     // --- lexing -------------------------------------------------------------
 
-    bool AtEnd() const noexcept { return _position >= _size; }
-    char Peek() const noexcept { return _data[_position]; }
+    bool AtEnd() const noexcept
+    {
+        return _position >= _size;
+    }
+    char Peek() const noexcept
+    {
+        return _data[_position];
+    }
 
     void SkipWhitespace() noexcept
     {
@@ -92,9 +97,14 @@ private:
 
     bool ParseValue(JsonValue* out, std::size_t depth)
     {
+        if (_tokens >= kJsonMaxTokens) {
+            return Fail("JSON value count exceeds the " +
+                        std::to_string(kJsonMaxTokens) + "-token limit");
+        }
+        ++_tokens;
         if (depth > kJsonMaxDepth) {
-            return Fail("nesting deeper than " +
-                std::to_string(kJsonMaxDepth) + " levels");
+            return Fail("nesting deeper than " + std::to_string(kJsonMaxDepth) +
+                        " levels");
         }
         if (AtEnd()) {
             return Fail("unexpected end of document");
@@ -247,7 +257,8 @@ private:
             if (AtEnd()) {
                 return Fail("unterminated string");
             }
-            const unsigned char c = static_cast<unsigned char>(_data[_position++]);
+            const unsigned char c =
+                static_cast<unsigned char>(_data[_position++]);
             if (c == '"') {
                 return true;
             }
@@ -263,14 +274,30 @@ private:
             }
             const char escape = _data[_position++];
             switch (escape) {
-            case '"': out->push_back('"'); break;
-            case '\\': out->push_back('\\'); break;
-            case '/': out->push_back('/'); break;
-            case 'b': out->push_back('\b'); break;
-            case 'f': out->push_back('\f'); break;
-            case 'n': out->push_back('\n'); break;
-            case 'r': out->push_back('\r'); break;
-            case 't': out->push_back('\t'); break;
+            case '"':
+                out->push_back('"');
+                break;
+            case '\\':
+                out->push_back('\\');
+                break;
+            case '/':
+                out->push_back('/');
+                break;
+            case 'b':
+                out->push_back('\b');
+                break;
+            case 'f':
+                out->push_back('\f');
+                break;
+            case 'n':
+                out->push_back('\n');
+                break;
+            case 'r':
+                out->push_back('\r');
+                break;
+            case 't':
+                out->push_back('\t');
+                break;
             case 'u': {
                 std::uint32_t code = 0;
                 if (!ParseHex4(&code)) {
@@ -365,6 +392,7 @@ private:
     const char* _data;
     std::size_t _size;
     std::size_t _position = 0;
+    std::size_t _tokens = 0;
     std::string _message;
     std::istringstream _numbers;
 };
@@ -384,11 +412,8 @@ const JsonValue* JsonValue::Find(const std::string& key) const noexcept
     return nullptr;
 }
 
-bool ParseJson(
-    const char* data,
-    std::size_t size,
-    JsonValue* out,
-    std::string* error)
+bool ParseJson(const char* data, std::size_t size, JsonValue* out,
+               std::string* error)
 {
     if (!out || (!data && size != 0)) {
         if (error) {

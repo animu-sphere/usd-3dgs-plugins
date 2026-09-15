@@ -3,6 +3,7 @@
 
 #include "io/GaussianSogDiagnostics.h"
 #include "io/SogJson.h"
+#include "openstrata/gs/GaussianImportLimits.h"
 #include "openstrata/gs/GaussianSizeMath.h"
 
 #include "miniz.h"
@@ -34,10 +35,10 @@ constexpr int kSupportedVersion = 2;
 constexpr std::size_t kCodebookSize = 256;
 // Palette centroids are laid out 64 per row (SOG_MAPPING.md §6).
 constexpr std::size_t kShCentroidsPerRow = 64;
-// Mirrors the SPZ container's INT32_MAX bound: every derived size then stays
-// trivially inside 64 bits, and the per-plane `count <= width*height` check
-// below is the tighter constraint in practice anyway.
-constexpr std::size_t kMaxGaussianCount = 0x7fffffff;
+// Preserve the SOG container's historical representable-count diagnostic for
+// values outside the source format's integer range; the shared import ceiling
+// below is the tighter safety policy for otherwise representable counts.
+constexpr std::size_t kFormatMaxGaussianCount = 0x7fffffff;
 // `meta.json` is a handful of small objects plus three 256-entry codebooks —
 // tens of kilobytes. The cap exists so a hostile or misnamed file cannot make
 // the parser allocate without bound; it is orders of magnitude above any real
@@ -51,6 +52,12 @@ constexpr std::size_t kCanReadPrefixLimit = 1024 * 1024;
 // the compressed entry that produces it is far smaller. The cap bounds what a
 // declared uncompressed size may make this reader allocate.
 constexpr std::uint64_t kMaxPlaneBytes = 512ull * 1024ull * 1024ull;
+constexpr std::size_t kMaxPlaneDimension = 16383;
+constexpr std::uint64_t kMaxZipArchiveBytes =
+    1ull * 1024ull * 1024ull * 1024ull;
+constexpr std::size_t kMaxZipEntryCount = 64;
+constexpr std::uint64_t kMaxZipExpandedBytes =
+    2ull * 1024ull * 1024ull * 1024ull;
 
 // Bare messages become diagnostics here, so a code is chosen at every failure
 // site rather than defaulted.
@@ -88,38 +95,34 @@ std::string FormatIntegral(double value)
     return text.str();
 }
 
-bool LoadFile(
-    const std::string& path,
-    std::size_t limit,
-    std::vector<unsigned char>* out,
-    std::uint64_t* fileSize,
-    std::string* error)
+bool LoadFile(const std::string& path, std::size_t limit,
+              std::vector<unsigned char>* out, std::uint64_t* fileSize,
+              std::string* error)
 {
     const Failure fail{error};
     std::ifstream in(path, std::ios::binary | std::ios::ate);
     if (!in) {
         return fail(diag::kUnreadableFile,
-            "The file could not be opened for reading: " + path);
+                    "The file could not be opened for reading: " + path);
     }
     const std::streamoff size = in.tellg();
     if (size < 0) {
         return fail(diag::kUnreadableFile,
-            "The file size could not be determined: " + path);
+                    "The file size could not be determined: " + path);
     }
     *fileSize = static_cast<std::uint64_t>(size);
-    const std::size_t want = static_cast<std::size_t>(
-        std::min<std::uint64_t>(*fileSize, limit));
+    const std::size_t want =
+        static_cast<std::size_t>(std::min<std::uint64_t>(*fileSize, limit));
     if (!TryResize(out, want)) {
-        return fail(diag::kUnreadableFile,
-            "A " + std::to_string(want) + "-byte buffer for '" + path +
-            "' could not be allocated.");
+        return fail(diag::kUnreadableFile, "A " + std::to_string(want) +
+                                               "-byte buffer for '" + path +
+                                               "' could not be allocated.");
     }
     in.seekg(0);
-    if (want != 0 &&
-        !in.read(reinterpret_cast<char*>(out->data()),
-                 static_cast<std::streamsize>(want))) {
+    if (want != 0 && !in.read(reinterpret_cast<char*>(out->data()),
+                              static_cast<std::streamsize>(want))) {
         return fail(diag::kUnreadableFile,
-            "The file could not be read: " + path);
+                    "The file could not be read: " + path);
     }
     return true;
 }
@@ -127,8 +130,8 @@ bool LoadFile(
 bool HasZipSignature(const std::vector<unsigned char>& data) noexcept
 {
     return data.size() >= sizeof kZipSignature &&
-        std::equal(kZipSignature, kZipSignature + sizeof kZipSignature,
-                   data.data());
+           std::equal(kZipSignature, kZipSignature + sizeof kZipSignature,
+                      data.data());
 }
 
 // Distinguishes "this is not a SOG container at all" from "this is a SOG
@@ -157,9 +160,10 @@ bool LooksLikeJsonObject(const std::vector<unsigned char>& data) noexcept
 bool RejectOversizedMetadata(std::uint64_t size, std::string* error)
 {
     return Failure{error}(diag::kMalformedMetadata,
-        "meta.json is " + std::to_string(size) + " bytes, above the " +
-        std::to_string(kMaxMetadataBytes) +
-        "-byte bound for a SOG v2 document.");
+                          "meta.json is " + std::to_string(size) +
+                              " bytes, above the " +
+                              std::to_string(kMaxMetadataBytes) +
+                              "-byte bound for a SOG v2 document.");
 }
 
 // Reads a container whole, under the bound its own layout admits.
@@ -171,12 +175,8 @@ bool RejectOversizedMetadata(std::uint64_t size, std::string* error)
 // multi-gigabyte `.json` from being loaded in full only to be rejected by the
 // parser afterwards. ParseMetaJson keeps its own check as the backstop: the
 // file may grow between the two opens.
-bool LoadContainer(
-    const std::string& path,
-    std::vector<unsigned char>* data,
-    std::uint64_t* fileSize,
-    bool* bundled,
-    std::string* error)
+bool LoadContainer(const std::string& path, std::vector<unsigned char>* data,
+                   std::uint64_t* fileSize, bool* bundled, std::string* error)
 {
     std::vector<unsigned char> prefix;
     std::uint64_t probedSize = 0;
@@ -184,39 +184,88 @@ bool LoadContainer(
         return false;
     }
     *bundled = HasZipSignature(prefix);
-    if (!*bundled && probedSize > kMaxMetadataBytes) {
+    const std::uint64_t maxBytes =
+        *bundled ? kMaxZipArchiveBytes : kMaxMetadataBytes;
+    if (probedSize > maxBytes) {
+        if (*bundled) {
+            return Failure{error}(
+                diag::kImportLimitExceeded,
+                "The .sog archive is " + std::to_string(probedSize) +
+                    " bytes, above the " + std::to_string(maxBytes) +
+                    "-byte archive limit.");
+        }
         return RejectOversizedMetadata(probedSize, error);
     }
-    return LoadFile(path, std::numeric_limits<std::size_t>::max(), data,
-                    fileSize, error);
+    if (!LoadFile(path, static_cast<std::size_t>(maxBytes), data, fileSize,
+                  error)) {
+        return false;
+    }
+    if (*fileSize > maxBytes) {
+        if (*bundled) {
+            return Failure{error}(diag::kImportLimitExceeded,
+                                  "The .sog archive grew beyond the " +
+                                      std::to_string(maxBytes) +
+                                      "-byte archive limit while it was "
+                                      "being read.");
+        }
+        return RejectOversizedMetadata(*fileSize, error);
+    }
+    return true;
 }
 
 std::string DirectoryOf(const std::string& path)
 {
     const std::size_t slash = path.find_last_of("/\\");
-    return slash == std::string::npos ? std::string() : path.substr(0, slash + 1);
+    return slash == std::string::npos ? std::string() :
+                                        path.substr(0, slash + 1);
 }
 
 // The reference decoder for the unbundled layout: the plane sits beside
 // `meta.json`. Plane names are validated before they reach here, so this
 // never composes a path that escapes that directory.
-bool LoadCompanionFromDirectory(
-    const std::string& anchorPath,
-    const std::string& planeName,
-    std::vector<unsigned char>* bytes,
-    std::string* error)
+bool LoadCompanionFromDirectory(const std::string& anchorPath,
+                                const std::string& planeName,
+                                std::vector<unsigned char>* bytes,
+                                std::string* error)
 {
     std::uint64_t size = 0;
     const std::string path = DirectoryOf(anchorPath) + planeName;
-    std::ifstream probe(path, std::ios::binary);
+    std::ifstream probe(path, std::ios::binary | std::ios::ate);
     if (!probe) {
         return Failure{error}(diag::kMissingPlane,
-            "The property plane '" + planeName + "' was not found beside "
-            "meta.json (expected at '" + path + "').");
+                              "The property plane '" + planeName +
+                                  "' was not found beside "
+                                  "meta.json (expected at '" +
+                                  path + "').");
+    }
+    const std::streamoff streamSize = probe.tellg();
+    if (streamSize < 0) {
+        return Failure{error}(diag::kUnreadableFile,
+                              "The size of property plane '" + planeName +
+                                  "' could not be "
+                                  "determined.");
+    }
+    size = static_cast<std::uint64_t>(streamSize);
+    if (size > kMaxPlaneBytes) {
+        return Failure{error}(diag::kImportLimitExceeded,
+                              "The property plane '" + planeName + "' is " +
+                                  std::to_string(size) + " bytes, above the " +
+                                  std::to_string(kMaxPlaneBytes) +
+                                  "-byte input limit.");
     }
     probe.close();
-    return LoadFile(path, std::numeric_limits<std::size_t>::max(), bytes,
-                    &size, error);
+    if (!LoadFile(path, static_cast<std::size_t>(kMaxPlaneBytes), bytes, &size,
+                  error)) {
+        return false;
+    }
+    if (size > kMaxPlaneBytes) {
+        return Failure{error}(diag::kImportLimitExceeded,
+                              "The property plane '" + planeName +
+                                  "' grew beyond the " +
+                                  std::to_string(kMaxPlaneBytes) +
+                                  "-byte input limit while it was being read.");
+    }
+    return true;
 }
 
 // --- meta.json ---------------------------------------------------------------
@@ -229,9 +278,9 @@ bool LoadCompanionFromDirectory(
 bool IsReservedDeviceName(const std::string& name) noexcept
 {
     static constexpr const char* kReserved[] = {
-        "CON", "PRN", "AUX", "NUL",
-        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
+        "CON",  "PRN",  "AUX",  "NUL",  "COM1", "COM2", "COM3", "COM4",
+        "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3",
+        "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
 
     // Only the stem is reserved, and Windows strips trailing spaces and dots
     // before resolving, so "NUL.webp" and "nul " are the device too. Compared
@@ -302,20 +351,20 @@ struct MetaDocument {
     std::string shLabelsFile;
 };
 
-const JsonValue* RequireObject(
-    const JsonValue& parent,
-    const char* key,
-    std::string* error)
+const JsonValue* RequireObject(const JsonValue& parent, const char* key,
+                               std::string* error)
 {
     const JsonValue* value = parent.Find(key);
     if (!value) {
         Failure{error}(diag::kMalformedMetadata,
-            std::string("meta.json has no \"") + key + "\" property.");
+                       std::string("meta.json has no \"") + key +
+                           "\" property.");
         return nullptr;
     }
     if (!value->IsObject()) {
-        Failure{error}(diag::kMalformedMetadata,
-            std::string("meta.json \"") + key + "\" is not an object.");
+        Failure{error}(diag::kMalformedMetadata, std::string("meta.json \"") +
+                                                     key +
+                                                     "\" is not an object.");
         return nullptr;
     }
     return value;
@@ -323,70 +372,62 @@ const JsonValue* RequireObject(
 
 // JSON has one numeric type, so "integer" is a value constraint, not a type:
 // `2.0` is a valid version and `2.5` is not.
-bool RequireIntegral(
-    const JsonValue& parent,
-    const char* key,
-    const char* code,
-    double* out,
-    std::string* error)
+bool RequireIntegral(const JsonValue& parent, const char* key, const char* code,
+                     double* out, std::string* error)
 {
     const Failure fail{error};
     const JsonValue* value = parent.Find(key);
     if (!value) {
         return fail(diag::kMalformedMetadata,
-            std::string("meta.json has no \"") + key + "\" field.");
+                    std::string("meta.json has no \"") + key + "\" field.");
     }
     if (!value->IsNumber()) {
         return fail(diag::kMalformedMetadata,
-            std::string("meta.json \"") + key + "\" is not a number.");
+                    std::string("meta.json \"") + key + "\" is not a number.");
     }
     if (value->number != std::floor(value->number)) {
-        return fail(code,
-            std::string("meta.json \"") + key + "\" is " +
-            std::to_string(value->number) + ", which is not an integer.");
+        return fail(code, std::string("meta.json \"") + key + "\" is " +
+                              std::to_string(value->number) +
+                              ", which is not an integer.");
     }
     *out = value->number;
     return true;
 }
 
-bool RequireFloatArray(
-    const JsonValue& parent,
-    const char* key,
-    std::size_t expected,
-    const char* code,
-    std::vector<float>* out,
-    std::string* error)
+bool RequireFloatArray(const JsonValue& parent, const char* key,
+                       std::size_t expected, const char* code,
+                       std::vector<float>* out, std::string* error)
 {
     const Failure fail{error};
     const JsonValue* value = parent.Find(key);
     if (!value) {
         return fail(code,
-            std::string("meta.json has no \"") + key + "\" array.");
+                    std::string("meta.json has no \"") + key + "\" array.");
     }
     if (!value->IsArray() || value->items.size() != expected) {
-        return fail(code,
-            std::string("meta.json \"") + key + "\" must be an array of " +
-            std::to_string(expected) + " numbers.");
+        return fail(code, std::string("meta.json \"") + key +
+                              "\" must be an array of " +
+                              std::to_string(expected) + " numbers.");
     }
     if (!TryResize(out, expected)) {
         return fail(diag::kModelAllocationFailed,
-            std::string("The \"") + key + "\" array could not be allocated.");
+                    std::string("The \"") + key +
+                        "\" array could not be allocated.");
     }
     for (std::size_t i = 0; i < expected; ++i) {
         const JsonValue& item = value->items[i];
         if (!item.IsNumber()) {
-            return fail(code,
-                std::string("meta.json \"") + key + "\"[" +
-                std::to_string(i) + "] is not a number.");
+            return fail(code, std::string("meta.json \"") + key + "\"[" +
+                                  std::to_string(i) + "] is not a number.");
         }
         // The parser rejects non-finite JSON numbers, so only a magnitude
         // beyond float range can arrive here.
         const float single = static_cast<float>(item.number);
         if (!std::isfinite(single)) {
-            return fail(code,
-                std::string("meta.json \"") + key + "\"[" +
-                std::to_string(i) + "] is outside the range of a 32-bit "
-                "float.");
+            return fail(code, std::string("meta.json \"") + key + "\"[" +
+                                  std::to_string(i) +
+                                  "] is outside the range of a 32-bit "
+                                  "float.");
         }
         (*out)[i] = single;
     }
@@ -395,43 +436,64 @@ bool RequireFloatArray(
 
 // `files` is the plane list of one property: exactly `expected` bare file
 // names, in the documented order.
-bool RequireFiles(
-    const JsonValue& property,
-    const char* propertyName,
-    std::size_t expected,
-    std::vector<std::string>* names,
-    std::string* error)
+bool RequireFiles(const JsonValue& property, const char* propertyName,
+                  std::size_t expected, std::vector<std::string>* names,
+                  std::string* error)
 {
     const Failure fail{error};
     const JsonValue* files = property.Find("files");
     if (!files || !files->IsArray()) {
-        return fail(diag::kMalformedMetadata,
-            std::string("meta.json \"") + propertyName +
-            "\" has no \"files\" array.");
+        return fail(diag::kMalformedMetadata, std::string("meta.json \"") +
+                                                  propertyName +
+                                                  "\" has no \"files\" array.");
     }
     if (files->items.size() != expected) {
-        return fail(diag::kMalformedMetadata,
+        return fail(
+            diag::kMalformedMetadata,
             std::string("meta.json \"") + propertyName + "\".files lists " +
-            std::to_string(files->items.size()) + " file(s); SOG v2 declares " +
-            std::to_string(expected) + ".");
+                std::to_string(files->items.size()) +
+                " file(s); SOG v2 declares " + std::to_string(expected) + ".");
     }
     names->clear();
     for (const JsonValue& item : files->items) {
         if (!item.IsString() || !IsSafePlaneName(item.text)) {
             return fail(diag::kMalformedMetadata,
-                std::string("meta.json \"") + propertyName +
-                "\".files must list plain file names: no directory component, "
-                "and no name reserved for a character device.");
+                        std::string("meta.json \"") + propertyName +
+                            "\".files must list plain file names: no directory "
+                            "component, "
+                            "and no name reserved for a character device.");
         }
         names->push_back(item.text);
     }
     return true;
 }
 
-bool ParseMetaJson(
-    const std::vector<unsigned char>& bytes,
-    MetaDocument* meta,
-    std::string* error)
+bool ValidatePlaneNames(const MetaDocument& meta, std::string* error)
+{
+    const Failure fail{error};
+    const std::string* planeNames[] = {
+        &meta.meansLowFile, &meta.meansHighFile, &meta.scalesFile,
+        &meta.quatsFile,    &meta.sh0File,       &meta.shCentroidsFile,
+        &meta.shLabelsFile,
+    };
+    for (std::size_t i = 0; i < sizeof(planeNames) / sizeof(planeNames[0]);
+         ++i) {
+        if (planeNames[i]->empty()) {
+            continue;
+        }
+        for (std::size_t j = 0; j < i; ++j) {
+            if (*planeNames[i] == *planeNames[j]) {
+                return fail(diag::kMalformedMetadata,
+                            "meta.json names the property plane '" +
+                                *planeNames[i] + "' more than once.");
+            }
+        }
+    }
+    return true;
+}
+
+bool ParseMetaJson(const std::vector<unsigned char>& bytes, MetaDocument* meta,
+                   std::string* error)
 {
     const Failure fail{error};
     if (bytes.size() > kMaxMetadataBytes) {
@@ -443,18 +505,19 @@ bool ParseMetaJson(
     if (!ParseJson(reinterpret_cast<const char*>(bytes.data()), bytes.size(),
                    &root, &parseError)) {
         return fail(diag::kMalformedMetadata,
-            "meta.json is not valid JSON: " + parseError + ".");
+                    "meta.json is not valid JSON: " + parseError + ".");
     }
     if (!root.IsObject()) {
         return fail(diag::kMalformedMetadata,
-            "meta.json is not a JSON object.");
+                    "meta.json is not a JSON object.");
     }
 
     // Version first, so a legacy file is told its version is unsupported
     // rather than that its (differently shaped) contents are malformed.
     const JsonValue* version = root.Find("version");
     if (!version) {
-        return fail(diag::kUnsupportedVersion,
+        return fail(
+            diag::kUnsupportedVersion,
             "meta.json has no \"version\" field, which identifies legacy "
             "SOG v1. This release reads SOG v2; re-export the asset with a "
             "current PlayCanvas SplatTransform or SuperSplat.");
@@ -465,10 +528,11 @@ bool ParseMetaJson(
         return false;
     }
     if (versionNumber != static_cast<double>(kSupportedVersion)) {
-        return fail(diag::kUnsupportedVersion,
+        return fail(
+            diag::kUnsupportedVersion,
             "SOG version " + FormatIntegral(versionNumber) +
-            " is not supported by this release; supported version is " +
-            std::to_string(kSupportedVersion) + ".");
+                " is not supported by this release; supported version is " +
+                std::to_string(kSupportedVersion) + ".");
     }
     meta->metadata.version = kSupportedVersion;
 
@@ -477,18 +541,25 @@ bool ParseMetaJson(
                          error)) {
         return false;
     }
-    if (count < 0.0 || count > static_cast<double>(kMaxGaussianCount)) {
+    if (count < 0.0 || count > static_cast<double>(kFormatMaxGaussianCount)) {
         return fail(diag::kInvalidGaussianCount,
-            "meta.json declares " + FormatIntegral(count) +
-            " Gaussians, outside the supported range 0-" +
-            std::to_string(kMaxGaussianCount) + ".");
+                    "meta.json declares " + FormatIntegral(count) +
+                        " Gaussians, outside the supported range 0-" +
+                        std::to_string(kFormatMaxGaussianCount) + ".");
     }
     if (count == 0.0) {
         // Valid SOG, but the shared model requires at least one Gaussian and
         // this plugin never authors a stage that misrepresents its source
         // (GAUSSIAN_MODEL_CONTRACT.md §3).
-        return fail(diag::kEmptyPointSet,
+        return fail(
+            diag::kEmptyPointSet,
             "meta.json declares zero Gaussians; there is nothing to import.");
+    }
+    if (!IsGaussianCountWithinLimit(static_cast<std::size_t>(count))) {
+        return fail(diag::kImportLimitExceeded,
+                    "meta.json declares " + FormatIntegral(count) +
+                        " Gaussians, above the shared import limit of " +
+                        std::to_string(kMaxGaussianCount) + ".");
     }
     meta->metadata.gaussianCount = static_cast<std::size_t>(count);
 
@@ -537,8 +608,7 @@ bool ParseMetaJson(
         return false;
     }
     if (!RequireFloatArray(*sh0, "codebook", kCodebookSize,
-                           diag::kInvalidCodebook, &meta->sh0Codebook,
-                           error) ||
+                           diag::kInvalidCodebook, &meta->sh0Codebook, error) ||
         !RequireFiles(*sh0, "sh0", 1, &files, error)) {
         return false;
     }
@@ -547,11 +617,11 @@ bool ParseMetaJson(
     // `shN` is optional: a SOG without it is a degree-0 cloud.
     const JsonValue* shN = root.Find("shN");
     if (!shN || shN->IsNull()) {
-        return true;
+        return ValidatePlaneNames(*meta, error);
     }
     if (!shN->IsObject()) {
         return fail(diag::kMalformedMetadata,
-            "meta.json \"shN\" is present but is not an object.");
+                    "meta.json \"shN\" is present but is not an object.");
     }
     double bands = 0.0;
     if (!RequireIntegral(*shN, "bands", diag::kInvalidShBands, &bands, error)) {
@@ -559,21 +629,22 @@ bool ParseMetaJson(
     }
     if (bands < 1.0 || bands > 3.0) {
         return fail(diag::kInvalidShBands,
-            "meta.json declares " + FormatIntegral(bands) +
-            " spherical-harmonic band(s); SOG v2 admits 1-3.");
+                    "meta.json declares " + FormatIntegral(bands) +
+                        " spherical-harmonic band(s); SOG v2 admits 1-3.");
     }
     meta->metadata.shBands = static_cast<int>(bands);
 
     double paletteCount = 0.0;
-    if (!RequireIntegral(*shN, "count", diag::kMalformedMetadata,
-                         &paletteCount, error)) {
+    if (!RequireIntegral(*shN, "count", diag::kMalformedMetadata, &paletteCount,
+                         error)) {
         return false;
     }
     if (paletteCount < 0.0 ||
-        paletteCount > static_cast<double>(kMaxGaussianCount)) {
+        paletteCount > static_cast<double>(kFormatMaxGaussianCount)) {
         return fail(diag::kMalformedMetadata,
-            "meta.json \"shN\".count is " + FormatIntegral(paletteCount) +
-            ", outside the supported range.");
+                    "meta.json \"shN\".count is " +
+                        FormatIntegral(paletteCount) +
+                        ", outside the supported range.");
     }
     meta->shPaletteCount = static_cast<std::size_t>(paletteCount);
 
@@ -584,7 +655,7 @@ bool ParseMetaJson(
     }
     meta->shCentroidsFile = files[0];
     meta->shLabelsFile = files[1];
-    return true;
+    return ValidatePlaneNames(*meta, error);
 }
 
 // --- WebP planes -------------------------------------------------------------
@@ -593,31 +664,39 @@ bool ParseMetaJson(
 // A lossy plane is rejected rather than decoded approximately: SOG property
 // images are lossless by specification and lossy positions would be silently
 // wrong (SOG_FORMAT.md §3).
-bool DecodePlane(
-    const std::vector<unsigned char>& bytes,
-    const std::string& name,
-    SogPlane* plane,
-    std::string* error)
+bool DecodePlane(const std::vector<unsigned char>& bytes,
+                 const std::string& name, SogPlane* plane, std::string* error)
 {
     const Failure fail{error};
     WebPBitstreamFeatures features;
     if (WebPGetFeatures(bytes.data(), bytes.size(), &features) !=
         VP8_STATUS_OK) {
-        return fail(diag::kMalformedPlane,
-            "The property plane '" + name + "' is not a decodable WebP "
-            "image.");
+        return fail(diag::kMalformedPlane, "The property plane '" + name +
+                                               "' is not a decodable WebP "
+                                               "image.");
     }
     // WebPBitstreamFeatures::format is 1 for lossy, 2 for lossless, 0 for an
     // undefined or mixed source.
     if (features.format != 2) {
-        return fail(diag::kMalformedPlane,
-            "The property plane '" + name + "' is not lossless WebP; SOG "
-            "property images are lossless by specification, and a lossy "
-            "plane would silently corrupt the values it carries.");
+        return fail(
+            diag::kMalformedPlane,
+            "The property plane '" + name +
+                "' is not lossless WebP; SOG "
+                "property images are lossless by specification, and a lossy "
+                "plane would silently corrupt the values it carries.");
     }
     if (features.width <= 0 || features.height <= 0) {
-        return fail(diag::kMalformedPlane,
-            "The property plane '" + name + "' declares an empty image.");
+        return fail(diag::kMalformedPlane, "The property plane '" + name +
+                                               "' declares an empty image.");
+    }
+    if (static_cast<std::size_t>(features.width) > kMaxPlaneDimension ||
+        static_cast<std::size_t>(features.height) > kMaxPlaneDimension) {
+        return fail(
+            diag::kImportLimitExceeded,
+            "The property plane '" + name + "' declares " +
+                std::to_string(features.width) + "x" +
+                std::to_string(features.height) + " pixels, above the " +
+                std::to_string(kMaxPlaneDimension) + "-pixel dimension limit.");
     }
 
     std::size_t texels = 0;
@@ -626,21 +705,23 @@ bool DecodePlane(
                         static_cast<std::size_t>(features.height), &texels) ||
         !CheckedMulSize(texels, 4, &byteCount)) {
         return fail(diag::kMalformedPlane,
-            "The property plane '" + name + "' declares dimensions whose "
-            "decoded size is not addressable on this platform.");
+                    "The property plane '" + name +
+                        "' declares dimensions whose "
+                        "decoded size is not addressable on this platform.");
     }
     if (!TryResize(&plane->rgba, byteCount)) {
         return fail(diag::kModelAllocationFailed,
-            "A " + std::to_string(byteCount) + "-byte buffer for the "
-            "property plane '" + name + "' could not be allocated.");
+                    "A " + std::to_string(byteCount) +
+                        "-byte buffer for the "
+                        "property plane '" +
+                        name + "' could not be allocated.");
     }
     if (!WebPDecodeRGBAInto(bytes.data(), bytes.size(), plane->rgba.data(),
-                            plane->rgba.size(),
-                            features.width * 4)) {
+                            plane->rgba.size(), features.width * 4)) {
         plane->rgba.clear();
-        return fail(diag::kMalformedPlane,
-            "The property plane '" + name + "' could not be decoded; its "
-            "WebP bitstream is corrupt.");
+        return fail(diag::kMalformedPlane, "The property plane '" + name +
+                                               "' could not be decoded; its "
+                                               "WebP bitstream is corrupt.");
     }
     plane->width = static_cast<std::uint32_t>(features.width);
     plane->height = static_cast<std::uint32_t>(features.height);
@@ -650,24 +731,23 @@ bool DecodePlane(
 // Every per-Gaussian plane is indexed `i = x + y*width` with its own width, so
 // planes need not agree on dimensions — each one only has to hold `count`
 // texels (SOG_MAPPING.md §2).
-bool CheckPerGaussianPlane(
-    const SogPlane& plane,
-    std::size_t count,
-    const std::string& name,
-    std::string* error)
+bool CheckPerGaussianPlane(const SogPlane& plane, std::size_t count,
+                           const std::string& name, std::string* error)
 {
     std::size_t texels = 0;
     if (!CheckedMulSize(plane.width, plane.height, &texels)) {
         return Failure{error}(diag::kMalformedPlane,
-            "The property plane '" + name + "' declares an unusable size.");
+                              "The property plane '" + name +
+                                  "' declares an unusable size.");
     }
     if (count > texels) {
         return Failure{error}(diag::kInvalidGaussianCount,
-            "meta.json declares " + std::to_string(count) +
-            " Gaussians, but the property plane '" + name + "' holds only " +
-            std::to_string(texels) + " texel(s) (" +
-            std::to_string(plane.width) + "x" + std::to_string(plane.height) +
-            ").");
+                              "meta.json declares " + std::to_string(count) +
+                                  " Gaussians, but the property plane '" +
+                                  name + "' holds only " +
+                                  std::to_string(texels) + " texel(s) (" +
+                                  std::to_string(plane.width) + "x" +
+                                  std::to_string(plane.height) + ").");
     }
     return true;
 }
@@ -679,7 +759,7 @@ bool CheckPerGaussianPlane(
 // directory is walked once so entry lookup is by name, as the format's own
 // `files` lists address it.
 class ZipArchive {
-public:
+  public:
     ~ZipArchive()
     {
         if (_initialized) {
@@ -687,19 +767,26 @@ public:
         }
     }
 
-    bool Init(
-        const std::vector<unsigned char>& data,
-        std::string* error)
+    bool Init(const std::vector<unsigned char>& data, std::string* error)
     {
         const Failure fail{error};
         _zip = mz_zip_archive{};
         if (!mz_zip_reader_init_mem(&_zip, data.data(), data.size(), 0)) {
-            return fail(diag::kMalformedArchive,
+            return fail(
+                diag::kMalformedArchive,
                 "The .sog archive's ZIP central directory could not be read.");
         }
         _initialized = true;
 
         const mz_uint entries = mz_zip_reader_get_num_files(&_zip);
+        if (entries > kMaxZipEntryCount) {
+            return fail(diag::kImportLimitExceeded,
+                        "The .sog archive contains " + std::to_string(entries) +
+                            " entries, above the " +
+                            std::to_string(kMaxZipEntryCount) +
+                            "-entry limit.");
+        }
+        std::uint64_t expandedBytes = 0;
         for (mz_uint index = 0; index < entries; ++index) {
             if (mz_zip_reader_is_file_a_directory(&_zip, index)) {
                 continue;
@@ -707,8 +794,32 @@ public:
             mz_zip_archive_file_stat stat;
             if (!mz_zip_reader_file_stat(&_zip, index, &stat)) {
                 return fail(diag::kMalformedArchive,
-                    "The .sog archive entry at index " +
-                    std::to_string(index) + " has an unreadable header.");
+                            "The .sog archive entry at index " +
+                                std::to_string(index) +
+                                " has an unreadable header.");
+            }
+            if (stat.m_uncomp_size > kMaxPlaneBytes ||
+                stat.m_uncomp_size >
+                    static_cast<std::uint64_t>(
+                        std::numeric_limits<std::size_t>::max())) {
+                return fail(diag::kImportLimitExceeded,
+                            "The .sog archive entry '" +
+                                std::string(stat.m_filename) +
+                                "' exceeds the per-entry extraction limit.");
+            }
+            if (stat.m_uncomp_size > kMaxZipExpandedBytes - expandedBytes) {
+                return fail(diag::kImportLimitExceeded,
+                            "The .sog archive declares more than " +
+                                std::to_string(kMaxZipExpandedBytes) +
+                                " expanded bytes.");
+            }
+            expandedBytes += stat.m_uncomp_size;
+            for (const auto& entry : _entries) {
+                if (entry.first == stat.m_filename) {
+                    return fail(diag::kMalformedArchive,
+                                "The .sog archive contains duplicate entry '" +
+                                    std::string(stat.m_filename) + "'.");
+                }
             }
             _entries.emplace_back(stat.m_filename, index);
         }
@@ -722,12 +833,9 @@ public:
 
     // Extracts one entry whole. `missingCode` lets the caller distinguish a
     // missing property plane from a ZIP that is not a SOG bundle at all.
-    bool Extract(
-        const std::string& name,
-        const char* missingCode,
-        const std::string& missingMessage,
-        std::vector<unsigned char>* out,
-        std::string* error) const
+    bool Extract(const std::string& name, const char* missingCode,
+                 const std::string& missingMessage,
+                 std::vector<unsigned char>* out, std::string* error) const
     {
         const Failure fail{error};
         const mz_uint* index = Find(name);
@@ -736,34 +844,47 @@ public:
         }
         mz_zip_archive_file_stat stat;
         if (!mz_zip_reader_file_stat(&_zip, *index, &stat)) {
-            return fail(diag::kMalformedArchive,
-                "The .sog archive entry '" + name + "' has an unreadable "
-                "header.");
+            return fail(diag::kMalformedArchive, "The .sog archive entry '" +
+                                                     name +
+                                                     "' has an unreadable "
+                                                     "header.");
         }
         if (stat.m_uncomp_size > kMaxPlaneBytes) {
-            return fail(diag::kMalformedArchive,
-                "The .sog archive entry '" + name + "' declares " +
-                std::to_string(stat.m_uncomp_size) + " uncompressed bytes, "
-                "above the " + std::to_string(kMaxPlaneBytes) + "-byte bound "
-                "this reader will allocate for one entry.");
+            return fail(diag::kImportLimitExceeded,
+                        "The .sog archive entry '" + name + "' declares " +
+                            std::to_string(stat.m_uncomp_size) +
+                            " uncompressed bytes, "
+                            "above the " +
+                            std::to_string(kMaxPlaneBytes) +
+                            "-byte bound "
+                            "this reader will allocate for one entry.");
+        }
+        if (stat.m_uncomp_size > static_cast<std::uint64_t>(
+                                     std::numeric_limits<std::size_t>::max())) {
+            return fail(diag::kImportLimitExceeded,
+                        "The .sog archive entry '" + name +
+                            "' is not addressable on this platform.");
         }
         if (!TryResize(out, static_cast<std::size_t>(stat.m_uncomp_size))) {
             return fail(diag::kModelAllocationFailed,
-                "A " + std::to_string(stat.m_uncomp_size) + "-byte buffer "
-                "for the .sog archive entry '" + name + "' could not be "
-                "allocated.");
+                        "A " + std::to_string(stat.m_uncomp_size) +
+                            "-byte buffer "
+                            "for the .sog archive entry '" +
+                            name +
+                            "' could not be "
+                            "allocated.");
         }
-        if (!out->empty() &&
-            !mz_zip_reader_extract_to_mem(
-                &_zip, *index, out->data(), out->size(), 0)) {
+        if (!out->empty() && !mz_zip_reader_extract_to_mem(
+                                 &_zip, *index, out->data(), out->size(), 0)) {
             return fail(diag::kMalformedArchive,
-                "The .sog archive entry '" + name + "' could not be "
-                "decompressed; its data is corrupt.");
+                        "The .sog archive entry '" + name +
+                            "' could not be "
+                            "decompressed; its data is corrupt.");
         }
         return true;
     }
 
-private:
+  private:
     const mz_uint* Find(const std::string& name) const noexcept
     {
         for (const auto& entry : _entries) {
@@ -786,8 +907,7 @@ private:
 
 SogReader::SogReader(SogCompanionLoader companionLoader)
     : _companionLoader(std::move(companionLoader))
-{
-}
+{}
 
 bool SogReader::CanReadBundled(const std::string& path) const noexcept
 {
@@ -854,15 +974,13 @@ bool SogReader::CanReadUnbundled(const std::string& path) const noexcept
     }
 }
 
-bool SogReader::ReadMetadata(
-    const std::string& path,
-    SogMetadata* metadata,
-    std::string* error) const
+bool SogReader::ReadMetadata(const std::string& path, SogMetadata* metadata,
+                             std::string* error) const
 {
     const Failure fail{error};
     if (!metadata) {
         return fail(diag::kInternalError,
-            "SogReader received a null metadata output.");
+                    "SogReader received a null metadata output.");
     }
 
     std::vector<unsigned char> data;
@@ -879,9 +997,11 @@ bool SogReader::ReadMetadata(
             return false;
         }
         std::vector<unsigned char> metaBytes;
-        if (!archive.Extract(kMetaEntryName, diag::kNotSogContainer,
+        if (!archive.Extract(
+                kMetaEntryName, diag::kNotSogContainer,
                 "The .sog archive contains no 'meta.json' entry, so it is not "
-                "a bundled SOG container.", &metaBytes, error)) {
+                "a bundled SOG container.",
+                &metaBytes, error)) {
             return false;
         }
         if (!ParseMetaJson(metaBytes, &meta, error)) {
@@ -889,7 +1009,8 @@ bool SogReader::ReadMetadata(
         }
     } else {
         if (!LooksLikeJsonObject(data)) {
-            return fail(diag::kNotSogContainer,
+            return fail(
+                diag::kNotSogContainer,
                 "The file is neither a bundled SOG archive (a ZIP holding "
                 "meta.json) nor a SOG meta.json document.");
         }
@@ -902,15 +1023,13 @@ bool SogReader::ReadMetadata(
     return true;
 }
 
-bool SogReader::Read(
-    const std::string& path,
-    SogDocument* document,
-    std::string* error) const
+bool SogReader::Read(const std::string& path, SogDocument* document,
+                     std::string* error) const
 {
     const Failure fail{error};
     if (!document) {
         return fail(diag::kInternalError,
-            "SogReader received a null document output.");
+                    "SogReader received a null document output.");
     }
 
     // Layout detection by content (SOG_FORMAT.md §1): a ZIP signature is the
@@ -928,14 +1047,17 @@ bool SogReader::Read(
         if (!archive.Init(data, error)) {
             return false;
         }
-        if (!archive.Extract(kMetaEntryName, diag::kNotSogContainer,
+        if (!archive.Extract(
+                kMetaEntryName, diag::kNotSogContainer,
                 "The .sog archive contains no 'meta.json' entry, so it is not "
-                "a bundled SOG container.", &metaBytes, error)) {
+                "a bundled SOG container.",
+                &metaBytes, error)) {
             return false;
         }
     } else {
         if (!LooksLikeJsonObject(data)) {
-            return fail(diag::kNotSogContainer,
+            return fail(
+                diag::kNotSogContainer,
                 "The file is neither a bundled SOG archive (a ZIP holding "
                 "meta.json) nor a SOG meta.json document.");
         }
@@ -955,24 +1077,34 @@ bool SogReader::Read(
     result.sh0Codebook = std::move(meta.sh0Codebook);
     result.shCodebook = std::move(meta.shCodebook);
     result.shPaletteCount = meta.shPaletteCount;
-    result.sourceBytes = bundled ? fileSize : static_cast<std::uint64_t>(
-        metaBytes.size());
+    result.sourceBytes =
+        bundled ? fileSize : static_cast<std::uint64_t>(metaBytes.size());
 
     const SogCompanionLoader& companionLoader = _companionLoader;
     const auto loadPlane = [&](const std::string& name, SogPlane* plane) {
         std::vector<unsigned char> bytes;
         if (bundled) {
             if (!archive.Extract(name, diag::kMissingPlane,
-                    "The property plane '" + name + "' declared by meta.json "
-                    "is not in the .sog archive.", &bytes, error)) {
+                                 "The property plane '" + name +
+                                     "' declared by meta.json "
+                                     "is not in the .sog archive.",
+                                 &bytes, error)) {
                 return false;
             }
         } else {
-            const bool loaded = companionLoader
-                ? companionLoader(path, name, &bytes, error)
-                : LoadCompanionFromDirectory(path, name, &bytes, error);
+            const bool loaded =
+                companionLoader ?
+                    companionLoader(path, name, &bytes, error) :
+                    LoadCompanionFromDirectory(path, name, &bytes, error);
             if (!loaded) {
                 return false;
+            }
+            if (bytes.size() > kMaxPlaneBytes) {
+                return Failure{error}(
+                    diag::kImportLimitExceeded,
+                    "The property plane '" + name + "' is " +
+                        std::to_string(bytes.size()) + " bytes, above the " +
+                        std::to_string(kMaxPlaneBytes) + "-byte input limit.");
             }
             result.sourceBytes += bytes.size();
         }
@@ -1011,26 +1143,28 @@ bool SogReader::Read(
         // `y = label / 64` (SOG_MAPPING.md §6), so the plane must be exactly
         // one palette wide and hold every declared centroid row.
         const int bands = result.metadata.shBands;
-        const std::size_t coefficients =
-            static_cast<std::size_t>(bands) * (static_cast<std::size_t>(bands) + 2);
+        const std::size_t coefficients = static_cast<std::size_t>(bands) *
+                                         (static_cast<std::size_t>(bands) + 2);
         const std::size_t expectedWidth = kShCentroidsPerRow * coefficients;
         if (result.shCentroids.width != expectedWidth) {
             return fail(diag::kMalformedPlane,
-                "The spherical-harmonic centroid plane '" +
-                meta.shCentroidsFile + "' is " +
-                std::to_string(result.shCentroids.width) + " texels wide; " +
-                std::to_string(bands) + " band(s) require " +
-                std::to_string(expectedWidth) + ".");
+                        "The spherical-harmonic centroid plane '" +
+                            meta.shCentroidsFile + "' is " +
+                            std::to_string(result.shCentroids.width) +
+                            " texels wide; " + std::to_string(bands) +
+                            " band(s) require " +
+                            std::to_string(expectedWidth) + ".");
         }
         std::size_t centroidCapacity = 0;
         if (!CheckedMulSize(kShCentroidsPerRow, result.shCentroids.height,
                             &centroidCapacity) ||
             result.shPaletteCount > centroidCapacity) {
             return fail(diag::kMalformedPlane,
-                "meta.json declares " + std::to_string(result.shPaletteCount) +
-                " spherical-harmonic palette centroid(s), but '" +
-                meta.shCentroidsFile + "' holds only " +
-                std::to_string(centroidCapacity) + ".");
+                        "meta.json declares " +
+                            std::to_string(result.shPaletteCount) +
+                            " spherical-harmonic palette centroid(s), but '" +
+                            meta.shCentroidsFile + "' holds only " +
+                            std::to_string(centroidCapacity) + ".");
         }
     }
 

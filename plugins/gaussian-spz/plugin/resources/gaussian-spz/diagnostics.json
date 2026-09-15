@@ -87,6 +87,12 @@
             "action": "The derived model size overflowed or its allocation failed; import the asset on a machine with more memory or reduce the asset size. A partial cloud is never loaded."
         },
         {
+            "code": "GSPZ-E015",
+            "severity": "error",
+            "summary": "The SPZ container exceeds a shared import safety limit.",
+            "action": "Reduce the Gaussian count or extension payload before importing the asset."
+        },
+        {
             "code": "GSPZ-E100",
             "severity": "error",
             "summary": "Internal misuse of the import pipeline (null output parameters, inconsistent container spans). Not reachable from file content.",

@@ -51,6 +51,10 @@ public:
 // array); the limit only exists so a hostile file cannot recurse the parser
 // into a stack overflow during format routing.
 inline constexpr std::size_t kJsonMaxDepth = 32;
+// A valid SOG metadata document uses only a few dozen values. The larger
+// bound leaves room for forward-compatible metadata without allowing a small
+// document to create an unbounded JsonValue tree.
+inline constexpr std::size_t kJsonMaxTokens = 100'000;
 
 // Parses `size` bytes as one complete JSON document. Trailing whitespace is
 // allowed, trailing content is not. `error` receives a bare message with no

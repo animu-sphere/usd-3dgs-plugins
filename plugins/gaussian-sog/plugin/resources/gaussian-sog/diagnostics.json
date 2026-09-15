@@ -87,6 +87,12 @@
             "action": "The declared Gaussian count and SH degree need more memory than this process can allocate, or their derived size overflows the platform's address space. Import on a machine with more memory or use a smaller asset."
         },
         {
+            "code": "GSSOG-E016",
+            "severity": "error",
+            "summary": "The SOG metadata, archive, plane, or companion input exceeds a shared import safety limit.",
+            "action": "Reduce the Gaussian count, archive expansion, plane dimensions, or companion payload before importing the asset."
+        },
+        {
             "code": "GSSOG-E100",
             "severity": "error",
             "summary": "Internal import-pipeline error.",
