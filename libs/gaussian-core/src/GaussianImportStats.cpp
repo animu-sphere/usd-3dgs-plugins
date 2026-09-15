@@ -23,6 +23,18 @@ std::string FormatDouble(double value)
 
 } // namespace
 
+const char*
+CoordinateConversionName(GaussianCoordinateConversion conversion) noexcept
+{
+    switch (conversion) {
+    case GaussianCoordinateConversion::None:
+        return "none";
+    case GaussianCoordinateConversion::RdfToRub:
+        return "rdf_to_rub";
+    }
+    return "unknown";
+}
+
 std::uint64_t ComputeDecodedByteSize(const GaussianCloudData& cloud) noexcept
 {
     return static_cast<std::uint64_t>(cloud.positions.size()) * sizeof(Float3) +
@@ -48,8 +60,16 @@ std::string FormatImportStats(const GaussianImportStats& stats)
     if (!stats.sourceVersion.empty()) {
         add("version", '"' + stats.sourceVersion + '"');
     }
+    add("coordinateConversion",
+        '"' +
+            std::string(CoordinateConversionName(stats.coordinateConversion)) +
+            '"');
     add("gaussians", std::to_string(stats.gaussianCount));
     add("shDegree", std::to_string(stats.shDegree));
+    add("rejectedGaussians", std::to_string(stats.rejectedGaussianCount));
+    add("opacityThresholdRejected",
+        std::to_string(stats.opacityThresholdRejectedCount));
+    add("warnings", std::to_string(stats.warningCount));
     add("sourceBytes", std::to_string(stats.sourceBytes));
     add("decodedBytes", std::to_string(stats.decodedBytes));
     if (stats.hasBounds) {

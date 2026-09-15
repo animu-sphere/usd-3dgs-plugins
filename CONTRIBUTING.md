@@ -18,6 +18,19 @@ contract). Without `ost`, the plain CMake path in
 [docs/guides/BUILDING.md](docs/guides/BUILDING.md) builds and tests the same
 tree against any OpenUSD 26.05 install.
 
+Check C/C++ formatting before opening a change. The repository uses the root
+`.clang-format` policy and skips generated, vendored, and build output:
+
+```sh
+python scripts/check_clang_format.py --changed
+python scripts/check_clang_format.py --all
+python scripts/check_clang_format.py --all --write
+```
+
+The first command is the pull-request check; the second audits every tracked
+first-party C/C++ file; the third applies the policy. Install `clang-format`
+from the LLVM package for the host platform before running these commands.
+
 Fast iteration on the decoder alone (no USD, no plugin reload):
 
 ```sh

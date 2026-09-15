@@ -1,0 +1,7 @@
+/build/
+/.strata/
+/dist/
+/third_party/
+**/build/
+**/dist/
+**/plugin/resources/*/plugInfo.json

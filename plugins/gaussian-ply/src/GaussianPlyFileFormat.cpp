@@ -165,8 +165,13 @@ GaussianPlyFileFormat::Read(
     if (statsOut) {
         // Import options may have filtered or truncated the decoded cloud;
         // the reported model is the one actually authored.
+        const std::size_t decodedCount = stats.gaussianCount;
         stats.gaussianCount = cloud.gaussianCount;
         stats.shDegree = cloud.shDegree;
+        stats.rejectedGaussianCount = decodedCount - cloud.gaussianCount;
+        stats.opacityThresholdRejectedCount =
+            options.opacityThreshold >= 0.0f ? stats.rejectedGaussianCount : 0;
+        stats.warningCount = warnings.size();
         stats.decodedBytes = openstrata::gs::ComputeDecodedByteSize(cloud);
         stats.hasBounds = openstrata::gs::ComputeCloudExtent(
             cloud.positions.data(), cloud.scales.data(), cloud.gaussianCount,

@@ -192,10 +192,13 @@ travel *beside* the model, never in it:
 - the count and SH degree used for metadata-only authoring
   (design policy §12.3);
 - the per-import statistics record `GaussianImportStats`
-  (`openstrata/gs/GaussianImportStats.h`): source format and version, counts,
-  byte sizes, bounds, and per-stage timings, filled by the decoder and the
-  file-format plugin and emitted through each bundle's
-  `TF_DEBUG=GS*_IMPORT_STATS` flag.
+  (`openstrata/gs/GaussianImportStats.h`): source format and version, fixed
+  coordinate conversion, authored count and SH degree, user-filter rejection
+  counts (including opacity-threshold filtering), warning-message count, byte
+  sizes, bounds, and per-stage timings. Decoders fill source facts; the
+  file-format plugin adds user-filter and authoring facts, then emits the
+  record through the bundle's `TF_DEBUG=GS*_IMPORT_STATS` flag. The stable
+  `key=value` line from `FormatImportStats` is shared by PLY, SPZ, and SOG.
 
 Anything whose presence would alter the meaning of a model array — axis hints,
 unit scales, quantization tables, format version switches — must not be

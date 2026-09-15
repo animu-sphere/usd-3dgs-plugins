@@ -558,8 +558,10 @@ bool GaussianPlyDecoder::Decode(
     if (stats) {
         stats->sourceFormat = kSourceFormatToken;
         stats->sourceVersion = header.binary ? "binary_little_endian" : "ascii";
+        stats->coordinateConversion = GaussianCoordinateConversion::RdfToRub;
         stats->gaussianCount = result.gaussianCount;
         stats->shDegree = result.shDegree;
+        stats->warningCount = warnings ? warnings->size() : 0;
         stats->sourceBytes = FileSizeOf(path);
         stats->decodedBytes = ComputeDecodedByteSize(result);
         stats->readSeconds = readSeconds;

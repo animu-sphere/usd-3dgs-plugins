@@ -430,8 +430,13 @@ void TestImportStats()
     CHECK(decoder.Decode(path, &cloud, &warnings, &error, &stats));
     CHECK(stats.sourceFormat == gs::ply::kSourceFormatToken);
     CHECK(stats.sourceVersion == "ascii");
+    CHECK(stats.coordinateConversion ==
+          gs::GaussianCoordinateConversion::RdfToRub);
     CHECK(stats.gaussianCount == cloud.gaussianCount);
     CHECK(stats.shDegree == cloud.shDegree);
+    CHECK(stats.rejectedGaussianCount == 0);
+    CHECK(stats.opacityThresholdRejectedCount == 0);
+    CHECK(stats.warningCount == warnings.size());
     CHECK(stats.sourceBytes ==
         static_cast<std::uint64_t>(std::filesystem::file_size(path)));
     CHECK(stats.decodedBytes == gs::ComputeDecodedByteSize(cloud));

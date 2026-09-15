@@ -151,6 +151,7 @@ GaussianSpzFileFormat::Read(
     }
 
     if (statsOut) {
+        stats.warningCount = warnings.size();
         stats.hasBounds = openstrata::gs::ComputeCloudExtent(
             cloud.positions.data(), cloud.scales.data(), cloud.gaussianCount,
             &stats.boundsMinimum, &stats.boundsMaximum);

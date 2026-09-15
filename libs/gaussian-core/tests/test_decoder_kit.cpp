@@ -369,8 +369,12 @@ void TestImportStatsSeam()
     gs::GaussianImportStats stats;
     stats.sourceFormat = "MockSplat";
     stats.sourceVersion = "1";
+    stats.coordinateConversion = gs::GaussianCoordinateConversion::RdfToRub;
     stats.gaussianCount = cloud.gaussianCount;
     stats.shDegree = cloud.shDegree;
+    stats.rejectedGaussianCount = 2;
+    stats.opacityThresholdRejectedCount = 2;
+    stats.warningCount = 1;
     stats.sourceBytes = 1234;
     stats.decodedBytes = gs::ComputeDecodedByteSize(cloud);
     stats.readSeconds = 0.25;
@@ -384,8 +388,13 @@ void TestImportStatsSeam()
     const std::string line = gs::FormatImportStats(stats);
     CHECK(line.find("format=\"MockSplat\"") != std::string::npos);
     CHECK(line.find("version=\"1\"") != std::string::npos);
+    CHECK(line.find("coordinateConversion=\"rdf_to_rub\"") !=
+          std::string::npos);
     CHECK(line.find("gaussians=3") != std::string::npos);
     CHECK(line.find("shDegree=3") != std::string::npos);
+    CHECK(line.find("rejectedGaussians=2") != std::string::npos);
+    CHECK(line.find("opacityThresholdRejected=2") != std::string::npos);
+    CHECK(line.find("warnings=1") != std::string::npos);
     CHECK(line.find("sourceBytes=1234") != std::string::npos);
     CHECK(line.find("decodedBytes=" + std::to_string(expectedBytes)) !=
         std::string::npos);

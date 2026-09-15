@@ -240,8 +240,13 @@ void TestImportStats()
         Fixture("kit-multi-degree3.sog"), &cloud, nullptr, &error, &stats));
     CHECK(stats.sourceFormat == gssog::kSourceFormatToken);
     CHECK(stats.sourceVersion == "2");
+    CHECK(stats.coordinateConversion ==
+          gs::GaussianCoordinateConversion::RdfToRub);
     CHECK(stats.gaussianCount == 3);
     CHECK(stats.shDegree == 3);
+    CHECK(stats.rejectedGaussianCount == 0);
+    CHECK(stats.opacityThresholdRejectedCount == 0);
+    CHECK(stats.warningCount == 0);
     CHECK(stats.sourceBytes > 0);
     CHECK(stats.decodedBytes == gs::ComputeDecodedByteSize(cloud));
     CHECK(stats.readSeconds >= 0.0);
@@ -249,6 +254,12 @@ void TestImportStats()
     // Bounds and the authoring time belong to the caller, not the decoder.
     CHECK(!stats.hasBounds);
     CHECK(stats.authorSeconds == 0.0);
+
+    std::vector<std::string> warnings;
+    CHECK(gssog::GaussianSogDecoder().Decode(
+        Fixture("labels-out-of-range.sog"), &cloud, &warnings, &error, &stats));
+    CHECK(stats.warningCount == warnings.size());
+    CHECK(stats.warningCount == 1);
 }
 
 // A label past meta.shN.count has no centroid: those Gaussians decode with
