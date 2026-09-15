@@ -271,12 +271,12 @@ real environments and package paths were actually verified.
 - ✅ Update the README's v0.5.0 state to released.
 - ✅ Update the status in `docs/releases/v0.5.0.md`.
 - ⬜ Synchronize the capability matrix with hosted-verification evidence.
-- ⬜ Add the shortest binary-install path to the README.
-- ⬜ Add bundled and unbundled SOG usage examples.
+- ✅ Add the shortest binary-install path to the README.
+- ✅ Add bundled and unbundled SOG usage examples.
 
 ### Next
 
-- ⬜ Measure the SOG performance baseline.
+- ✅ Measure the SOG performance baseline.
 - ⬜ Confirm the package-consumer smoke test.
 - ✅ Add SOG, PLY, and SPZ usdview screenshots or an equivalent visual example.
 - ⬜ Document manual release-artifact verification.

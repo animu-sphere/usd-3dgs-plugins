@@ -5,7 +5,7 @@ Run one asset per process: peak resident memory is a process-lifetime
 figure, so batching assets in one interpreter would attribute the largest
 asset's peak to every later row.
 
-    python benchmark_import.py <asset.ply|asset.spz> [--json]
+    python benchmark_import.py <asset.ply|asset.spz|asset.sog> [--json]
 
 The measured path is the `SdfFileFormat` seam, which is identical for every
 bundle, so this tool is format-agnostic: the file format is resolved from the
