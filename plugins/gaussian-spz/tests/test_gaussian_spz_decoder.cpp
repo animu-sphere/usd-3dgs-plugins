@@ -20,11 +20,13 @@ namespace {
 
 int failures = 0;
 
-#define CHECK(expr) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
 std::string Fixture(const char* name)
 {
@@ -47,7 +49,8 @@ void CheckClose(float actual, float expected, float tolerance, const char* what)
 
 void CheckContract(const gs::GaussianCloudData& cloud)
 {
-    for (const std::string& violation : gs::testing::CheckCloudContract(cloud)) {
+    for (const std::string& violation :
+         gs::testing::CheckCloudContract(cloud)) {
         std::cerr << "contract: " << violation << "\n";
         ++failures;
     }
@@ -63,8 +66,8 @@ void TestDegree1FullPipeline()
     gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     std::string error;
-    CHECK(decoder.Decode(
-        Fixture("decode-degree1-v2.spz"), &cloud, &warnings, &error));
+    CHECK(decoder.Decode(Fixture("decode-degree1-v2.spz"), &cloud, &warnings,
+                         &error));
     CHECK(error.empty());
     CHECK(warnings.empty());
     CheckContract(cloud);
@@ -126,11 +129,11 @@ void TestDegree1FullPipeline()
     for (std::size_t i = 0; i < expectedRest.size(); ++i) {
         const std::string at = "rest[" + std::to_string(i) + "]";
         CheckClose(cloud.restCoefficients[i].x, expectedRest[i].x, 0.01f,
-            (at + ".r").c_str());
+                   (at + ".r").c_str());
         CheckClose(cloud.restCoefficients[i].y, expectedRest[i].y, 0.01f,
-            (at + ".g").c_str());
+                   (at + ".g").c_str());
         CheckClose(cloud.restCoefficients[i].z, expectedRest[i].z, 0.01f,
-            (at + ".b").c_str());
+                   (at + ".b").c_str());
     }
 }
 
@@ -153,8 +156,8 @@ void TestDegree3ShStride()
     const gsspz::GaussianSpzDecoder decoder;
     gs::GaussianCloudData cloud;
     std::string error;
-    CHECK(decoder.Decode(
-        Fixture("decode-degree3-v2.spz"), &cloud, nullptr, &error));
+    CHECK(decoder.Decode(Fixture("decode-degree3-v2.spz"), &cloud, nullptr,
+                         &error));
     CHECK(error.empty());
     CheckContract(cloud);
     CHECK(cloud.gaussianCount == 2);
@@ -170,9 +173,8 @@ void TestDegree3ShStride()
         for (std::size_t k = 0; k < 15; ++k) {
             const gs::Float3 source = SourceShTriple(point, k);
             const gs::Float3& decoded = cloud.restCoefficients[point * 15 + k];
-            const std::string at =
-                "degree3 rest[" + std::to_string(point) + "][" +
-                std::to_string(k) + "]";
+            const std::string at = "degree3 rest[" + std::to_string(point) +
+                                   "][" + std::to_string(k) + "]";
             CheckClose(decoded.x, source.x, 1e-4f, (at + ".r").c_str());
             CheckClose(decoded.y, source.y, 1e-4f, (at + ".g").c_str());
             CheckClose(decoded.z, source.z, 1e-4f, (at + ".b").c_str());
@@ -221,7 +223,8 @@ void TestVersion3SmallestThreeRotation()
 
     // Source quaternion (w,x,y,z) = normalize(0.2, 0.8, 0.4, 0.4). The
     // 10-bit encoding is coarser than v2, so the tolerance is wider.
-    const float norm = std::sqrt(0.2f * 0.2f + 0.8f * 0.8f + 0.4f * 0.4f + 0.4f * 0.4f);
+    const float norm =
+        std::sqrt(0.2f * 0.2f + 0.8f * 0.8f + 0.4f * 0.4f + 0.4f * 0.4f);
     CheckClose(cloud.rotations[0].real, 0.2f / norm, 2e-2f, "v3 rot.w");
     CheckClose(cloud.rotations[0].i, 0.8f / norm, 2e-2f, "v3 rot.x");
     CheckClose(cloud.rotations[0].j, 0.4f / norm, 2e-2f, "v3 rot.y");
@@ -233,16 +236,16 @@ void TestMetadataOnly()
     const gsspz::GaussianSpzDecoder decoder;
     gsspz::GaussianSpzMetadata metadata;
     std::string error;
-    CHECK(decoder.DecodeMetadata(
-        Fixture("decode-degree1-v2.spz"), &metadata, &error));
+    CHECK(decoder.DecodeMetadata(Fixture("decode-degree1-v2.spz"), &metadata,
+                                 &error));
     CHECK(error.empty());
     CHECK(metadata.gaussianCount == 2);
     CHECK(metadata.shDegree == 1);
 
     // Metadata must not promise a decode it would then reject: degree 4 fails
     // here with the same unsupported-degree code as Decode().
-    CHECK(!decoder.DecodeMetadata(
-        Fixture("decode-degree4-v2.spz"), &metadata, &error));
+    CHECK(!decoder.DecodeMetadata(Fixture("decode-degree4-v2.spz"), &metadata,
+                                  &error));
     CHECK(HasCode(error, gsspz::diag::kUnsupportedShDegree));
 }
 
@@ -253,8 +256,8 @@ void TestDecodeFailure(const char* fixture, const char* code)
     std::string error;
     CHECK(!decoder.Decode(Fixture(fixture), &cloud, nullptr, &error));
     if (!HasCode(error, code)) {
-        std::cerr << fixture << ": expected " << code << ", got: "
-                  << error << "\n";
+        std::cerr << fixture << ": expected " << code << ", got: " << error
+                  << "\n";
         ++failures;
     }
 }
@@ -267,14 +270,16 @@ void TestContainerFailuresPropagate()
     TestDecodeFailure("plaintext-v4.spz", gsspz::diag::kUnsupportedVersion);
     TestDecodeFailure("empty-points-v2.spz", gsspz::diag::kEmptyPointSet);
     TestDecodeFailure("not-spz.spz", gsspz::diag::kNotSpzContainer);
-    TestDecodeFailure(
-        "truncated-payload-v2.spz", gsspz::diag::kTruncatedContainer);
+    TestDecodeFailure("truncated-payload-v2.spz",
+                      gsspz::diag::kTruncatedContainer);
 }
 
 void TestSemanticFailures()
 {
-    TestDecodeFailure("decode-degree4-v2.spz", gsspz::diag::kUnsupportedShDegree);
-    TestDecodeFailure("decode-nonfinite-v1.spz", gsspz::diag::kNonFinitePosition);
+    TestDecodeFailure("decode-degree4-v2.spz",
+                      gsspz::diag::kUnsupportedShDegree);
+    TestDecodeFailure("decode-nonfinite-v1.spz",
+                      gsspz::diag::kNonFinitePosition);
 }
 
 void TestWarningsForIgnoredData()
@@ -285,16 +290,16 @@ void TestWarningsForIgnoredData()
     std::string error;
     // extensions-v2.spz is antialiased (0x1) + extensions (0x2); both are
     // ignored with a warning, and neither prevents a successful decode.
-    CHECK(decoder.Decode(
-        Fixture("extensions-v2.spz"), &cloud, &warnings, &error));
+    CHECK(decoder.Decode(Fixture("extensions-v2.spz"), &cloud, &warnings,
+                         &error));
     CHECK(error.empty());
     bool sawExtensions = false;
     bool sawAntialiased = false;
     for (const std::string& warning : warnings) {
-        sawExtensions = sawExtensions ||
-            HasCode(warning, gsspz::diag::kExtensionsIgnored);
+        sawExtensions =
+            sawExtensions || HasCode(warning, gsspz::diag::kExtensionsIgnored);
         sawAntialiased = sawAntialiased ||
-            HasCode(warning, gsspz::diag::kAntialiasedFlagIgnored);
+                         HasCode(warning, gsspz::diag::kAntialiasedFlagIgnored);
     }
     CHECK(sawExtensions);
     CHECK(sawAntialiased);
@@ -331,7 +336,7 @@ void TestImportStats()
     CHECK(stats.opacityThresholdRejectedCount == 0);
     CHECK(stats.warningCount == warnings.size());
     CHECK(stats.sourceBytes ==
-        static_cast<std::uint64_t>(std::filesystem::file_size(path)));
+          static_cast<std::uint64_t>(std::filesystem::file_size(path)));
     CHECK(stats.decodedBytes == gs::ComputeDecodedByteSize(cloud));
     CHECK(stats.readSeconds >= 0.0 && stats.decodeSeconds >= 0.0);
     // The decoder does not time authoring and does not compute bounds; both
@@ -346,8 +351,8 @@ void TestImportStats()
     CHECK(stats.warningCount > 0);
 
     gs::GaussianImportStats v3Stats;
-    CHECK(decoder.Decode(
-        Fixture("decode-v3.spz"), &cloud, &warnings, &error, &v3Stats));
+    CHECK(decoder.Decode(Fixture("decode-v3.spz"), &cloud, &warnings, &error,
+                         &v3Stats));
     CHECK(v3Stats.sourceVersion == "3");
 }
 

@@ -19,8 +19,14 @@ struct SpzHeader {
     std::uint8_t flags = 0;
     std::uint8_t reserved = 0;
 
-    bool IsAntialiased() const noexcept { return (flags & 0x01) != 0; }
-    bool HasExtensions() const noexcept { return (flags & 0x02) != 0; }
+    bool IsAntialiased() const noexcept
+    {
+        return (flags & 0x01) != 0;
+    }
+    bool HasExtensions() const noexcept
+    {
+        return (flags & 0x02) != 0;
+    }
 
     // Per-point byte widths are fixed by the container version: v1 stores
     // float16 positions, v2+ 24-bit fixed point; v1-v2 store three 8-bit
@@ -80,7 +86,7 @@ struct SpzPackedDocument {
 // Errors carry stable GSPZ-**** container diagnostics. The reader performs no
 // semantic dequantization and constructs no USD objects.
 class SpzReader {
-public:
+  public:
     // Signature-only routing decision (design policy §7.6): true for a
     // plaintext NGSP container at offset 0 (the v4 layout) or a gzip member
     // whose first 16 decompressed bytes carry the SPZ magic. The version is
@@ -92,15 +98,11 @@ public:
     // it, plus a compressed-size plausibility bound on the declared point
     // count. It never touches the attribute streams, so a valid header with a
     // truncated or corrupt body succeeds here and fails in Read().
-    bool ReadHeader(
-        const std::string& path,
-        SpzHeader* header,
-        std::string* error = nullptr) const;
+    bool ReadHeader(const std::string& path, SpzHeader* header,
+                    std::string* error = nullptr) const;
 
-    bool Read(
-        const std::string& path,
-        SpzPackedDocument* document,
-        std::string* error = nullptr) const;
+    bool Read(const std::string& path, SpzPackedDocument* document,
+              std::string* error = nullptr) const;
 };
 
 } // namespace openstrata::gs::spz

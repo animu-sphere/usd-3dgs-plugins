@@ -12,7 +12,7 @@ namespace {
 bool IsFinite(const Float3& value) noexcept
 {
     return std::isfinite(value.x) && std::isfinite(value.y) &&
-        std::isfinite(value.z);
+           std::isfinite(value.z);
 }
 
 void SetError(std::string* error, const char* message) noexcept
@@ -50,14 +50,11 @@ bool DecodeLogScale(const Float3& stored, Float3* actual) noexcept
         std::exp(stored.z),
     };
     return IsFinite(*actual) && actual->x > 0.0f && actual->y > 0.0f &&
-        actual->z > 0.0f;
+           actual->z > 0.0f;
 }
 
-bool NormalizeQuaternion(
-    const Quaternion& stored,
-    Quaternion* normalized,
-    bool* replacedWithIdentity,
-    bool* changed) noexcept
+bool NormalizeQuaternion(const Quaternion& stored, Quaternion* normalized,
+                         bool* replacedWithIdentity, bool* changed) noexcept
 {
     if (replacedWithIdentity) {
         *replacedWithIdentity = false;
@@ -124,9 +121,9 @@ namespace {
 // reference flipSh basis {y, z, x, xy, yz, zz, xz, xx-yy, ...} evaluated at
 // (x, y, z) = (+1, -1, -1); the derivation is recorded in ADR 0001.
 constexpr float kShFlipYZ[15] = {
-    -1.0f, -1.0f, +1.0f,                       // band 1: y, z, x
-    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,         // band 2: xy, yz, zz, xz, xx-yy
-    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
+    -1.0f, -1.0f, +1.0f,                      // band 1: y, z, x
+    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,        // band 2: xy, yz, zz, xz, xx-yy
+    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f, // band 3
     +1.0f,
 };
 
@@ -155,9 +152,9 @@ void FlipYZAxes(GaussianCloudData* cloud) noexcept
         rotation.k = -rotation.k;
     }
     const std::size_t restPerGaussian =
-        cloud->gaussianCount == 0 || cloud->restCoefficients.empty()
-            ? 0
-            : cloud->restCoefficients.size() / cloud->gaussianCount;
+        cloud->gaussianCount == 0 || cloud->restCoefficients.empty() ?
+            0 :
+            cloud->restCoefficients.size() / cloud->gaussianCount;
     // Defensive: a rest layout the table cannot index (empty, or wider than
     // kMaxShDegree admits) is left unflipped, while positions and rotations
     // are already negated. That half-converted cloud is safe only because
@@ -177,29 +174,24 @@ void FlipYZAxes(GaussianCloudData* cloud) noexcept
     }
 }
 
-bool ComputeCloudExtent(
-    const Float3* positions,
-    const Float3* scales,
-    std::size_t count,
-    Float3* outMinimum,
-    Float3* outMaximum) noexcept
+bool ComputeCloudExtent(const Float3* positions, const Float3* scales,
+                        std::size_t count, Float3* outMinimum,
+                        Float3* outMaximum) noexcept
 {
     if (!positions || !scales || count == 0 || !outMinimum || !outMaximum) {
         return false;
     }
-    Float3 minimum = {
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max()};
-    Float3 maximum = {
-        -std::numeric_limits<float>::max(),
-        -std::numeric_limits<float>::max(),
-        -std::numeric_limits<float>::max()};
+    Float3 minimum = {std::numeric_limits<float>::max(),
+                      std::numeric_limits<float>::max(),
+                      std::numeric_limits<float>::max()};
+    Float3 maximum = {-std::numeric_limits<float>::max(),
+                      -std::numeric_limits<float>::max(),
+                      -std::numeric_limits<float>::max()};
     for (std::size_t i = 0; i < count; ++i) {
         const Float3& p = positions[i];
         const Float3& s = scales[i];
-        const double radius = 3.0 * static_cast<double>(
-            std::max({s.x, s.y, s.z}));
+        const double radius =
+            3.0 * static_cast<double>(std::max({s.x, s.y, s.z}));
         if (!std::isfinite(radius) ||
             radius > std::numeric_limits<float>::max()) {
             return false;
@@ -217,9 +209,8 @@ bool ComputeCloudExtent(
     return true;
 }
 
-bool ValidateGaussianCloud(
-    const GaussianCloudData& cloud,
-    std::string* error) noexcept
+bool ValidateGaussianCloud(const GaussianCloudData& cloud,
+                           std::string* error) noexcept
 {
     const std::size_t count = cloud.gaussianCount;
     if (count == 0) {
@@ -244,10 +235,12 @@ bool ValidateGaussianCloud(
         // The message spells the ceiling out because this function is
         // noexcept and composing a string could throw; the assert keeps the
         // text tied to the constant.
-        static_assert(kMaxShDegree == 3,
+        static_assert(
+            kMaxShDegree == 3,
             "update the SH degree validation message when kMaxShDegree "
             "changes");
-        SetError(error, "Gaussian SH degree exceeds the supported maximum of 3.");
+        SetError(error,
+                 "Gaussian SH degree exceeds the supported maximum of 3.");
         return false;
     }
     const std::size_t restPerGaussian = cloud.CoefficientsPerGaussian() - 1;
@@ -261,17 +254,17 @@ bool ValidateGaussianCloud(
         if (!IsFinite(cloud.positions[i]) || !IsFinite(cloud.scales[i]) ||
             cloud.scales[i].x <= 0.0f || cloud.scales[i].y <= 0.0f ||
             cloud.scales[i].z <= 0.0f || !std::isfinite(q.real) ||
-            !std::isfinite(q.i) || !std::isfinite(q.j) ||
-            !std::isfinite(q.k) || !std::isfinite(cloud.opacities[i]) ||
-            cloud.opacities[i] < 0.0f || cloud.opacities[i] > 1.0f ||
-            !IsFinite(cloud.dcCoefficients[i])) {
-            SetError(error, "Gaussian cloud contains an invalid numeric value.");
+            !std::isfinite(q.i) || !std::isfinite(q.j) || !std::isfinite(q.k) ||
+            !std::isfinite(cloud.opacities[i]) || cloud.opacities[i] < 0.0f ||
+            cloud.opacities[i] > 1.0f || !IsFinite(cloud.dcCoefficients[i])) {
+            SetError(error,
+                     "Gaussian cloud contains an invalid numeric value.");
             return false;
         }
         // Decoders normalize (GAUSSIAN_MODEL_CONTRACT.md §3); the gate holds
         // them to it. The tolerance mirrors testing::CheckCloudContract.
-        const float norm = std::sqrt(
-            q.real * q.real + q.i * q.i + q.j * q.j + q.k * q.k);
+        const float norm =
+            std::sqrt(q.real * q.real + q.i * q.i + q.j * q.j + q.k * q.k);
         if (std::fabs(norm - 1.0f) > 1.0e-4f) {
             SetError(error, "Gaussian rotation quaternion is not normalized.");
             return false;
@@ -279,7 +272,8 @@ bool ValidateGaussianCloud(
     }
     for (const Float3& coefficient : cloud.restCoefficients) {
         if (!IsFinite(coefficient)) {
-            SetError(error, "Gaussian SH coefficients contain a non-finite value.");
+            SetError(error,
+                     "Gaussian SH coefficients contain a non-finite value.");
             return false;
         }
     }

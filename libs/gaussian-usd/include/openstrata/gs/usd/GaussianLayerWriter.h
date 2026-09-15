@@ -46,29 +46,25 @@ struct LayerWriterDiagnosticCodes {
 // schema, metadata policy, stage metrics, and default-prim behavior are
 // identical across formats by construction rather than by convention.
 class GaussianLayerWriter {
-public:
+  public:
     explicit GaussianLayerWriter(const LayerWriterDiagnosticCodes& codes)
         : _codes(codes)
-    {
-    }
+    {}
 
-    bool WriteToLayer(
-        GaussianCloudData&& cloud,
-        const std::string& sourceFormat,
-        PXR_NS::SdfLayerRefPtr* outLayer,
-        std::string* error = nullptr) const;
+    bool WriteToLayer(GaussianCloudData&& cloud,
+                      const std::string& sourceFormat,
+                      PXR_NS::SdfLayerRefPtr* outLayer,
+                      std::string* error = nullptr) const;
 
     // Metadata-only authoring (design policy §12.3): the same /Asset and
     // /Asset/Splat structure, stage metrics, custom data, and SH degree, with
     // no per-Gaussian arrays and no extent.
-    bool WriteMetadataToLayer(
-        std::size_t gaussianCount,
-        int shDegree,
-        const std::string& sourceFormat,
-        PXR_NS::SdfLayerRefPtr* outLayer,
-        std::string* error = nullptr) const;
+    bool WriteMetadataToLayer(std::size_t gaussianCount, int shDegree,
+                              const std::string& sourceFormat,
+                              PXR_NS::SdfLayerRefPtr* outLayer,
+                              std::string* error = nullptr) const;
 
-private:
+  private:
     LayerWriterDiagnosticCodes _codes;
 };
 

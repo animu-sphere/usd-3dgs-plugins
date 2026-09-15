@@ -66,11 +66,11 @@ struct Tolerance {
 // (step 1/127.5) with margin.
 constexpr Tolerance kEnvelope{
     "quantization envelope",
-    1.0f / 8192.0f,     // 1.22e-4
-    0.0318f,            // exp(1/32) - 1
-    1.0f / 510.0f,      // 1.96e-3
-    1.0f / 76.5f,       // 1.31e-2
-    1.0f / 256.0f,      // 3.91e-3
+    1.0f / 8192.0f, // 1.22e-4
+    0.0318f,        // exp(1/32) - 1
+    1.0f / 510.0f,  // 1.96e-3
+    1.0f / 76.5f,   // 1.31e-2
+    1.0f / 256.0f,  // 3.91e-3
     8.0e-3f,
 };
 
@@ -81,15 +81,11 @@ constexpr Tolerance kEnvelope{
 // far more tightly. Rotation keeps the envelope value: `first-three` stores w
 // implicitly, so no quaternion round-trips exactly.
 constexpr Tolerance kExact{
-    "exact (on-grid)",
-    1.0e-5f, 1.0e-5f, 1.0e-5f, 1.0e-4f, 1.0e-5f, 8.0e-3f,
+    "exact (on-grid)", 1.0e-5f, 1.0e-5f, 1.0e-5f, 1.0e-4f, 1.0e-5f, 8.0e-3f,
 };
 
-bool Decode(
-    const char* plyFixture,
-    const char* spzFixture,
-    gs::GaussianCloudData* ply,
-    gs::GaussianCloudData* spz)
+bool Decode(const char* plyFixture, const char* spzFixture,
+            gs::GaussianCloudData* ply, gs::GaussianCloudData* spz)
 {
     const gs::ply::GaussianPlyDecoder plyDecoder;
     const gs::spz::GaussianSpzDecoder spzDecoder;
@@ -124,32 +120,30 @@ bool Decode(
     return plyOk && spzOk;
 }
 
-void CompareClouds(
-    const gs::GaussianCloudData& ply,
-    const gs::GaussianCloudData& spz,
-    const Tolerance& tolerance)
+void CompareClouds(const gs::GaussianCloudData& ply,
+                   const gs::GaussianCloudData& spz, const Tolerance& tolerance)
 {
     if (!ShapesAgree(ply, spz)) {
         return; // Sizes disagree; per-element comparison would be noise.
     }
 
     for (std::size_t i = 0; i < ply.gaussianCount; ++i) {
-        CheckClose(ply.positions[i].x, spz.positions[i].x,
-                   tolerance.position, "position.x", i);
-        CheckClose(ply.positions[i].y, spz.positions[i].y,
-                   tolerance.position, "position.y", i);
-        CheckClose(ply.positions[i].z, spz.positions[i].z,
-                   tolerance.position, "position.z", i);
+        CheckClose(ply.positions[i].x, spz.positions[i].x, tolerance.position,
+                   "position.x", i);
+        CheckClose(ply.positions[i].y, spz.positions[i].y, tolerance.position,
+                   "position.y", i);
+        CheckClose(ply.positions[i].z, spz.positions[i].z, tolerance.position,
+                   "position.z", i);
 
-        CheckRelative(ply.scales[i].x, spz.scales[i].x,
-                      tolerance.scaleRelative, "scale.x", i);
-        CheckRelative(ply.scales[i].y, spz.scales[i].y,
-                      tolerance.scaleRelative, "scale.y", i);
-        CheckRelative(ply.scales[i].z, spz.scales[i].z,
-                      tolerance.scaleRelative, "scale.z", i);
+        CheckRelative(ply.scales[i].x, spz.scales[i].x, tolerance.scaleRelative,
+                      "scale.x", i);
+        CheckRelative(ply.scales[i].y, spz.scales[i].y, tolerance.scaleRelative,
+                      "scale.y", i);
+        CheckRelative(ply.scales[i].z, spz.scales[i].z, tolerance.scaleRelative,
+                      "scale.z", i);
 
-        CheckClose(ply.opacities[i], spz.opacities[i],
-                   tolerance.opacity, "opacity", i);
+        CheckClose(ply.opacities[i], spz.opacities[i], tolerance.opacity,
+                   "opacity", i);
 
         const gs::Quaternion& a = ply.rotations[i];
         const gs::Quaternion b = AlignSign(a, spz.rotations[i]);
@@ -179,13 +173,9 @@ void CompareClouds(
     }
 }
 
-void TestPair(
-    const char* label,
-    const char* plyFixture,
-    const char* spzFixture,
-    const Tolerance& tolerance,
-    std::size_t expectedCount,
-    int expectedDegree)
+void TestPair(const char* label, const char* plyFixture, const char* spzFixture,
+              const Tolerance& tolerance, std::size_t expectedCount,
+              int expectedDegree)
 {
     const int before = failures;
 
@@ -217,28 +207,21 @@ int main()
     // Degree 3, on the quantization grid. Every rest coefficient is present,
     // so all 15 RDF->RUB sign flips the PLY decoder applies are compared
     // against SPZ, which applies none of them.
-    TestPair(
-        "degree-3 exact, SPZ v2 (first-three rotations)",
-        "equiv-degree3-exact-binary-le.ply",
-        "equiv-degree3-exact-v2.spz",
-        kExact, 4, 3);
+    TestPair("degree-3 exact, SPZ v2 (first-three rotations)",
+             "equiv-degree3-exact-binary-le.ply", "equiv-degree3-exact-v2.spz",
+             kExact, 4, 3);
 
     // The same PLY against the same model stored as SPZ v3. The only
     // difference from the pair above is the rotation encoding, so a failure
     // here isolates the smallest-three path.
-    TestPair(
-        "degree-3 exact, SPZ v3 (smallest-three rotations)",
-        "equiv-degree3-exact-binary-le.ply",
-        "equiv-degree3-exact-v3.spz",
-        kExact, 4, 3);
+    TestPair("degree-3 exact, SPZ v3 (smallest-three rotations)",
+             "equiv-degree3-exact-binary-le.ply", "equiv-degree3-exact-v3.spz",
+             kExact, 4, 3);
 
     // Arbitrary values between quantization points: the envelope must hold
     // for input that was not chosen to round-trip.
-    TestPair(
-        "degree-1 off-grid, SPZ v2",
-        "equiv-degree1-offgrid-binary-le.ply",
-        "equiv-degree1-offgrid-v2.spz",
-        kEnvelope, 3, 1);
+    TestPair("degree-1 off-grid, SPZ v2", "equiv-degree1-offgrid-binary-le.ply",
+             "equiv-degree1-offgrid-v2.spz", kEnvelope, 3, 1);
 
     return Report("PLY/SPZ equivalence");
 }

@@ -38,11 +38,14 @@ CoordinateConversionName(GaussianCoordinateConversion conversion) noexcept
 std::uint64_t ComputeDecodedByteSize(const GaussianCloudData& cloud) noexcept
 {
     return static_cast<std::uint64_t>(cloud.positions.size()) * sizeof(Float3) +
-        static_cast<std::uint64_t>(cloud.scales.size()) * sizeof(Float3) +
-        static_cast<std::uint64_t>(cloud.rotations.size()) * sizeof(Quaternion) +
-        static_cast<std::uint64_t>(cloud.opacities.size()) * sizeof(float) +
-        static_cast<std::uint64_t>(cloud.dcCoefficients.size()) * sizeof(Float3) +
-        static_cast<std::uint64_t>(cloud.restCoefficients.size()) * sizeof(Float3);
+           static_cast<std::uint64_t>(cloud.scales.size()) * sizeof(Float3) +
+           static_cast<std::uint64_t>(cloud.rotations.size()) *
+               sizeof(Quaternion) +
+           static_cast<std::uint64_t>(cloud.opacities.size()) * sizeof(float) +
+           static_cast<std::uint64_t>(cloud.dcCoefficients.size()) *
+               sizeof(Float3) +
+           static_cast<std::uint64_t>(cloud.restCoefficients.size()) *
+               sizeof(Float3);
 }
 
 std::string FormatImportStats(const GaussianImportStats& stats)
@@ -73,14 +76,12 @@ std::string FormatImportStats(const GaussianImportStats& stats)
     add("sourceBytes", std::to_string(stats.sourceBytes));
     add("decodedBytes", std::to_string(stats.decodedBytes));
     if (stats.hasBounds) {
-        add("boundsMin",
-            FormatDouble(stats.boundsMinimum.x) + ',' +
-            FormatDouble(stats.boundsMinimum.y) + ',' +
-            FormatDouble(stats.boundsMinimum.z));
-        add("boundsMax",
-            FormatDouble(stats.boundsMaximum.x) + ',' +
-            FormatDouble(stats.boundsMaximum.y) + ',' +
-            FormatDouble(stats.boundsMaximum.z));
+        add("boundsMin", FormatDouble(stats.boundsMinimum.x) + ',' +
+                             FormatDouble(stats.boundsMinimum.y) + ',' +
+                             FormatDouble(stats.boundsMinimum.z));
+        add("boundsMax", FormatDouble(stats.boundsMaximum.x) + ',' +
+                             FormatDouble(stats.boundsMaximum.y) + ',' +
+                             FormatDouble(stats.boundsMaximum.z));
     }
     add("readSeconds", FormatDouble(stats.readSeconds));
     add("decodeSeconds", FormatDouble(stats.decodeSeconds));

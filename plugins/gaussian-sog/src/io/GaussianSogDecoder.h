@@ -34,7 +34,7 @@ struct GaussianSogMetadata {
 // SogReader; this class consumes its document. The exact mapping is
 // docs/reference/SOG_MAPPING.md.
 class GaussianSogDecoder {
-public:
+  public:
     GaussianSogDecoder() = default;
     // The reader used for every read below. The file-format plugin injects one
     // carrying an asset-resolver-backed companion loader; the default reads
@@ -51,23 +51,19 @@ public:
     // property plane. A zero-Gaussian file fails here exactly as it fails in
     // Decode(): a metadata read must not promise a decode that would be
     // rejected.
-    bool DecodeMetadata(
-        const std::string& path,
-        GaussianSogMetadata* metadata,
-        std::string* error = nullptr) const;
+    bool DecodeMetadata(const std::string& path, GaussianSogMetadata* metadata,
+                        std::string* error = nullptr) const;
 
     // On success, `stats` (optional) carries the decoder's half of the shared
     // import-statistics record: source format/version, count and degree, byte
     // sizes, and the read/decode timings. Bounds and the authoring time stay
     // with the caller.
-    bool Decode(
-        const std::string& path,
-        GaussianCloudData* cloud,
-        std::vector<std::string>* warnings = nullptr,
-        std::string* error = nullptr,
-        GaussianImportStats* stats = nullptr) const;
+    bool Decode(const std::string& path, GaussianCloudData* cloud,
+                std::vector<std::string>* warnings = nullptr,
+                std::string* error = nullptr,
+                GaussianImportStats* stats = nullptr) const;
 
-private:
+  private:
     SogReader _reader;
 };
 

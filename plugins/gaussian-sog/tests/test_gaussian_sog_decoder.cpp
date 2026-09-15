@@ -26,11 +26,13 @@ namespace {
 
 int failures = 0;
 
-#define CHECK(expr) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
 std::string Fixture(const std::string& name)
 {
@@ -53,7 +55,8 @@ void CheckClose(float actual, float expected, float tolerance, const char* what)
 
 void CheckContract(const gs::GaussianCloudData& cloud)
 {
-    for (const std::string& violation : gs::testing::CheckCloudContract(cloud)) {
+    for (const std::string& violation :
+         gs::testing::CheckCloudContract(cloud)) {
         std::cerr << "contract: " << violation << "\n";
         ++failures;
     }
@@ -93,13 +96,14 @@ gs::testing::CloudTolerances SogTolerances()
 // CompareClouds pins Gaussian order, coefficient order, channel order, the
 // quaternion convention, the frame, the derived extent, and every value at
 // once.
-void TestKitRoundTrip(const char* fixture, const gs::GaussianCloudData& expected)
+void TestKitRoundTrip(const char* fixture,
+                      const gs::GaussianCloudData& expected)
 {
     gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     std::string error;
-    if (!gssog::GaussianSogDecoder().Decode(
-            Fixture(fixture), &cloud, &warnings, &error)) {
+    if (!gssog::GaussianSogDecoder().Decode(Fixture(fixture), &cloud, &warnings,
+                                            &error)) {
         std::cerr << fixture << ": decode failed: " << error << "\n";
         ++failures;
         return;
@@ -107,7 +111,7 @@ void TestKitRoundTrip(const char* fixture, const gs::GaussianCloudData& expected
     CHECK(warnings.empty());
     CheckContract(cloud);
     for (const std::string& mismatch :
-             gs::testing::CompareClouds(cloud, expected, SogTolerances())) {
+         gs::testing::CompareClouds(cloud, expected, SogTolerances())) {
         std::cerr << fixture << ": " << mismatch << "\n";
         ++failures;
     }
@@ -116,14 +120,14 @@ void TestKitRoundTrip(const char* fixture, const gs::GaussianCloudData& expected
 void TestKitRoundTrips()
 {
     TestKitRoundTrip("kit-one-degree0.sog",
-        gs::testing::MakeCanonicalOneGaussianCloud());
+                     gs::testing::MakeCanonicalOneGaussianCloud());
     TestKitRoundTrip("kit-multi-degree3.sog",
-        gs::testing::MakeCanonicalMultiGaussianCloud());
+                     gs::testing::MakeCanonicalMultiGaussianCloud());
     // Both layouts and both ZIP storage methods converge on the same model.
     TestKitRoundTrip("kit-multi-degree3-deflated.sog",
-        gs::testing::MakeCanonicalMultiGaussianCloud());
+                     gs::testing::MakeCanonicalMultiGaussianCloud());
     TestKitRoundTrip("unbundled-kit-multi-degree3/meta.json",
-        gs::testing::MakeCanonicalMultiGaussianCloud());
+                     gs::testing::MakeCanonicalMultiGaussianCloud());
 }
 
 // The known source values encoded by tools/generate_fixtures.py
@@ -136,8 +140,8 @@ void TestDegree1FullPipeline()
     gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     std::string error;
-    CHECK(gssog::GaussianSogDecoder().Decode(
-        Fixture("decode-degree1.sog"), &cloud, &warnings, &error));
+    CHECK(gssog::GaussianSogDecoder().Decode(Fixture("decode-degree1.sog"),
+                                             &cloud, &warnings, &error));
     CHECK(error.empty());
     CHECK(warnings.empty());
     CheckContract(cloud);
@@ -188,23 +192,19 @@ void TestDegree1FullPipeline()
     // coefficients carry the flip signs (-1, -1, +1), which these values pin:
     // a lost transpose or a wrong sign table changes them.
     const std::vector<gs::Float3> expectedRest = {
-        {0.1f, 0.2f, 0.3f},
-        {-0.1f, -0.2f, -0.3f},
-        {0.4f, -0.4f, 0.5f},
-        {0.6f, 0.7f, 0.8f},
-        {-0.6f, -0.7f, -0.8f},
-        {0.9f, -0.9f, 0.25f},
+        {0.1f, 0.2f, 0.3f}, {-0.1f, -0.2f, -0.3f}, {0.4f, -0.4f, 0.5f},
+        {0.6f, 0.7f, 0.8f}, {-0.6f, -0.7f, -0.8f}, {0.9f, -0.9f, 0.25f},
     };
     CHECK(cloud.restCoefficients.size() == expectedRest.size());
-    for (std::size_t i = 0; i < expectedRest.size() &&
-             i < cloud.restCoefficients.size(); ++i) {
+    for (std::size_t i = 0;
+         i < expectedRest.size() && i < cloud.restCoefficients.size(); ++i) {
         const std::string label = "rest[" + std::to_string(i) + "]";
         CheckClose(cloud.restCoefficients[i].x, expectedRest[i].x, 1e-6f,
-            (label + ".r").c_str());
+                   (label + ".r").c_str());
         CheckClose(cloud.restCoefficients[i].y, expectedRest[i].y, 1e-6f,
-            (label + ".g").c_str());
+                   (label + ".g").c_str());
         CheckClose(cloud.restCoefficients[i].z, expectedRest[i].z, 1e-6f,
-            (label + ".b").c_str());
+                   (label + ".b").c_str());
     }
 }
 
@@ -236,8 +236,8 @@ void TestImportStats()
     gs::GaussianCloudData cloud;
     gs::GaussianImportStats stats;
     std::string error;
-    CHECK(gssog::GaussianSogDecoder().Decode(
-        Fixture("kit-multi-degree3.sog"), &cloud, nullptr, &error, &stats));
+    CHECK(gssog::GaussianSogDecoder().Decode(Fixture("kit-multi-degree3.sog"),
+                                             &cloud, nullptr, &error, &stats));
     CHECK(stats.sourceFormat == gssog::kSourceFormatToken);
     CHECK(stats.sourceVersion == "2");
     CHECK(stats.coordinateConversion ==
@@ -270,8 +270,8 @@ void TestLabelsOutOfRangeWarn()
     gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     std::string error;
-    CHECK(gssog::GaussianSogDecoder().Decode(
-        Fixture("labels-out-of-range.sog"), &cloud, &warnings, &error));
+    CHECK(gssog::GaussianSogDecoder().Decode(Fixture("labels-out-of-range.sog"),
+                                             &cloud, &warnings, &error));
     CHECK(error.empty());
     CheckContract(cloud);
     CHECK(warnings.size() == 1);
@@ -294,19 +294,19 @@ void TestSemanticRejections()
 {
     gs::GaussianCloudData cloud;
     std::string error;
-    CHECK(!gssog::GaussianSogDecoder().Decode(
-        Fixture("bad-quat-tag.sog"), &cloud, nullptr, &error));
+    CHECK(!gssog::GaussianSogDecoder().Decode(Fixture("bad-quat-tag.sog"),
+                                              &cloud, nullptr, &error));
     CHECK(HasCode(error, gssog::diag::kMalformedRotation));
 
     error.clear();
-    CHECK(!gssog::GaussianSogDecoder().Decode(
-        Fixture("kit-one-degree0.sog"), nullptr, nullptr, &error));
+    CHECK(!gssog::GaussianSogDecoder().Decode(Fixture("kit-one-degree0.sog"),
+                                              nullptr, nullptr, &error));
     CHECK(HasCode(error, gssog::diag::kInternalError));
 
     // Container failures surface through the decoder unchanged.
     error.clear();
-    CHECK(!gssog::GaussianSogDecoder().Decode(
-        Fixture("version-3.sog"), &cloud, nullptr, &error));
+    CHECK(!gssog::GaussianSogDecoder().Decode(Fixture("version-3.sog"), &cloud,
+                                              nullptr, &error));
     CHECK(HasCode(error, gssog::diag::kUnsupportedVersion));
 }
 

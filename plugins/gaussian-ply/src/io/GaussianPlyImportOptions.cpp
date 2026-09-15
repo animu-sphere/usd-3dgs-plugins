@@ -53,23 +53,21 @@ bool ParseFullInt(const std::string& text, int* value)
     return true;
 }
 
-std::string BadArgument(
-    const char* name, const std::string& value, const char* expectation)
+std::string BadArgument(const char* name, const std::string& value,
+                        const char* expectation)
 {
-    return std::string("Gaussian PLY file-format argument '") + name +
-        "' = '" + value + "' is invalid; expected " + expectation + ".";
+    return std::string("Gaussian PLY file-format argument '") + name + "' = '" +
+           value + "' is invalid; expected " + expectation + ".";
 }
 
 } // namespace
 
-bool ParseImportOptions(
-    const std::map<std::string, std::string>& arguments,
-    GaussianPlyImportOptions* options,
-    std::string* error)
+bool ParseImportOptions(const std::map<std::string, std::string>& arguments,
+                        GaussianPlyImportOptions* options, std::string* error)
 {
     if (!options) {
         SetError(error, diag::kInternalError,
-            "Import-option parsing received a null options output.");
+                 "Import-option parsing received a null options output.");
         return false;
     }
     *options = GaussianPlyImportOptions();
@@ -77,11 +75,11 @@ bool ParseImportOptions(
     const auto shDegree = arguments.find("shDegree");
     if (shDegree != arguments.end()) {
         int parsed = 0;
-        if (!ParseFullInt(shDegree->second, &parsed) ||
-            parsed < 0 || parsed > 3) {
+        if (!ParseFullInt(shDegree->second, &parsed) || parsed < 0 ||
+            parsed > 3) {
             SetError(error, diag::kInvalidFormatArgument,
-                BadArgument("shDegree", shDegree->second,
-                    "an integer in [0, 3]"));
+                     BadArgument("shDegree", shDegree->second,
+                                 "an integer in [0, 3]"));
             return false;
         }
         options->shDegree = parsed;
@@ -93,8 +91,8 @@ bool ParseImportOptions(
         if (!ParseFullFloat(opacityThreshold->second, &parsed) ||
             !std::isfinite(parsed) || parsed < 0.0f || parsed > 1.0f) {
             SetError(error, diag::kInvalidFormatArgument,
-                BadArgument("opacityThreshold", opacityThreshold->second,
-                    "a number in [0, 1]"));
+                     BadArgument("opacityThreshold", opacityThreshold->second,
+                                 "a number in [0, 1]"));
             return false;
         }
         options->opacityThreshold = parsed;
@@ -106,8 +104,8 @@ bool ParseImportOptions(
         if (!ParseFullFloat(scaleMultiplier->second, &parsed) ||
             !std::isfinite(parsed) || parsed <= 0.0f) {
             SetError(error, diag::kInvalidFormatArgument,
-                BadArgument("scaleMultiplier", scaleMultiplier->second,
-                    "a finite number greater than 0"));
+                     BadArgument("scaleMultiplier", scaleMultiplier->second,
+                                 "a finite number greater than 0"));
             return false;
         }
         options->scaleMultiplier = parsed;
@@ -116,8 +114,7 @@ bool ParseImportOptions(
     return true;
 }
 
-int EffectiveShDegree(
-    const GaussianPlyImportOptions& options, int sourceDegree)
+int EffectiveShDegree(const GaussianPlyImportOptions& options, int sourceDegree)
 {
     if (options.shDegree < 0) {
         return sourceDegree;
@@ -125,14 +122,12 @@ int EffectiveShDegree(
     return std::min(options.shDegree, sourceDegree);
 }
 
-bool ApplyImportOptions(
-    const GaussianPlyImportOptions& options,
-    GaussianCloudData* cloud,
-    std::string* error)
+bool ApplyImportOptions(const GaussianPlyImportOptions& options,
+                        GaussianCloudData* cloud, std::string* error)
 {
     if (!cloud) {
         SetError(error, diag::kInternalError,
-            "Import-option application received a null cloud.");
+                 "Import-option application received a null cloud.");
         return false;
     }
 
@@ -167,9 +162,9 @@ bool ApplyImportOptions(
         }
         if (kept == 0) {
             SetError(error, diag::kAllGaussiansFiltered,
-                "opacityThreshold " +
-                std::to_string(options.opacityThreshold) +
-                " removed every Gaussian in the file.");
+                     "opacityThreshold " +
+                         std::to_string(options.opacityThreshold) +
+                         " removed every Gaussian in the file.");
             return false;
         }
         cloud->gaussianCount = kept;

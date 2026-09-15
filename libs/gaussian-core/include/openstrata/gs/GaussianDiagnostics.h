@@ -17,7 +17,8 @@ namespace openstrata::gs {
 // and makes the missing code obvious in a bug report.
 inline constexpr const char* kUnspecifiedDiagnosticCode = "GS-E000";
 
-inline std::string FormatDiagnostic(const char* code, const std::string& message)
+inline std::string FormatDiagnostic(const char* code,
+                                    const std::string& message)
 {
     if (!code) {
         code = kUnspecifiedDiagnosticCode;

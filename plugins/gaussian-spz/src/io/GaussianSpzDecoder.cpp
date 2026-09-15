@@ -49,9 +49,10 @@ bool CheckSupportedShDegree(std::uint8_t shDegree, std::string* error)
         return true;
     }
     SetError(error, diag::kUnsupportedShDegree,
-        "SPZ SH degree " + std::to_string(static_cast<int>(shDegree)) +
-        " is valid for the format but not supported by this release; "
-        "supported degrees are 0-" + std::to_string(kMaxShDegree) + ".");
+             "SPZ SH degree " + std::to_string(static_cast<int>(shDegree)) +
+                 " is valid for the format but not supported by this release; "
+                 "supported degrees are 0-" +
+                 std::to_string(kMaxShDegree) + ".");
     return false;
 }
 
@@ -94,10 +95,9 @@ float HalfToFloat(std::uint16_t half) noexcept
 // behavior.
 float Fixed24ToFloat(const unsigned char* bytes, int fractionalBits) noexcept
 {
-    std::int32_t fixed =
-        static_cast<std::int32_t>(bytes[0]) |
-        (static_cast<std::int32_t>(bytes[1]) << 8) |
-        (static_cast<std::int32_t>(bytes[2]) << 16);
+    std::int32_t fixed = static_cast<std::int32_t>(bytes[0]) |
+                         (static_cast<std::int32_t>(bytes[1]) << 8) |
+                         (static_cast<std::int32_t>(bytes[2]) << 16);
     if ((fixed & 0x800000) != 0) {
         fixed |= ~0xffffff;
     }
@@ -128,11 +128,9 @@ std::uint64_t FileSizeOf(const std::string& path)
 void UnpackRotationFirstThree(const unsigned char* r, float (&q)[4]) noexcept
 {
     for (int component = 0; component < 3; ++component) {
-        q[component] =
-            static_cast<float>(r[component]) / 127.5f - 1.0f;
+        q[component] = static_cast<float>(r[component]) / 127.5f - 1.0f;
     }
-    const float squaredNorm =
-        q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
+    const float squaredNorm = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
     q[3] = std::sqrt(std::max(0.0f, 1.0f - squaredNorm));
 }
 
@@ -144,11 +142,10 @@ void UnpackRotationFirstThree(const unsigned char* r, float (&q)[4]) noexcept
 // for hostile magnitudes.
 void UnpackRotationSmallestThree(const unsigned char* r, float (&q)[4]) noexcept
 {
-    std::uint32_t packed =
-        static_cast<std::uint32_t>(r[0]) |
-        (static_cast<std::uint32_t>(r[1]) << 8) |
-        (static_cast<std::uint32_t>(r[2]) << 16) |
-        (static_cast<std::uint32_t>(r[3]) << 24);
+    std::uint32_t packed = static_cast<std::uint32_t>(r[0]) |
+                           (static_cast<std::uint32_t>(r[1]) << 8) |
+                           (static_cast<std::uint32_t>(r[2]) << 16) |
+                           (static_cast<std::uint32_t>(r[3]) << 24);
 
     constexpr std::uint32_t kMagnitudeMask = (1u << 9) - 1u;
     const int largest = static_cast<int>(packed >> 30);
@@ -161,7 +158,7 @@ void UnpackRotationSmallestThree(const unsigned char* r, float (&q)[4]) noexcept
         const bool negative = ((packed >> 9) & 1u) != 0;
         packed >>= 10;
         float value = kSqrt1_2 * static_cast<float>(magnitude) /
-            static_cast<float>(kMagnitudeMask);
+                      static_cast<float>(kMagnitudeMask);
         if (negative) {
             value = -value;
         }
@@ -178,14 +175,13 @@ bool GaussianSpzDecoder::CanRead(const std::string& path) const noexcept
     return SpzReader().CanRead(path);
 }
 
-bool GaussianSpzDecoder::DecodeMetadata(
-    const std::string& path,
-    GaussianSpzMetadata* metadata,
-    std::string* error) const
+bool GaussianSpzDecoder::DecodeMetadata(const std::string& path,
+                                        GaussianSpzMetadata* metadata,
+                                        std::string* error) const
 {
     if (!metadata) {
         SetError(error, diag::kInternalError,
-            "Gaussian decoder received a null metadata output.");
+                 "Gaussian decoder received a null metadata output.");
         return false;
     }
 
@@ -202,16 +198,15 @@ bool GaussianSpzDecoder::DecodeMetadata(
     return true;
 }
 
-bool GaussianSpzDecoder::Decode(
-    const std::string& path,
-    GaussianCloudData* cloud,
-    std::vector<std::string>* warnings,
-    std::string* error,
-    GaussianImportStats* stats) const
+bool GaussianSpzDecoder::Decode(const std::string& path,
+                                GaussianCloudData* cloud,
+                                std::vector<std::string>* warnings,
+                                std::string* error,
+                                GaussianImportStats* stats) const
 {
     if (!cloud) {
         SetError(error, diag::kInternalError,
-            "Gaussian decoder received a null cloud output.");
+                 "Gaussian decoder received a null cloud output.");
         return false;
     }
 
@@ -237,14 +232,13 @@ bool GaussianSpzDecoder::Decode(
     // The reader guarantees the span layout; a disagreement here is pipeline
     // misuse, not file content.
     if (document.positions.size != count * header.BytesPerPosition() ||
-        document.alphas.size != count ||
-        document.colors.size != count * 3 ||
+        document.alphas.size != count || document.colors.size != count * 3 ||
         document.scales.size != count * 3 ||
         document.rotations.size != count * header.BytesPerRotation() ||
         document.sh.size != count * 3 * restDims ||
         document.sh.offset + document.sh.size != document.payload.size()) {
         SetError(error, diag::kInternalError,
-            "The container spans do not match the header layout.");
+                 "The container spans do not match the header layout.");
         return false;
     }
 
@@ -258,9 +252,10 @@ bool GaussianSpzDecoder::Decode(
     const auto allocate = [&](auto* array, std::size_t elements) {
         if (!TryResize(array, elements)) {
             SetError(error, diag::kModelAllocationFailed,
-                "SPZ model arrays for " + std::to_string(count) +
-                " Gaussians at SH degree " + std::to_string(result.shDegree) +
-                " could not be allocated.");
+                     "SPZ model arrays for " + std::to_string(count) +
+                         " Gaussians at SH degree " +
+                         std::to_string(result.shDegree) +
+                         " could not be allocated.");
             return false;
         }
         return true;
@@ -276,28 +271,25 @@ bool GaussianSpzDecoder::Decode(
                 float decoded[3];
                 for (int axis = 0; axis < 3; ++axis) {
                     const unsigned char* h = stored + i * 6 + axis * 2;
-                    decoded[axis] = HalfToFloat(
-                        static_cast<std::uint16_t>(
-                            h[0] | (static_cast<std::uint16_t>(h[1]) << 8)));
+                    decoded[axis] = HalfToFloat(static_cast<std::uint16_t>(
+                        h[0] | (static_cast<std::uint16_t>(h[1]) << 8)));
                 }
                 if (!std::isfinite(decoded[0]) || !std::isfinite(decoded[1]) ||
                     !std::isfinite(decoded[2])) {
                     SetError(error, diag::kNonFinitePosition,
-                        "The float16 position of Gaussian " +
-                        std::to_string(i) + " is not finite.");
+                             "The float16 position of Gaussian " +
+                                 std::to_string(i) + " is not finite.");
                     return false;
                 }
                 result.positions[i] = {decoded[0], decoded[1], decoded[2]};
             }
         } else {
-            const int fractionalBits =
-                static_cast<int>(header.fractionalBits);
+            const int fractionalBits = static_cast<int>(header.fractionalBits);
             for (std::size_t i = 0; i < count; ++i) {
                 const unsigned char* p = stored + i * 9;
-                result.positions[i] = {
-                    Fixed24ToFloat(p, fractionalBits),
-                    Fixed24ToFloat(p + 3, fractionalBits),
-                    Fixed24ToFloat(p + 6, fractionalBits)};
+                result.positions[i] = {Fixed24ToFloat(p, fractionalBits),
+                                       Fixed24ToFloat(p + 3, fractionalBits),
+                                       Fixed24ToFloat(p + 6, fractionalBits)};
             }
         }
     }
@@ -323,9 +315,9 @@ bool GaussianSpzDecoder::Decode(
         }
         for (std::size_t i = 0; i < count; ++i) {
             const auto decode = [&](std::size_t component) {
-                return std::exp(
-                    static_cast<float>(stored[i * 3 + component]) / 16.0f -
-                    10.0f);
+                return std::exp(static_cast<float>(stored[i * 3 + component]) /
+                                    16.0f -
+                                10.0f);
             };
             result.scales[i] = {decode(0), decode(1), decode(2)};
         }
@@ -339,7 +331,8 @@ bool GaussianSpzDecoder::Decode(
         for (std::size_t i = 0; i < count; ++i) {
             const auto decode = [&](std::size_t channel) {
                 return (static_cast<float>(stored[i * 3 + channel]) / 255.0f -
-                        0.5f) / kColorScale;
+                        0.5f) /
+                       kColorScale;
             };
             result.dcCoefficients[i] = {decode(0), decode(1), decode(2)};
         }
@@ -362,10 +355,10 @@ bool GaussianSpzDecoder::Decode(
             // Reorder to the model's scalar-first convention and absorb the
             // quantization drift; the decoded norm is never near zero
             // (SPZ_MAPPING.md §4), so identity replacement is unreachable.
-            if (!NormalizeQuaternion(
-                    {q[3], q[0], q[1], q[2]}, &result.rotations[i])) {
+            if (!NormalizeQuaternion({q[3], q[0], q[1], q[2]},
+                                     &result.rotations[i])) {
                 SetError(error, diag::kInternalError,
-                    "A dequantized quaternion was not normalizable.");
+                         "A dequantized quaternion was not normalizable.");
                 return false;
             }
         }
@@ -377,12 +370,12 @@ bool GaussianSpzDecoder::Decode(
         // degrees, so the shared helper computes exactly the length the fill
         // loop below indexes.
         std::size_t restLength = 0;
-        if (!ComputeRestCoefficientCount(
-                count, result.shDegree, &restLength)) {
+        if (!ComputeRestCoefficientCount(count, result.shDegree, &restLength)) {
             SetError(error, diag::kModelAllocationFailed,
-                "The model size for " + std::to_string(count) +
-                " Gaussians at SH degree " + std::to_string(result.shDegree) +
-                " overflows this platform's address space.");
+                     "The model size for " + std::to_string(count) +
+                         " Gaussians at SH degree " +
+                         std::to_string(result.shDegree) +
+                         " overflows this platform's address space.");
             return false;
         }
         if (!allocate(&result.restCoefficients, restLength)) {
@@ -397,8 +390,7 @@ bool GaussianSpzDecoder::Decode(
                 const unsigned char* rgb =
                     stored + (i * restDims + coefficient) * 3;
                 result.restCoefficients[i * restDims + coefficient] = {
-                    UnquantizeSh(rgb[0]),
-                    UnquantizeSh(rgb[1]),
+                    UnquantizeSh(rgb[0]), UnquantizeSh(rgb[1]),
                     UnquantizeSh(rgb[2])};
             }
         }
@@ -412,13 +404,15 @@ bool GaussianSpzDecoder::Decode(
 
     if (warnings) {
         if (!document.extensions.empty()) {
-            warnings->push_back(diag::Format(diag::kExtensionsIgnored,
+            warnings->push_back(diag::Format(
+                diag::kExtensionsIgnored,
                 std::to_string(document.extensions.size()) +
-                " extension-record byte(s) were ignored; extension records "
-                "are not part of the shared Gaussian model."));
+                    " extension-record byte(s) were ignored; extension records "
+                    "are not part of the shared Gaussian model."));
         }
         if (header.IsAntialiased()) {
-            warnings->push_back(diag::Format(diag::kAntialiasedFlagIgnored,
+            warnings->push_back(diag::Format(
+                diag::kAntialiasedFlagIgnored,
                 "The antialiased flag was ignored; the authored schema does "
                 "not carry an antialiasing convention."));
         }

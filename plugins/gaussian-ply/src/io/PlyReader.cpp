@@ -20,25 +20,33 @@ namespace {
 PlyScalarType ConvertType(tinyply::Type type) noexcept
 {
     switch (type) {
-    case tinyply::Type::INT8: return PlyScalarType::Int8;
-    case tinyply::Type::UINT8: return PlyScalarType::UInt8;
-    case tinyply::Type::INT16: return PlyScalarType::Int16;
-    case tinyply::Type::UINT16: return PlyScalarType::UInt16;
-    case tinyply::Type::INT32: return PlyScalarType::Int32;
-    case tinyply::Type::UINT32: return PlyScalarType::UInt32;
-    case tinyply::Type::FLOAT32: return PlyScalarType::Float32;
-    case tinyply::Type::FLOAT64: return PlyScalarType::Float64;
-    default: return PlyScalarType::Invalid;
+    case tinyply::Type::INT8:
+        return PlyScalarType::Int8;
+    case tinyply::Type::UINT8:
+        return PlyScalarType::UInt8;
+    case tinyply::Type::INT16:
+        return PlyScalarType::Int16;
+    case tinyply::Type::UINT16:
+        return PlyScalarType::UInt16;
+    case tinyply::Type::INT32:
+        return PlyScalarType::Int32;
+    case tinyply::Type::UINT32:
+        return PlyScalarType::UInt32;
+    case tinyply::Type::FLOAT32:
+        return PlyScalarType::Float32;
+    case tinyply::Type::FLOAT64:
+        return PlyScalarType::Float64;
+    default:
+        return PlyScalarType::Invalid;
     }
 }
 
-bool BuildHeader(
-    const tinyply::PlyFile& file,
-    PlyHeader* header,
-    std::string* error)
+bool BuildHeader(const tinyply::PlyFile& file, PlyHeader* header,
+                 std::string* error)
 {
     if (!header) {
-        if (error) *error = "PLY reader received a null header output.";
+        if (error)
+            *error = "PLY reader received a null header output.";
         return false;
     }
 
@@ -47,14 +55,16 @@ bool BuildHeader(
     for (const tinyply::PlyElement& element : elements) {
         if (element.name == "vertex") {
             if (vertex) {
-                if (error) *error = "PLY header contains duplicate vertex elements.";
+                if (error)
+                    *error = "PLY header contains duplicate vertex elements.";
                 return false;
             }
             vertex = &element;
         }
     }
     if (!vertex) {
-        if (error) *error = "PLY header does not contain a vertex element.";
+        if (error)
+            *error = "PLY header does not contain a vertex element.";
         return false;
     }
 
@@ -67,7 +77,7 @@ bool BuildHeader(
         if (!names.insert(property.name).second) {
             if (error) {
                 *error = "PLY vertex element contains duplicate property '" +
-                    property.name + "'.";
+                         property.name + "'.";
             }
             return false;
         }
@@ -94,8 +104,7 @@ float NarrowToFloat(double value) noexcept
     return static_cast<float>(value);
 }
 
-template <class T>
-std::vector<float> CopyValues(tinyply::PlyData& data)
+template <class T> std::vector<float> CopyValues(tinyply::PlyData& data)
 {
     std::vector<float> result(data.count);
     const std::uint8_t* bytes = data.buffer.get_const();
@@ -115,31 +124,48 @@ std::vector<float> CopyValues(tinyply::PlyData& data)
     return result;
 }
 
-bool CopyValues(
-    tinyply::PlyData& data,
-    std::vector<float>* values,
-    std::string* error)
+bool CopyValues(tinyply::PlyData& data, std::vector<float>* values,
+                std::string* error)
 {
     if (!values || data.isList) {
-        if (error) *error = "Requested PLY property is not a scalar array.";
+        if (error)
+            *error = "Requested PLY property is not a scalar array.";
         return false;
     }
     switch (data.t) {
-    case tinyply::Type::INT8: *values = CopyValues<std::int8_t>(data); return true;
-    case tinyply::Type::UINT8: *values = CopyValues<std::uint8_t>(data); return true;
-    case tinyply::Type::INT16: *values = CopyValues<std::int16_t>(data); return true;
-    case tinyply::Type::UINT16: *values = CopyValues<std::uint16_t>(data); return true;
-    case tinyply::Type::INT32: *values = CopyValues<std::int32_t>(data); return true;
-    case tinyply::Type::UINT32: *values = CopyValues<std::uint32_t>(data); return true;
-    case tinyply::Type::FLOAT32: *values = CopyValues<float>(data); return true;
-    case tinyply::Type::FLOAT64: *values = CopyValues<double>(data); return true;
+    case tinyply::Type::INT8:
+        *values = CopyValues<std::int8_t>(data);
+        return true;
+    case tinyply::Type::UINT8:
+        *values = CopyValues<std::uint8_t>(data);
+        return true;
+    case tinyply::Type::INT16:
+        *values = CopyValues<std::int16_t>(data);
+        return true;
+    case tinyply::Type::UINT16:
+        *values = CopyValues<std::uint16_t>(data);
+        return true;
+    case tinyply::Type::INT32:
+        *values = CopyValues<std::int32_t>(data);
+        return true;
+    case tinyply::Type::UINT32:
+        *values = CopyValues<std::uint32_t>(data);
+        return true;
+    case tinyply::Type::FLOAT32:
+        *values = CopyValues<float>(data);
+        return true;
+    case tinyply::Type::FLOAT64:
+        *values = CopyValues<double>(data);
+        return true;
     default:
-        if (error) *error = "Requested PLY property has an unsupported type.";
+        if (error)
+            *error = "Requested PLY property has an unsupported type.";
         return false;
     }
 }
 
-std::string ExceptionMessage(const char* context, const std::exception& exception)
+std::string ExceptionMessage(const char* context,
+                             const std::exception& exception)
 {
     std::ostringstream message;
     message << context << ": " << exception.what();
@@ -148,49 +174,52 @@ std::string ExceptionMessage(const char* context, const std::exception& exceptio
 
 } // namespace
 
-bool PlyReader::ReadHeader(
-    const std::string& path,
-    PlyHeader* header,
-    std::string* error) const
+bool PlyReader::ReadHeader(const std::string& path, PlyHeader* header,
+                           std::string* error) const
 {
     std::ifstream stream(path, std::ios::binary);
     if (!stream) {
-        if (error) *error = "Could not open PLY file '" + path + "'.";
+        if (error)
+            *error = "Could not open PLY file '" + path + "'.";
         return false;
     }
     try {
         tinyply::PlyFile file;
         if (!file.parse_header(stream)) {
-            if (error) *error = "Could not parse the PLY header.";
+            if (error)
+                *error = "Could not parse the PLY header.";
             return false;
         }
         return BuildHeader(file, header, error);
     } catch (const std::exception& exception) {
-        if (error) *error = ExceptionMessage("Could not parse the PLY header", exception);
+        if (error)
+            *error =
+                ExceptionMessage("Could not parse the PLY header", exception);
         return false;
     }
 }
 
-bool PlyReader::Read(
-    const std::string& path,
-    const std::vector<std::string>& requestedProperties,
-    PlyDocument* document,
-    std::string* error) const
+bool PlyReader::Read(const std::string& path,
+                     const std::vector<std::string>& requestedProperties,
+                     PlyDocument* document, std::string* error) const
 {
     if (!document) {
-        if (error) *error = "PLY reader received a null document output.";
+        if (error)
+            *error = "PLY reader received a null document output.";
         return false;
     }
 
     std::ifstream stream(path, std::ios::binary);
     if (!stream) {
-        if (error) *error = "Could not open PLY file '" + path + "'.";
+        if (error)
+            *error = "Could not open PLY file '" + path + "'.";
         return false;
     }
     try {
         tinyply::PlyFile file;
         if (!file.parse_header(stream)) {
-            if (error) *error = "Could not parse the PLY header.";
+            if (error)
+                *error = "Could not parse the PLY header.";
             return false;
         }
 
@@ -202,20 +231,21 @@ bool PlyReader::Read(
         std::map<std::string, std::shared_ptr<tinyply::PlyData>> requested;
         for (const std::string& name : requestedProperties) {
             requested.emplace(
-                name,
-                file.request_properties_from_element("vertex", {name}));
+                name, file.request_properties_from_element("vertex", {name}));
         }
         file.read(stream);
         if (stream.fail() || stream.bad()) {
-            if (error) *error = "PLY payload is truncated or unreadable.";
+            if (error)
+                *error = "PLY payload is truncated or unreadable.";
             return false;
         }
 
         for (const auto& entry : requested) {
             const std::shared_ptr<tinyply::PlyData>& data = entry.second;
             if (!data) {
-                if (error) *error = "tinyPLY returned no data for property '" +
-                    entry.first + "'.";
+                if (error)
+                    *error = "tinyPLY returned no data for property '" +
+                             entry.first + "'.";
                 return false;
             }
             std::vector<float> values;
@@ -229,7 +259,7 @@ bool PlyReader::Read(
             if (values.size() != result.header.vertexCount) {
                 if (error) {
                     *error = "PLY property '" + entry.first +
-                        "' count does not match the vertex count.";
+                             "' count does not match the vertex count.";
                 }
                 return false;
             }
@@ -239,7 +269,9 @@ bool PlyReader::Read(
         *document = std::move(result);
         return true;
     } catch (const std::exception& exception) {
-        if (error) *error = ExceptionMessage("Could not read the PLY payload", exception);
+        if (error)
+            *error =
+                ExceptionMessage("Could not read the PLY payload", exception);
         return false;
     }
 }

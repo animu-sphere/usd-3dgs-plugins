@@ -19,7 +19,10 @@ struct SogPlane {
     std::uint32_t height = 0;
     std::vector<unsigned char> rgba; // width * height * 4
 
-    bool Present() const noexcept { return !rgba.empty(); }
+    bool Present() const noexcept
+    {
+        return !rgba.empty();
+    }
 
     // The four bytes of the texel holding Gaussian `index`. The caller has
     // already established `index < width * height` through the reader's
@@ -87,10 +90,8 @@ struct SogDocument {
 // custom resolver resolves them the same way USD resolves any other
 // companion asset — without dragging OpenUSD into this reader.
 using SogCompanionLoader = std::function<bool(
-    const std::string& anchorPath,
-    const std::string& planeName,
-    std::vector<unsigned char>* bytes,
-    std::string* error)>;
+    const std::string& anchorPath, const std::string& planeName,
+    std::vector<unsigned char>* bytes, std::string* error)>;
 
 // Owns every SOG v2 container concern: layout detection, ZIP central-directory
 // walking (vendored miniz), `meta.json` parsing and schema validation,
@@ -99,7 +100,7 @@ using SogCompanionLoader = std::function<bool(
 // layout. Errors carry stable GSSOG-E0xx container diagnostics. The reader
 // performs no dequantization and constructs no USD objects.
 class SogReader {
-public:
+  public:
     SogReader() = default;
     explicit SogReader(SogCompanionLoader companionLoader);
 
@@ -122,17 +123,13 @@ public:
     // file) and validates it, decoding no property plane. A valid `meta.json`
     // with a missing or corrupt plane therefore succeeds here and fails in
     // Read() — the same asymmetry the SPZ header path has.
-    bool ReadMetadata(
-        const std::string& path,
-        SogMetadata* metadata,
-        std::string* error = nullptr) const;
+    bool ReadMetadata(const std::string& path, SogMetadata* metadata,
+                      std::string* error = nullptr) const;
 
-    bool Read(
-        const std::string& path,
-        SogDocument* document,
-        std::string* error = nullptr) const;
+    bool Read(const std::string& path, SogDocument* document,
+              std::string* error = nullptr) const;
 
-private:
+  private:
     SogCompanionLoader _companionLoader;
 };
 

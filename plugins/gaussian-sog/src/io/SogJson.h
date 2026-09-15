@@ -25,22 +25,40 @@
 namespace openstrata::gs::sog {
 
 class JsonValue {
-public:
+  public:
     enum class Type { Null, Boolean, Number, String, Array, Object };
 
     Type type = Type::Null;
     bool boolean = false;
     double number = 0.0;
-    std::string text;                                    // Type::String
-    std::vector<JsonValue> items;                        // Type::Array
+    std::string text;                                       // Type::String
+    std::vector<JsonValue> items;                           // Type::Array
     std::vector<std::pair<std::string, JsonValue>> members; // Type::Object
 
-    bool IsNull() const noexcept { return type == Type::Null; }
-    bool IsBoolean() const noexcept { return type == Type::Boolean; }
-    bool IsNumber() const noexcept { return type == Type::Number; }
-    bool IsString() const noexcept { return type == Type::String; }
-    bool IsArray() const noexcept { return type == Type::Array; }
-    bool IsObject() const noexcept { return type == Type::Object; }
+    bool IsNull() const noexcept
+    {
+        return type == Type::Null;
+    }
+    bool IsBoolean() const noexcept
+    {
+        return type == Type::Boolean;
+    }
+    bool IsNumber() const noexcept
+    {
+        return type == Type::Number;
+    }
+    bool IsString() const noexcept
+    {
+        return type == Type::String;
+    }
+    bool IsArray() const noexcept
+    {
+        return type == Type::Array;
+    }
+    bool IsObject() const noexcept
+    {
+        return type == Type::Object;
+    }
 
     // Object member lookup, or null when absent or not an object. Member
     // counts here are single digits, so a linear scan beats a map.
@@ -59,10 +77,7 @@ inline constexpr std::size_t kJsonMaxTokens = 100'000;
 // Parses `size` bytes as one complete JSON document. Trailing whitespace is
 // allowed, trailing content is not. `error` receives a bare message with no
 // diagnostic code: the caller owns which GSSOG code the failure carries.
-bool ParseJson(
-    const char* data,
-    std::size_t size,
-    JsonValue* out,
-    std::string* error);
+bool ParseJson(const char* data, std::size_t size, JsonValue* out,
+               std::string* error);
 
 } // namespace openstrata::gs::sog

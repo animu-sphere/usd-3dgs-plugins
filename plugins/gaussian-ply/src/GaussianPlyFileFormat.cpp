@@ -23,7 +23,8 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_DEFINE_PUBLIC_TOKENS(GaussianPlyFileFormatTokens, GAUSSIANPLY_FILE_FORMAT_TOKENS);
+TF_DEFINE_PUBLIC_TOKENS(GaussianPlyFileFormatTokens,
+                        GAUSSIANPLY_FILE_FORMAT_TOKENS);
 
 // Register the format with USD's type system so the plug system can find it.
 TF_REGISTRY_FUNCTION(TfType)
@@ -38,24 +39,22 @@ TF_DEBUG_CODES(GSPLY_IMPORT_STATS);
 
 TF_REGISTRY_FUNCTION(TfDebug)
 {
-    TF_DEBUG_ENVIRONMENT_SYMBOL(GSPLY_IMPORT_STATS,
+    TF_DEBUG_ENVIRONMENT_SYMBOL(
+        GSPLY_IMPORT_STATS,
         "gaussian-ply: one line of per-import statistics through the shared "
         "GaussianImportStats seam");
 }
 
 GaussianPlyFileFormat::GaussianPlyFileFormat()
-    : SdfFileFormat(
-          GaussianPlyFileFormatTokens->Id,
-          GaussianPlyFileFormatTokens->Version,
-          GaussianPlyFileFormatTokens->Target,
-          GaussianPlyFileFormatTokens->Extension)
-{
-}
+    : SdfFileFormat(GaussianPlyFileFormatTokens->Id,
+                    GaussianPlyFileFormatTokens->Version,
+                    GaussianPlyFileFormatTokens->Target,
+                    GaussianPlyFileFormatTokens->Extension)
+{}
 
 GaussianPlyFileFormat::~GaussianPlyFileFormat() = default;
 
-bool
-GaussianPlyFileFormat::CanRead(const std::string& file) const
+bool GaussianPlyFileFormat::CanRead(const std::string& file) const
 {
     if (SdfFileFormat::GetFileExtension(file) != "ply") {
         return false;
@@ -63,21 +62,18 @@ GaussianPlyFileFormat::CanRead(const std::string& file) const
     return openstrata::gs::ply::GaussianPlyDecoder().CanRead(file);
 }
 
-bool
-GaussianPlyFileFormat::Read(
-    SdfLayer* layer,
-    const std::string& resolvedPath,
-    bool metadataOnly) const
+bool GaussianPlyFileFormat::Read(SdfLayer* layer,
+                                 const std::string& resolvedPath,
+                                 bool metadataOnly) const
 {
     namespace gsply = openstrata::gs::ply;
 
     std::string error;
     gsply::GaussianPlyImportOptions options;
-    if (!gsply::ParseImportOptions(
-            layer->GetFileFormatArguments(), &options, &error)) {
-        TF_RUNTIME_ERROR(
-            "gaussian-ply: failed to read '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+    if (!gsply::ParseImportOptions(layer->GetFileFormatArguments(), &options,
+                                   &error)) {
+        TF_RUNTIME_ERROR("gaussian-ply: failed to read '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
 
@@ -90,16 +86,19 @@ GaussianPlyFileFormat::Read(
     // one type, so a positional list lets a swapped pair compile silently and
     // emit the wrong stable code to users. Named assignment makes that
     // mistake impossible instead of leaving it to be caught in review.
-    static const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes = [] {
-        openstrata::gs::usd::LayerWriterDiagnosticCodes codes;
-        codes.internalError = gsply::diag::kInternalError;
-        codes.cloudValidationFailed = gsply::diag::kCloudValidationFailed;
-        codes.stageCreationFailed = gsply::diag::kStageCreationFailed;
-        codes.scaffoldAuthoringFailed = gsply::diag::kScaffoldAuthoringFailed;
-        codes.attributeAuthoringFailed = gsply::diag::kAttributeAuthoringFailed;
-        codes.extentOverflow = gsply::diag::kExtentOverflow;
-        return codes;
-    }();
+    static const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes =
+        [] {
+            openstrata::gs::usd::LayerWriterDiagnosticCodes codes;
+            codes.internalError = gsply::diag::kInternalError;
+            codes.cloudValidationFailed = gsply::diag::kCloudValidationFailed;
+            codes.stageCreationFailed = gsply::diag::kStageCreationFailed;
+            codes.scaffoldAuthoringFailed =
+                gsply::diag::kScaffoldAuthoringFailed;
+            codes.attributeAuthoringFailed =
+                gsply::diag::kAttributeAuthoringFailed;
+            codes.extentOverflow = gsply::diag::kExtentOverflow;
+            return codes;
+        }();
     const openstrata::gs::usd::GaussianLayerWriter writer(kWriterCodes);
 
     // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached
@@ -115,9 +114,8 @@ GaussianPlyFileFormat::Read(
         // requires a full read and is not applied to metadata.
         gsply::GaussianPlyMetadata metadata;
         if (!decoder.DecodeMetadata(resolvedPath, &metadata, &error)) {
-            TF_RUNTIME_ERROR(
-                "gaussian-ply: failed to read '%s': %s",
-                resolvedPath.c_str(), error.c_str());
+            TF_RUNTIME_ERROR("gaussian-ply: failed to read '%s': %s",
+                             resolvedPath.c_str(), error.c_str());
             return false;
         }
         const int effectiveDegree =
@@ -128,9 +126,8 @@ GaussianPlyFileFormat::Read(
                 gsply::kSourceFormatToken, &generated, &error);
         });
         if (!task.get()) {
-            TF_RUNTIME_ERROR(
-                "gaussian-ply: failed to author USD for '%s': %s",
-                resolvedPath.c_str(), error.c_str());
+            TF_RUNTIME_ERROR("gaussian-ply: failed to author USD for '%s': %s",
+                             resolvedPath.c_str(), error.c_str());
             return false;
         }
         layer->TransferContent(generated);
@@ -146,9 +143,8 @@ GaussianPlyFileFormat::Read(
     openstrata::gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error, statsOut)) {
-        TF_RUNTIME_ERROR(
-            "gaussian-ply: failed to read '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+        TF_RUNTIME_ERROR("gaussian-ply: failed to read '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
     for (const std::string& warning : warnings) {
@@ -156,9 +152,8 @@ GaussianPlyFileFormat::Read(
     }
 
     if (!gsply::ApplyImportOptions(options, &cloud, &error)) {
-        TF_RUNTIME_ERROR(
-            "gaussian-ply: failed to read '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+        TF_RUNTIME_ERROR("gaussian-ply: failed to read '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
 
@@ -182,50 +177,49 @@ GaussianPlyFileFormat::Read(
     // authored.
     const auto authorStart = std::chrono::steady_clock::now();
     auto task = std::async(std::launch::async, [&]() {
-        return writer.WriteToLayer(
-            std::move(cloud), gsply::kSourceFormatToken, &generated, &error);
+        return writer.WriteToLayer(std::move(cloud), gsply::kSourceFormatToken,
+                                   &generated, &error);
     });
     if (!task.get()) {
-        TF_RUNTIME_ERROR(
-            "gaussian-ply: failed to author USD for '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+        TF_RUNTIME_ERROR("gaussian-ply: failed to author USD for '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
     if (statsOut) {
-        stats.authorSeconds = std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - authorStart).count();
-        TF_DEBUG(GSPLY_IMPORT_STATS).Msg("gaussian-ply: %s\n",
-            openstrata::gs::FormatImportStats(stats).c_str());
+        stats.authorSeconds =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                          authorStart)
+                .count();
+        TF_DEBUG(GSPLY_IMPORT_STATS)
+            .Msg("gaussian-ply: %s\n",
+                 openstrata::gs::FormatImportStats(stats).c_str());
     }
 
     layer->TransferContent(generated);
     return true;
 }
 
-bool
-GaussianPlyFileFormat::WriteToFile(
-    const SdfLayer& layer,
-    const std::string& filePath,
-    const std::string& comment,
-    const FileFormatArguments& args) const
+bool GaussianPlyFileFormat::WriteToFile(const SdfLayer& layer,
+                                        const std::string& filePath,
+                                        const std::string& comment,
+                                        const FileFormatArguments& args) const
 {
     (void)layer;
     (void)filePath;
     (void)comment;
     (void)args;
-    TF_RUNTIME_ERROR("%s",
-        openstrata::gs::ply::diag::Format(
-            openstrata::gs::ply::diag::kWriteUnsupported,
-            "gaussian-ply is read-only; USD to Gaussian PLY writing is "
-            "unsupported").c_str());
+    TF_RUNTIME_ERROR(
+        "%s", openstrata::gs::ply::diag::Format(
+                  openstrata::gs::ply::diag::kWriteUnsupported,
+                  "gaussian-ply is read-only; USD to Gaussian PLY writing is "
+                  "unsupported")
+                  .c_str());
     return false;
 }
 
-bool
-GaussianPlyFileFormat::WriteToString(
-    const SdfLayer& layer,
-    std::string* str,
-    const std::string& comment) const
+bool GaussianPlyFileFormat::WriteToString(const SdfLayer& layer,
+                                          std::string* str,
+                                          const std::string& comment) const
 {
     SdfFileFormatConstPtr usda = SdfFileFormat::FindByExtension("usda");
     if (usda) {

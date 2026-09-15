@@ -59,27 +59,26 @@ float InverseLogTransform(float value) noexcept
 
 GaussianSogDecoder::GaussianSogDecoder(SogReader reader)
     : _reader(std::move(reader))
-{
-}
+{}
 
 bool GaussianSogDecoder::CanReadBundled(const std::string& path) const noexcept
 {
     return _reader.CanReadBundled(path);
 }
 
-bool GaussianSogDecoder::CanReadUnbundled(const std::string& path) const noexcept
+bool GaussianSogDecoder::CanReadUnbundled(
+    const std::string& path) const noexcept
 {
     return _reader.CanReadUnbundled(path);
 }
 
-bool GaussianSogDecoder::DecodeMetadata(
-    const std::string& path,
-    GaussianSogMetadata* metadata,
-    std::string* error) const
+bool GaussianSogDecoder::DecodeMetadata(const std::string& path,
+                                        GaussianSogMetadata* metadata,
+                                        std::string* error) const
 {
     if (!metadata) {
         SetError(error, diag::kInternalError,
-            "Gaussian decoder received a null metadata output.");
+                 "Gaussian decoder received a null metadata output.");
         return false;
     }
 
@@ -95,16 +94,15 @@ bool GaussianSogDecoder::DecodeMetadata(
     return true;
 }
 
-bool GaussianSogDecoder::Decode(
-    const std::string& path,
-    GaussianCloudData* cloud,
-    std::vector<std::string>* warnings,
-    std::string* error,
-    GaussianImportStats* stats) const
+bool GaussianSogDecoder::Decode(const std::string& path,
+                                GaussianCloudData* cloud,
+                                std::vector<std::string>* warnings,
+                                std::string* error,
+                                GaussianImportStats* stats) const
 {
     if (!cloud) {
         SetError(error, diag::kInternalError,
-            "Gaussian decoder received a null cloud output.");
+                 "Gaussian decoder received a null cloud output.");
         return false;
     }
 
@@ -131,9 +129,10 @@ bool GaussianSogDecoder::Decode(
         document.scalesCodebook.size() != 256 ||
         document.sh0Codebook.size() != 256 ||
         (shDegree != 0 &&
-            (!document.shCentroids.Present() || !document.shLabels.Present() ||
-             document.shCodebook.size() != 256))) {
-        SetError(error, diag::kInternalError,
+         (!document.shCentroids.Present() || !document.shLabels.Present() ||
+          document.shCodebook.size() != 256))) {
+        SetError(
+            error, diag::kInternalError,
             "The container document does not match the metadata it declares.");
         return false;
     }
@@ -148,9 +147,9 @@ bool GaussianSogDecoder::Decode(
     const auto allocate = [&](auto* array, std::size_t elements) {
         if (!TryResize(array, elements)) {
             SetError(error, diag::kModelAllocationFailed,
-                "SOG model arrays for " + std::to_string(count) +
-                " Gaussians at SH degree " + std::to_string(shDegree) +
-                " could not be allocated.");
+                     "SOG model arrays for " + std::to_string(count) +
+                         " Gaussians at SH degree " + std::to_string(shDegree) +
+                         " could not be allocated.");
             return false;
         }
         return true;
@@ -182,8 +181,8 @@ bool GaussianSogDecoder::Decode(
         // range and inverse-log transformed (SOG_MAPPING.md §4).
         float span[3];
         for (int axis = 0; axis < 3; ++axis) {
-            span[axis] = document.meansMaximum[axis] -
-                document.meansMinimum[axis];
+            span[axis] =
+                document.meansMaximum[axis] - document.meansMinimum[axis];
         }
         for (std::size_t i = 0; i < count; ++i) {
             const unsigned char* low = document.meansLow.Gaussian(i);
@@ -195,14 +194,17 @@ bool GaussianSogDecoder::Decode(
                     (static_cast<std::uint32_t>(high[axis]) << 8);
                 const float normalized =
                     document.meansMinimum[axis] +
-                    span[axis] * (static_cast<float>(code) /
-                        kPositionCodeMaximum);
+                    span[axis] *
+                        (static_cast<float>(code) / kPositionCodeMaximum);
                 decoded[axis] = InverseLogTransform(normalized);
                 if (!std::isfinite(decoded[axis])) {
-                    SetError(error, diag::kMalformedMetadata,
+                    SetError(
+                        error, diag::kMalformedMetadata,
                         "The position range in meta.json decodes Gaussian " +
-                        std::to_string(i) + " outside the range of a 32-bit "
-                        "float; \"means\".mins/maxs are log-domain bounds.");
+                            std::to_string(i) +
+                            " outside the range of a 32-bit "
+                            "float; \"means\".mins/maxs are log-domain "
+                            "bounds.");
                     return false;
                 }
             }
@@ -218,9 +220,10 @@ bool GaussianSogDecoder::Decode(
         const float z = linearScales[stored[2]];
         if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) {
             SetError(error, diag::kInvalidCodebook,
-                "A scales codebook entry used by Gaussian " +
-                std::to_string(i) + " exponentiates outside the range of a "
-                "32-bit float; the codebook is log-domain.");
+                     "A scales codebook entry used by Gaussian " +
+                         std::to_string(i) +
+                         " exponentiates outside the range of a "
+                         "32-bit float; the codebook is log-domain.");
             return false;
         }
         result.scales[i] = {x, y, z};
@@ -231,10 +234,9 @@ bool GaussianSogDecoder::Decode(
         // raw band-0 coefficients, alpha is the already post-sigmoid opacity
         // (SOG_MAPPING.md §3).
         const unsigned char* stored = document.sh0.Gaussian(i);
-        result.dcCoefficients[i] = {
-            document.sh0Codebook[stored[0]],
-            document.sh0Codebook[stored[1]],
-            document.sh0Codebook[stored[2]]};
+        result.dcCoefficients[i] = {document.sh0Codebook[stored[0]],
+                                    document.sh0Codebook[stored[1]],
+                                    document.sh0Codebook[stored[2]]};
         result.opacities[i] = static_cast<float>(stored[3]) / 255.0f;
     }
 
@@ -244,10 +246,10 @@ bool GaussianSogDecoder::Decode(
         const unsigned char* stored = document.quats.Gaussian(i);
         if (stored[3] < kQuaternionTagBase) {
             SetError(error, diag::kMalformedRotation,
-                "The quaternion of Gaussian " + std::to_string(i) +
-                " carries the largest-component tag " +
-                std::to_string(static_cast<int>(stored[3])) +
-                "; SOG v2 tags are 252-255.");
+                     "The quaternion of Gaussian " + std::to_string(i) +
+                         " carries the largest-component tag " +
+                         std::to_string(static_cast<int>(stored[3])) +
+                         "; SOG v2 tags are 252-255.");
             return false;
         }
         const int dropped = static_cast<int>(stored[3] - kQuaternionTagBase);
@@ -271,7 +273,7 @@ bool GaussianSogDecoder::Decode(
                 {components[0], components[1], components[2], components[3]},
                 &result.rotations[i])) {
             SetError(error, diag::kInternalError,
-                "A dequantized quaternion was not normalizable.");
+                     "A dequantized quaternion was not normalizable.");
             return false;
         }
     }
@@ -288,9 +290,9 @@ bool GaussianSogDecoder::Decode(
         std::size_t restLength = 0;
         if (!ComputeRestCoefficientCount(count, shDegree, &restLength)) {
             SetError(error, diag::kModelAllocationFailed,
-                "The model size for " + std::to_string(count) +
-                " Gaussians at SH degree " + std::to_string(shDegree) +
-                " overflows this platform's address space.");
+                     "The model size for " + std::to_string(count) +
+                         " Gaussians at SH degree " + std::to_string(shDegree) +
+                         " overflows this platform's address space.");
             return false;
         }
         if (!allocate(&result.restCoefficients, restLength)) {
@@ -313,8 +315,8 @@ bool GaussianSogDecoder::Decode(
                 (label % kShCentroidsPerRow) * coefficients;
             for (std::size_t coefficient = 0; coefficient < coefficients;
                  ++coefficient) {
-                const unsigned char* texel = document.shCentroids.Texel(
-                    column + coefficient, row);
+                const unsigned char* texel =
+                    document.shCentroids.Texel(column + coefficient, row);
                 result.restCoefficients[i * coefficients + coefficient] = {
                     document.shCodebook[texel[0]],
                     document.shCodebook[texel[1]],
@@ -336,12 +338,13 @@ bool GaussianSogDecoder::Decode(
     }
 
     if (warnings && labelsOutOfRange != 0) {
-        warnings->push_back(diag::Format(diag::kShLabelsOutOfRange,
+        warnings->push_back(diag::Format(
+            diag::kShLabelsOutOfRange,
             std::to_string(labelsOutOfRange) + " of " + std::to_string(count) +
-            " spherical-harmonic palette label(s) point past the " +
-            std::to_string(document.shPaletteCount) +
-            "-centroid palette; those Gaussians decoded with zero "
-            "higher-order coefficients."));
+                " spherical-harmonic palette label(s) point past the " +
+                std::to_string(document.shPaletteCount) +
+                "-centroid palette; those Gaussians decoded with zero "
+                "higher-order coefficients."));
     }
 
     if (stats) {

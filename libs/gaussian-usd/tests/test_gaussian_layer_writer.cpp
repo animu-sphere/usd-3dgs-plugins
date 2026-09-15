@@ -13,11 +13,13 @@ namespace {
 
 int failures = 0;
 
-#define CHECK(expr) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
 // Distinct sentinels per member, so each test pins a failure to the exact
 // member it must come from rather than merely observing that some code was
@@ -32,12 +34,8 @@ int failures = 0;
 // assigned by name at each bundle, which is what removes the swap hazard the
 // covered members are additionally tested for.
 constexpr gs::usd::LayerWriterDiagnosticCodes kCodes{
-    "TEST-INTERNAL",
-    "TEST-VALIDATION",
-    "TEST-STAGE",
-    "TEST-SCAFFOLD",
-    "TEST-ATTRIBUTE",
-    "TEST-EXTENT",
+    "TEST-INTERNAL", "TEST-VALIDATION", "TEST-STAGE",
+    "TEST-SCAFFOLD", "TEST-ATTRIBUTE",  "TEST-EXTENT",
 };
 
 bool StartsWith(const std::string& value, const std::string& prefix)

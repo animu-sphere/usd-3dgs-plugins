@@ -66,21 +66,28 @@ struct SogTolerance {
 // Widest log-domain span 1.096053 => half step 8.36e-6.
 constexpr SogTolerance kSogExact{
     "SOG degree-3, exact codebooks",
-    8.4e-6f, 1.0e-6f, 1.0f / 510.0f, 1.0e-6f, 1.0e-6f, 8.0e-3f,
+    8.4e-6f,
+    1.0e-6f,
+    1.0f / 510.0f,
+    1.0e-6f,
+    1.0e-6f,
+    8.0e-3f,
 };
 
 // Widest log-domain span 5.488174 => half step 4.19e-5. The codebook exactness
 // holds off-grid too: only positions, opacity, and rotation quantize.
 constexpr SogTolerance kSogOffGrid{
     "SOG degree-1, off-grid positions",
-    4.2e-5f, 1.0e-6f, 1.0f / 510.0f, 1.0e-6f, 1.0e-6f, 8.0e-3f,
+    4.2e-5f,
+    1.0e-6f,
+    1.0f / 510.0f,
+    1.0e-6f,
+    1.0e-6f,
+    8.0e-3f,
 };
 
-bool Decode(
-    const char* plyFixture,
-    const char* sogFixture,
-    gs::GaussianCloudData* ply,
-    gs::GaussianCloudData* sog)
+bool Decode(const char* plyFixture, const char* sogFixture,
+            gs::GaussianCloudData* ply, gs::GaussianCloudData* sog)
 {
     const gs::ply::GaussianPlyDecoder plyDecoder;
     const gs::sog::GaussianSogDecoder sogDecoder;
@@ -115,10 +122,9 @@ bool Decode(
     return plyOk && sogOk;
 }
 
-void CompareClouds(
-    const gs::GaussianCloudData& ply,
-    const gs::GaussianCloudData& sog,
-    const SogTolerance& tolerance)
+void CompareClouds(const gs::GaussianCloudData& ply,
+                   const gs::GaussianCloudData& sog,
+                   const SogTolerance& tolerance)
 {
     if (!ShapesAgree(ply, sog)) {
         return; // Sizes disagree; per-element comparison would be noise.
@@ -126,8 +132,8 @@ void CompareClouds(
 
     // |dp| <= (|p| + 1) * halfStep: the inverse-log transform's derivative at
     // the decoded value times half a log-domain code step.
-    const auto checkPosition = [&](
-        float reference, float other, const char* what, std::size_t index) {
+    const auto checkPosition = [&](float reference, float other,
+                                   const char* what, std::size_t index) {
         const float bound =
             (std::fabs(reference) + 1.0f) * tolerance.positionLogHalfStep;
         CheckClose(reference, other, bound, what, index);
@@ -138,15 +144,15 @@ void CompareClouds(
         checkPosition(ply.positions[i].y, sog.positions[i].y, "position.y", i);
         checkPosition(ply.positions[i].z, sog.positions[i].z, "position.z", i);
 
-        CheckRelative(ply.scales[i].x, sog.scales[i].x,
-                      tolerance.scaleRelative, "scale.x", i);
-        CheckRelative(ply.scales[i].y, sog.scales[i].y,
-                      tolerance.scaleRelative, "scale.y", i);
-        CheckRelative(ply.scales[i].z, sog.scales[i].z,
-                      tolerance.scaleRelative, "scale.z", i);
+        CheckRelative(ply.scales[i].x, sog.scales[i].x, tolerance.scaleRelative,
+                      "scale.x", i);
+        CheckRelative(ply.scales[i].y, sog.scales[i].y, tolerance.scaleRelative,
+                      "scale.y", i);
+        CheckRelative(ply.scales[i].z, sog.scales[i].z, tolerance.scaleRelative,
+                      "scale.z", i);
 
-        CheckClose(ply.opacities[i], sog.opacities[i],
-                   tolerance.opacity, "opacity", i);
+        CheckClose(ply.opacities[i], sog.opacities[i], tolerance.opacity,
+                   "opacity", i);
 
         const gs::Quaternion& a = ply.rotations[i];
         const gs::Quaternion b = AlignSign(a, sog.rotations[i]);
@@ -176,13 +182,9 @@ void CompareClouds(
     }
 }
 
-void TestPair(
-    const char* label,
-    const char* plyFixture,
-    const char* sogFixture,
-    const SogTolerance& tolerance,
-    std::size_t expectedCount,
-    int expectedDegree)
+void TestPair(const char* label, const char* plyFixture, const char* sogFixture,
+              const SogTolerance& tolerance, std::size_t expectedCount,
+              int expectedDegree)
 {
     const int before = failures;
 
@@ -213,20 +215,16 @@ int main()
 {
     // Degree 3: every rest coefficient is present, so all 15 sign flips are
     // compared against an independent implementation of the same table.
-    TestPair(
-        "degree-3 exact, SOG v2 (bundled)",
-        "equiv-degree3-exact-binary-le.ply",
-        "equiv-degree3-exact.sog",
-        kSogExact, 4, 3);
+    TestPair("degree-3 exact, SOG v2 (bundled)",
+             "equiv-degree3-exact-binary-le.ply", "equiv-degree3-exact.sog",
+             kSogExact, 4, 3);
 
     // Arbitrary values between quantization points, including a position three
     // orders of magnitude larger than the rest — which is where the log-domain
     // position bound has to be relative rather than absolute.
-    TestPair(
-        "degree-1 off-grid, SOG v2 (bundled)",
-        "equiv-degree1-offgrid-binary-le.ply",
-        "equiv-degree1-offgrid.sog",
-        kSogOffGrid, 3, 1);
+    TestPair("degree-1 off-grid, SOG v2 (bundled)",
+             "equiv-degree1-offgrid-binary-le.ply", "equiv-degree1-offgrid.sog",
+             kSogOffGrid, 3, 1);
 
     return Report("PLY/SOG equivalence");
 }
