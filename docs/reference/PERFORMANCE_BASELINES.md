@@ -12,9 +12,9 @@ SPZ rows come from one implementation measuring one seam. Any difference
 between the tables below is a property of the formats, not of two benchmarks
 that drifted apart.
 
-SOG baselines are pending a dedicated measurement pass against the newly
-admitted real corpus. The synthetic fixtures are not a substitute: a
-few-Gaussian fixture measures process startup, not decoding.
+The SOG section below records a dedicated pass against the committed real
+corpus. The synthetic fixtures are not a substitute: a few-Gaussian fixture
+measures process startup, not decoding.
 
 ## Environment
 
@@ -107,6 +107,31 @@ Reading the table against PLY:
 - **`CanRead()` stays sub-millisecond** — it inflates only enough to reach the
   magic. Cold-cache first touch adds several milliseconds of I/O at any size,
   which is I/O, not parsing.
+
+## Results — SOG
+
+Measured 2026-09-15 on Windows 11 Pro with OST 0.22.10, OpenUSD 26.08 from the
+digest-pinned `cy2026/usd` runtime, Python 3.13, and the Release plugin build.
+Both inputs are committed CC0 corpus conversions made with SplatTransform
+v3.1.6 (`04b6d15`), so they have the same 8,192-Gaussian, degree-3 shape as
+the corresponding PLY and SPZ corpus subsets.
+
+Each row ran in a separate process through `scripts/benchmark_import.py`; the
+reported peak is therefore attributable to that asset's process. The corpus
+files are bundled SOG v2 archives.
+
+| Asset | Producer/source | Gaussians | SH | Source | `CanRead()` | Metadata-only read | `Usd.Stage.Open` | Flatten → USDC | USDC size | Peak resident |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `yashica-t4-top8192.sog` (corpus) | Brush source subset, SplatTransform v3.1.6 | 8,192 | 3 | 0.44 MiB | 0.09 ms | 5.8 ms | 0.006 s | 0.007 s | 1.8 MiB | 0.07 GiB |
+| `leica-sofort-top8192.sog` (corpus) | Brush source subset, SplatTransform v3.1.6 | 8,192 | 3 | 0.44 MiB | 0.09 ms | 7.2 ms | 0.007 s | 0.006 s | 1.8 MiB | 0.08 GiB |
+
+The current harness measures the SOG container and decoder as the aggregate
+`Usd.Stage.Open` path. It does not yet split ZIP directory walking and entry
+extraction, WebP decode, metadata parsing, codebook/dequantization, shared
+validation, or USD authoring into separate timers. Those phase-level counters
+remain a follow-up once the aggregate baseline shows a reason to instrument
+the importer. Metadata-only reads use `Sdf.Layer.OpenAsAnonymous(...,
+metadataOnly=True)` and do not decode property planes.
 
 ## Corpus policy
 

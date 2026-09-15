@@ -1,10 +1,11 @@
 # Building and installing USD 3DGS Plugins
 
-The latest tagged and published release is v0.2.0
+The latest tagged and published release is v0.5.0
 ([release records](../releases/README.md)). The verified paths are an
 OpenStrata source build, a
 locally generated OpenStrata package, and manual activation of an extracted
-package on Windows.
+package on Windows. The v0.5.0 product archive contains the `gaussian-ply`,
+`gaussian-spz`, and `gaussian-sog` member bundles.
 Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
 before reusing a binary package: OpenUSD plugin binaries must match the target
 platform, compiler ABI, OpenUSD build, and Python ABI.
@@ -66,6 +67,51 @@ The cactus sample was flattened next to its source with:
 ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.usd" "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.ply"
 ```
 
+## SOG usage examples
+
+The bundled layout is one `.sog` file. Open it through the SOG bundle or
+flatten it to a standalone binary USD layer:
+
+```powershell
+ost plugin view plugins\gaussian-sog "plugins\gaussian-sog\tests\fixtures\kit-one-degree0.sog"
+ost plugin run plugins\gaussian-sog -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out scene-sog.usdc "plugins\gaussian-sog\tests\fixtures\kit-one-degree0.sog"
+```
+
+The unbundled layout starts at `meta.json`; its lossless-WebP companion planes
+are resolved from the same directory:
+
+```powershell
+ost plugin view plugins\gaussian-sog "plugins\gaussian-sog\tests\fixtures\unbundled-kit-multi-degree3\meta.json"
+ost plugin run plugins\gaussian-sog -- usdcat --flatten --skipSourceFileComment --usdFormat usda --out scene-sog-unbundled.usda "plugins\gaussian-sog\tests\fixtures\unbundled-kit-multi-degree3\meta.json"
+```
+
+Both source layouts author the same stage contract:
+
+```text
+/Asset                  Xform, kind=component, defaultPrim
+  /Splat              ParticleField3DGaussianSplat
+```
+
+The `/Asset` prim carries `customData.gs` so downstream tools can identify the
+source without reopening the SOG container. A degree-1 fixture produces values
+of this shape:
+
+```usda
+customData = {
+  dictionary gs = {
+    uint64 gaussianCount = 2
+    int shDegree = 1
+    string sourceFormat = "Gaussian Splatting SOG"
+  }
+}
+```
+
+The source SOG or `meta.json` is read as a plugin-backed USD layer. `usdcat`
+flattens that layer into `.usda` or `.usdc` while retaining `/Asset/Splat`; a
+viewer or downstream Hydra delegate then consumes the authored stage. Stock
+`usdview` can inspect the stage but does not render the splats unless its active
+delegate implements `ParticleField3DGaussianSplat`.
+
 The plugin only authors Gaussian schema data; this repository does not provide
 a Hydra renderer. Opening a stage and rendering visible splats are separate
 capabilities.
@@ -86,9 +132,9 @@ plugins/<bundle>/dist/plugins/<bundle>/<version>/<target>/
 alongside `manifest.json`, `sbom.spdx.json`, and `SHA256SUMS`.
 
 The current package-origin run passes discovery, read, and stage-open checks
-for both bundles (14 pass, 0 fail, 1 skip). L5 reports the skip because OST
-does not copy the adjacent golden file into the package; source-workspace L5
-passes.
+for all three bundles on the Windows 0.22.10 baseline. The source-workspace L5
+checks also pass locally; hosted macOS/Linux confirmation remains pending after
+the OpenUSD 26.08 re-pin.
 
 ## Manual package activation
 
@@ -123,7 +169,7 @@ the target and profile explicitly, for example
 
 ## Plain CMake build
 
-Point `CMAKE_PREFIX_PATH` at an OpenUSD 26.05 installation that provides a
+Point `CMAKE_PREFIX_PATH` at an OpenUSD 26.08 installation that provides a
 `pxr` CMake package:
 
 ```sh

@@ -74,10 +74,43 @@ Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
 [capability matrix](docs/reference/CAPABILITY_MATRIX.md) ·
 [performance baselines](docs/reference/PERFORMANCE_BASELINES.md).
 
+## Install a binary release
+
+For the shortest package-consumer path, choose the v0.5.0 product archive that
+matches the host platform, the `cy2026` OpenUSD runtime, and Python 3.13:
+
+```text
+usd-3dgs-plugins-0.5.0-cy2026-windows-x86_64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-0.5.0-cy2026-macos-arm64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-0.5.0-cy2026-linux-x86_64-py313-usd-plugin-product.tar.zst
+```
+
+Extract the target archive, then point `PXR_PLUGINPATH_NAME` at the extracted
+`plugin/resources/gaussian-ply`, `gaussian-spz`, and `gaussian-sog` directories.
+Use `;` between paths on Windows and `:` on macOS/Linux; keep the extracted
+`lib` directory on the platform library path. Open one file from each format
+with `usdcat` to check plugin discovery:
+
+```powershell
+$package = "C:\path\to\extracted"
+$env:PXR_PLUGINPATH_NAME = "$package\plugin\resources\gaussian-ply;$package\plugin\resources\gaussian-spz;$package\plugin\resources\gaussian-sog"
+$env:Path = "$package\lib;$env:Path"
+usdcat --flatten --out scene-ply.usda scene.ply
+usdcat --flatten --out scene-spz.usda scene.spz
+usdcat --flatten --out scene-sog.usda scene.sog
+```
+
+The exact extraction layout can vary between the aggregate product and a
+standalone member package; use the corresponding member root for each resource
+directory. The detailed activation steps, checksum guidance, and the
+unbundled SOG example are in [INSTALL.md](docs/guides/INSTALL.md). Stock
+`usdview` can open the stage and inspect `/Asset/Splat`, but visible splats
+still require a Gaussian-capable Hydra delegate.
+
 ## Quick start
 
 Requirements: OpenUSD `>=26.05,<27.0` and a C++17 compiler. Build and test
-with plain CMake against any OpenUSD 26.05 installation:
+with plain CMake against an OpenUSD installation in that range:
 
 ```sh
 cmake --preset default -DCMAKE_PREFIX_PATH=/path/to/openusd

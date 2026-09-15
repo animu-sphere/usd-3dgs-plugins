@@ -30,7 +30,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.2.0 | Production-ready Graphdeco PLY import | Phase 1 stabilization | ✅ tagged & published — [record](../releases/v0.2.0.md) |
 | v0.3.0 | SPZ import | M5, Phase 2 | ✅ tagged & published — [record](../releases/v0.3.0.md) |
 | v0.4.0 | Gaussian Import Foundation | design policy §7.4 | ✅ tagged & published — [record](../releases/v0.4.0.md) |
-| v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged; draft assembled — [record](../releases/v0.5.0.md) |
+| v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged & published — [record](../releases/v0.5.0.md) |
 | v0.6.0 | Import tooling and diagnostics | — | ⬜ |
 | v0.7.0 | Performance and large-asset readiness | Phase 4 | ⬜ |
 | v0.8.0 | USD packaging and asset composition | — | ⬜ |
@@ -344,10 +344,8 @@ a reviewed third-party dependency and license list.
 
 ## Immediate focus
 
-The current development target is **v0.4.0 — Gaussian Import Foundation**,
-entered with the v0.3.0 tag and publication on 2026-07-20. Work starts with the
-coordinate-system ADR and the revised shared-model contract before any SOG
-decoding lands; the task breakdown is in [current.md](current.md). v0.5.0 SOG
-import begins only after the v0.4.0 completion criteria are met — experimental
-SOG work may start during v0.4.0, but production SOG code must not force
-unresolved shared-contract decisions into that release.
+The current development target is **v0.5.x — release polish** after the v0.5.0
+tag and publication on 2026-07-25. Work is tracked in [current.md](current.md)
+and focuses on package-consumer installation, SOG usage documentation,
+performance baselines, and verification evidence before the v0.6.0 tooling and
+diagnostics milestone.
