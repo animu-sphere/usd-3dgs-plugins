@@ -109,6 +109,6 @@ This table describes the current tree. Planned capabilities belong in the
 | Source L0-L5 verification | supported; locally green |
 | Target-specific package | supported; locally generated and tested |
 | Package-origin L0-L4 | supported; locally green |
-| Package-origin L5 | supported since the OST 0.20.0 pin; on the 0.22.10 pin it executes and passes locally for all three bundles (it was skipped on 0.18.0, which did not stage the golden). Hosted macOS/Linux confirmation pending — see [current.md](../roadmap/current.md) |
-| Windows/macOS/Linux generated CI | declared and validated; hosted execution pending |
+| Package-origin L5 | supported since the OST 0.20.0 pin; on the 0.22.10 pin it executes and passes locally for all three bundles (it was skipped on 0.18.0, which did not stage the golden). Hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493) passed package-origin L5 on macOS/Linux and the declared Windows L4 cap |
+| Windows/macOS/Linux generated CI | supported and validated by hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493): Windows L4, macOS arm64 L5, and Linux L5 |
 | Hydra Gaussian renderer | unsupported here; owned by the sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) ([release plan](../roadmap/release-plan.md) v0.9.0) |
