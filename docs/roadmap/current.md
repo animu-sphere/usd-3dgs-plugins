@@ -1,11 +1,11 @@
 # Current
 
-Updated: 2026-09-15
-Scope: post-v0.5.0 near-term work
+Updated: 2026-09-16
+Scope: v0.6.0 preparation
 
 ## Current position
 
-v0.5.0 added PlayCanvas SOG v2 import in both supported layouts:
+The project supports PlayCanvas SOG v2 import in both supported layouts:
 
 - bundled `.sog` archives;
 - unbundled `meta.json` files with lossless WebP companion planes.
@@ -20,10 +20,9 @@ Each format-specific reader and decoder produces the shared
 `GaussianCloudData` model. The shared `GaussianLayerWriter` authors that model
 as `ParticleField3DGaussianSplat` in the USD stage.
 
-The main result of v0.5.0 is not only the addition of a third format. The
-shared model, validation contract, diagnostics, and USD authoring layer from
-v0.4.0 proved reusable for a substantially different codebook-and-image
-container.
+The shared model, validation contract, diagnostics, USD authoring layer, import
+statistics, and safety limits now cover all three format bundles. The active
+work is production import hardening before selecting another input format.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
@@ -32,114 +31,18 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 The next step is not an immediate fourth file format. Work is ordered as
 follows:
 
-1. finish the v0.5.0 release polish;
-2. improve installation and verification for package consumers;
-3. measure performance and safety on large assets;
+1. complete resolver and hostile-input coverage;
+2. define and measure large-asset validation targets;
+3. improve package-consumer replacement and uninstallation checks;
 4. select the next input format;
 5. strengthen the integration path to Hydra renderers.
 
 The short-term goal is to make the existing PLY, SPZ, and SOG support reliable
 to install, verify, and use before expanding the format matrix.
 
-## v0.5.x — release polish
-
-### Release-state synchronization
-
-README and release records now describe v0.5.0 as released. The remaining
-state-synchronization work is to keep the README, release record, capability
-matrix, and hosted-verification notes consistent as release evidence changes.
-
-### Binary-consumer path
-
-Keep the developer-oriented build path in the root README, but add a short
-package-consumer path before it. The minimum path should cover:
-
-- selecting an artifact for the OS and OpenUSD cycle;
-- extracting the package;
-- setting `PXR_PLUGINPATH_NAME`;
-- checking plugin discovery;
-- opening `.ply`, `.spz`, and `.sog` inputs;
-- explaining that stock `usdview` can open the stage but does not render the
-  splats without a Gaussian-capable Hydra delegate.
-
-Detailed installation instructions belong in
-[docs/guides/INSTALL.md](../guides/INSTALL.md); the root README should show
-only the shortest working path.
-
-### SOG usage examples
-
-Make the SOG release easier to understand by documenting:
-
-- opening a bundled `.sog`;
-- opening an unbundled `meta.json`;
-- converting to `.usdc` with `usdcat`;
-- the `/Asset/Splat` scene graph;
-- an example of `customData.gs`;
-- the relationship between the SOG source, USD stage, and rendered result.
-
-The usdview previews are now linked from the root README. A rendered example
-must continue to identify the Hydra delegate used, because this repository
-owns import and USD authoring, not rendering.
-
-### v0.5.1 position
-
-Treat v0.5.1 as a patch release for public quality rather than a new-format
-release. Its expected scope is:
-
-- documentation-state synchronization;
-- installation UX;
-- SOG performance baselines;
-- package smoke-test improvements;
-- small diagnostic or display improvements;
-- compatibility fixes found during verification.
-
-## Performance and large assets
-
-Add a SOG performance baseline using the committed real-asset corpus. Record,
-where measurable:
-
-- input file size and Gaussian count;
-- ZIP directory and entry extraction time;
-- WebP decode time;
-- metadata parsing time;
-- codebook and dequantization time;
-- shared semantic validation time;
-- USD authoring time;
-- total stage-open time;
-- metadata-only read time;
-- peak memory;
-- generated USD layer size.
-
-Compare the same or closely matched Gaussian clouds across PLY, SPZ, bundled
-SOG, unbundled SOG, and flattened USDC where practical. The purpose is to
-locate bottlenecks, not to establish a simplistic format ranking.
-
-In addition to committed fixtures and corpus assets, maintain local validation
-targets at approximately 8K, 100K, 1M, and, where practical, 5M or more
-Gaussians. Do not commit very large assets; record their source, digest,
-license, and validation date instead.
-
 ## v0.6.0 — production import hardening
 
 Prioritize import-pipeline robustness over another input format.
-
-### Shared import statistics
-
-Expose a common import-statistics structure for every importer. Candidate
-fields include:
-
-- source format and version;
-- Gaussian count and SH degree;
-- rejected Gaussian count;
-- opacity-threshold applications;
-- warning count;
-- decoded byte count;
-- decode and authoring time;
-- coordinate conversion;
-- source bounds and authored extent.
-
-The structure should be usable from diagnostics, tests, and any future CLI
-without creating format-specific statistics APIs.
 
 ### Limits for large or hostile input
 
@@ -186,8 +89,8 @@ uninstallation behavior.
 
 ## Next format candidates
 
-Choose the next format only after the v0.5.x follow-up and v0.6.0 foundation
-work have been evaluated.
+Choose the next format only after the v0.6.0 foundation work has been
+evaluated.
 
 ### First candidate: SuperSplat compressed PLY
 
@@ -267,47 +170,16 @@ real environments and package paths were actually verified.
 
 ## Immediate actions
 
-### Highest priority
-
-- ✅ Update the README's v0.5.0 state to released.
-- ✅ Update the status in `docs/releases/v0.5.0.md`.
-- ✅ Synchronize the capability matrix with hosted-verification evidence from
-  release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493).
-- ✅ Add the shortest binary-install path to the README.
-- ✅ Add bundled and unbundled SOG usage examples.
-
-### Next
-
-- ✅ Measure the SOG performance baseline.
-- ✅ Confirm the package-consumer smoke test.
-- ✅ Add SOG, PLY, and SPZ usdview screenshots or an equivalent visual example.
-- ✅ Document manual release-artifact verification.
-- ✅ Finalize the v0.5.1 scope in `CHANGELOG.md` and pass the release guard.
-
-### v0.6.0 preparation
-
-- ✅ Extend the shared import-statistics API with fixed coordinate conversion,
-  warning aggregation, and user-filter rejection counts across PLY, SPZ, and
-  SOG.
-- 🚧 Define hostile-input limits (shared count and reader resource budgets are
-  implemented; broader adversarial fixture coverage remains).
+- 🚧 Broaden hostile-input fixture coverage beyond the implemented shared count
+  and reader resource budgets.
 - ⬜ Create the asset-resolver test matrix.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
 ## Proposed milestones
 
-### v0.5.1 — Release polish
-
-- documentation-state synchronization;
-- binary installation path;
-- SOG usage examples;
-- SOG performance baseline;
-- package-verification fixes.
-
 ### v0.6.0 — Production import hardening
 
-- shared import statistics;
 - large-input limits;
 - resolver test coverage;
 - package-consumer verification;
