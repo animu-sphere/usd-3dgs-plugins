@@ -35,6 +35,9 @@ inline constexpr const char* kUnsupportedShDegree = "GSPLY-E017";
 // allocation the platform refuses (GAUSSIAN_MODEL_CONTRACT.md §3, maximum
 // count and overflow). A partial cloud is never produced.
 inline constexpr const char* kModelAllocationFailed = "GSPLY-E018";
+// A syntactically valid container declares more Gaussians than the shared
+// import safety ceiling permits before payload allocation begins.
+inline constexpr const char* kImportLimitExceeded = "GSPLY-E019";
 
 // Internal misuse of the import pipeline (null output parameters). Reported
 // defensively; not reachable from file content.

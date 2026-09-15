@@ -111,6 +111,12 @@
             "action": "The derived model size overflowed or its allocation failed; import the asset on a machine with more memory or reduce the asset size. A partial cloud is never loaded."
         },
         {
+            "code": "GSPLY-E019",
+            "severity": "error",
+            "summary": "The declared Gaussian count exceeds the shared import safety limit.",
+            "action": "Reduce the asset size or import it through a host that can partition the asset before loading."
+        },
+        {
             "code": "GSPLY-E100",
             "severity": "error",
             "summary": "An import entry point was called with a null output parameter.",

@@ -1,0 +1,8 @@
+ply
+format ascii 1.0
+element vertex 8000001
+property float scale_0
+property float rot_0
+property float opacity
+property float f_dc_0
+end_header

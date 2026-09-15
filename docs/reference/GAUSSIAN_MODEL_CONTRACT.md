@@ -167,6 +167,13 @@ admits; real ceilings are container facts and stay format-specific (SPZ caps
 `pointCount` at `2^31 - 1` per its reader; a PLY vertex count must fit
 `size_t`). What the contract requires of every decoder:
 
+The import pipeline also applies a conservative shared operational ceiling to
+declared Gaussian counts before payload allocation. The current value and the
+format-specific archive, plane, JSON, and extension budgets are recorded in
+[IMPORT_LIMITS.md](IMPORT_LIMITS.md). This is an input-safety policy, not a
+new semantic limit on `GaussianCloudData`; a future host-facing limits API must
+keep the same all-or-nothing failure behavior.
+
 - Every size derived from `N` and `D` — element counts, the
   `N * ((D+1)^2 - 1)` rest length, and allocation byte sizes — is computed
   with overflow-checked arithmetic *before* any allocation. The shared

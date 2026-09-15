@@ -44,6 +44,9 @@ inline constexpr const char* kCloudValidationFailed = "GSPZ-E013";
 // count and overflow). The container's own payload plausibility bound
 // (E005/E007) usually fires first; this is the model-side backstop.
 inline constexpr const char* kModelAllocationFailed = "GSPZ-E014";
+// A syntactically valid container exceeds the shared import safety ceiling or
+// the bounded extension-record budget.
+inline constexpr const char* kImportLimitExceeded = "GSPZ-E015";
 
 // Internal misuse of the import pipeline (null output parameters,
 // inconsistent container spans). Reported defensively; not reachable from

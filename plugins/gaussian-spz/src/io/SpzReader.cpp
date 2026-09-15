@@ -2,6 +2,8 @@
 #include "io/SpzReader.h"
 
 #include "io/GaussianSpzDiagnostics.h"
+#include "openstrata/gs/GaussianImportLimits.h"
+#include "openstrata/gs/GaussianSizeMath.h"
 
 #include "miniz.h"
 
@@ -65,35 +67,31 @@ std::uint32_t ReadLe32(const unsigned char* bytes) noexcept
            (static_cast<std::uint32_t>(bytes[3]) << 24);
 }
 
-bool LoadFile(
-    const std::string& path,
-    std::size_t limit,
-    std::vector<unsigned char>* out,
-    std::uint64_t* fileSize,
-    std::string* error)
+bool LoadFile(const std::string& path, std::size_t limit,
+              std::vector<unsigned char>* out, std::uint64_t* fileSize,
+              std::string* error)
 {
     std::ifstream in(path, std::ios::binary | std::ios::ate);
     if (!in) {
         SetError(error, diag::kUnreadableFile,
-            "The file could not be opened for reading: " + path);
+                 "The file could not be opened for reading: " + path);
         return false;
     }
     const std::streamoff size = in.tellg();
     if (size < 0) {
         SetError(error, diag::kUnreadableFile,
-            "The file size could not be determined: " + path);
+                 "The file size could not be determined: " + path);
         return false;
     }
     *fileSize = static_cast<std::uint64_t>(size);
-    const std::size_t want = static_cast<std::size_t>(
-        std::min<std::uint64_t>(*fileSize, limit));
+    const std::size_t want =
+        static_cast<std::size_t>(std::min<std::uint64_t>(*fileSize, limit));
     out->resize(want);
     in.seekg(0);
-    if (want != 0 &&
-        !in.read(reinterpret_cast<char*>(out->data()),
-                 static_cast<std::streamsize>(want))) {
+    if (want != 0 && !in.read(reinterpret_cast<char*>(out->data()),
+                              static_cast<std::streamsize>(want))) {
         SetError(error, diag::kUnreadableFile,
-            "The file could not be read: " + path);
+                 "The file could not be read: " + path);
         return false;
     }
     return true;
@@ -103,7 +101,8 @@ enum class Signature { PlaintextNgsp, Gzip, Unknown };
 
 Signature DetectSignature(const std::vector<unsigned char>& data) noexcept
 {
-    if (data.size() >= 4 && std::equal(kMagicBytes, kMagicBytes + 4, data.data())) {
+    if (data.size() >= 4 &&
+        std::equal(kMagicBytes, kMagicBytes + 4, data.data())) {
         return Signature::PlaintextNgsp;
     }
     if (data.size() >= 2 && data[0] == 0x1f && data[1] == 0x8b) {
@@ -116,26 +115,30 @@ Signature DetectSignature(const std::vector<unsigned char>& data) noexcept
 // this release defers; v1-v3 are always gzip-wrapped. Always an error, but a
 // *specific* one: unsupported version for v4 and beyond, malformed for
 // versions that never had a plaintext layout.
-bool FailPlaintextContainer(
-    const std::vector<unsigned char>& data, std::string* error)
+bool FailPlaintextContainer(const std::vector<unsigned char>& data,
+                            std::string* error)
 {
     if (data.size() < 8) {
-        SetError(error, diag::kMalformedContainer,
+        SetError(
+            error, diag::kMalformedContainer,
             "The file carries the plaintext SPZ magic but is shorter than a "
             "version field.");
         return false;
     }
     const std::uint32_t version = ReadLe32(data.data() + 4);
     if (version >= kZstdContainerVersion) {
-        SetError(error, diag::kUnsupportedVersion,
-            "SPZ version " + std::to_string(version) + " (the ZSTD container "
-            "layout) is not supported by this release; supported container "
-            "versions are 1-3. Version 4 support is planned for v0.5.0.");
+        SetError(
+            error, diag::kUnsupportedVersion,
+            "SPZ version " + std::to_string(version) +
+                " (the ZSTD container "
+                "layout) is not supported by this release; supported container "
+                "versions are 1-3. Version 4 support is planned for v0.5.0.");
     } else {
         SetError(error, diag::kMalformedContainer,
-            "The file carries a plaintext SPZ magic with version " +
-            std::to_string(version) + ", which does not match any documented "
-            "layout: versions 1-3 are gzip-wrapped.");
+                 "The file carries a plaintext SPZ magic with version " +
+                     std::to_string(version) +
+                     ", which does not match any documented "
+                     "layout: versions 1-3 are gzip-wrapped.");
     }
     return false;
 }
@@ -144,15 +147,10 @@ enum class GzipParse { Ok, Malformed, NeedMore };
 
 // RFC 1952 member header. `complete` says whether `data` is the whole file,
 // turning "ran out of bytes" into malformed instead of retry-with-more.
-GzipParse ParseGzipHeader(
-    const std::vector<unsigned char>& data,
-    bool complete,
-    std::size_t* deflateOffset,
-    std::string* error)
+GzipParse ParseGzipHeader(const std::vector<unsigned char>& data, bool complete,
+                          std::size_t* deflateOffset, std::string* error)
 {
-    const auto need = [&](std::size_t bytes) {
-        return data.size() >= bytes;
-    };
+    const auto need = [&](std::size_t bytes) { return data.size() >= bytes; };
     const auto fail = [&](const std::string& message) {
         SetError(error, diag::kMalformedContainer, message);
         return GzipParse::Malformed;
@@ -166,8 +164,8 @@ GzipParse ParseGzipHeader(
     }
     if (data[2] != 0x08) {
         return fail("The gzip compression method " +
-            std::to_string(static_cast<int>(data[2])) +
-            " is not DEFLATE.");
+                    std::to_string(static_cast<int>(data[2])) +
+                    " is not DEFLATE.");
     }
     const unsigned char flg = data[3];
     if ((flg & 0xe0) != 0) {
@@ -179,18 +177,17 @@ GzipParse ParseGzipHeader(
         if (!need(pos + 2)) {
             return short_("The gzip FEXTRA length field is truncated.");
         }
-        const std::size_t xlen =
-            static_cast<std::size_t>(data[pos]) |
-            (static_cast<std::size_t>(data[pos + 1]) << 8);
+        const std::size_t xlen = static_cast<std::size_t>(data[pos]) |
+                                 (static_cast<std::size_t>(data[pos + 1]) << 8);
         pos += 2;
         if (!need(pos + xlen)) {
             return short_("The gzip FEXTRA field is truncated.");
         }
         pos += xlen;
     }
-    for (const unsigned char nameFlag : {
-             static_cast<unsigned char>(0x08),    // FNAME
-             static_cast<unsigned char>(0x10)}) { // FCOMMENT
+    for (const unsigned char nameFlag :
+         {static_cast<unsigned char>(0x08),    // FNAME
+          static_cast<unsigned char>(0x10)}) { // FCOMMENT
         if ((flg & nameFlag) == 0) {
             continue;
         }
@@ -209,14 +206,15 @@ GzipParse ParseGzipHeader(
         }
         // RFC 1952: the two least significant bytes of the CRC32 of the
         // header bytes preceding this field.
-        const std::uint32_t computed = static_cast<std::uint32_t>(
-            mz_crc32(MZ_CRC32_INIT, data.data(), pos)) & 0xffffu;
+        const std::uint32_t computed = static_cast<std::uint32_t>(mz_crc32(
+                                           MZ_CRC32_INIT, data.data(), pos)) &
+                                       0xffffu;
         const std::uint32_t stored =
             static_cast<std::uint32_t>(data[pos]) |
             (static_cast<std::uint32_t>(data[pos + 1]) << 8);
         if (computed != stored) {
             return fail("The gzip header CRC16 does not match the header "
-                "bytes.");
+                        "bytes.");
         }
         pos += 2;
     }
@@ -230,7 +228,7 @@ GzipParse ParseGzipHeader(
 // so the gzip trailer can be verified without keeping a second copy of the
 // decompressed stream.
 class RawInflator {
-public:
+  public:
     enum class Status { Progress, End, Corrupt };
 
     ~RawInflator()
@@ -261,11 +259,11 @@ public:
         *produced = 0;
         while (*produced < outCap && !_finished) {
             _stream.next_in = const_cast<unsigned char*>(_in + _inPos);
-            _stream.avail_in = static_cast<mz_uint32>(
-                std::min(_inSize - _inPos, kChunk));
+            _stream.avail_in =
+                static_cast<mz_uint32>(std::min(_inSize - _inPos, kChunk));
             _stream.next_out = out + *produced;
-            _stream.avail_out = static_cast<mz_uint32>(
-                std::min(outCap - *produced, kChunk));
+            _stream.avail_out =
+                static_cast<mz_uint32>(std::min(outCap - *produced, kChunk));
 
             const mz_uint32 availInBefore = _stream.avail_in;
             const mz_uint32 availOutBefore = _stream.avail_out;
@@ -274,8 +272,8 @@ public:
             const std::size_t got = availOutBefore - _stream.avail_out;
 
             if (got != 0) {
-                _crc = static_cast<std::uint32_t>(mz_crc32(
-                    _crc, out + *produced, got));
+                _crc = static_cast<std::uint32_t>(
+                    mz_crc32(_crc, out + *produced, got));
             }
             _inPos += consumed;
             *produced += got;
@@ -301,13 +299,28 @@ public:
         return _finished ? Status::End : Status::Progress;
     }
 
-    bool Finished() const noexcept { return _finished; }
-    bool InputExhausted() const noexcept { return _inPos == _inSize; }
-    std::size_t ConsumedInput() const noexcept { return _inPos; }
-    std::uint64_t TotalOutput() const noexcept { return _totalOut; }
-    std::uint32_t Crc32() const noexcept { return _crc; }
+    bool Finished() const noexcept
+    {
+        return _finished;
+    }
+    bool InputExhausted() const noexcept
+    {
+        return _inPos == _inSize;
+    }
+    std::size_t ConsumedInput() const noexcept
+    {
+        return _inPos;
+    }
+    std::uint64_t TotalOutput() const noexcept
+    {
+        return _totalOut;
+    }
+    std::uint32_t Crc32() const noexcept
+    {
+        return _crc;
+    }
 
-private:
+  private:
     mz_stream _stream{};
     bool _initialized = false;
     bool _finished = false;
@@ -318,14 +331,12 @@ private:
     std::uint32_t _crc = MZ_CRC32_INIT;
 };
 
-bool ValidateHeaderBytes(
-    const unsigned char (&bytes)[kHeaderSize],
-    SpzHeader* header,
-    std::string* error)
+bool ValidateHeaderBytes(const unsigned char (&bytes)[kHeaderSize],
+                         SpzHeader* header, std::string* error)
 {
     if (!std::equal(kMagicBytes, kMagicBytes + 4, bytes)) {
         SetError(error, diag::kNotSpzContainer,
-            "The gzip member does not begin with the SPZ magic 'NGSP'.");
+                 "The gzip member does not begin with the SPZ magic 'NGSP'.");
         return false;
     }
     header->version = ReadLe32(bytes + 4);
@@ -338,37 +349,46 @@ bool ValidateHeaderBytes(
     if (header->version < kMinSupportedVersion ||
         header->version > kMaxSupportedVersion) {
         if (header->version >= kZstdContainerVersion) {
-            SetError(error, diag::kUnsupportedVersion,
+            SetError(
+                error, diag::kUnsupportedVersion,
                 "SPZ version " + std::to_string(header->version) +
-                " is not supported by this release; supported container "
-                "versions are 1-3. Version 4 (ZSTD) support is planned for "
-                "v0.5.0.");
+                    " is not supported by this release; supported container "
+                    "versions are 1-3. Version 4 (ZSTD) support is planned for "
+                    "v0.5.0.");
         } else {
-            SetError(error, diag::kUnsupportedVersion,
+            SetError(
+                error, diag::kUnsupportedVersion,
                 "SPZ version " + std::to_string(header->version) +
-                " is not a defined container version; supported versions "
-                "are 1-3.");
+                    " is not a defined container version; supported versions "
+                    "are 1-3.");
         }
         return false;
     }
     if (header->pointCount == 0) {
         SetError(error, diag::kEmptyPointSet,
-            "The header declares zero Gaussians.");
+                 "The header declares zero Gaussians.");
         return false;
     }
     if (header->pointCount > kMaxPointCount) {
         SetError(error, diag::kInvalidPointCount,
-            "The header declares " + std::to_string(header->pointCount) +
-            " Gaussians, above the format maximum of " +
-            std::to_string(kMaxPointCount) + ".");
+                 "The header declares " + std::to_string(header->pointCount) +
+                     " Gaussians, above the format maximum of " +
+                     std::to_string(kMaxPointCount) + ".");
+        return false;
+    }
+    if (!IsGaussianCountWithinLimit(header->pointCount)) {
+        SetError(error, diag::kImportLimitExceeded,
+                 "The header declares " + std::to_string(header->pointCount) +
+                     " Gaussians, above the shared import limit of " +
+                     std::to_string(kMaxGaussianCount) + ".");
         return false;
     }
     if (header->shDegree > kSpecMaxShDegree) {
         SetError(error, diag::kInvalidShDegree,
-            "The header declares SH degree " +
-            std::to_string(static_cast<int>(header->shDegree)) +
-            ", outside the specification range 0-" +
-            std::to_string(kSpecMaxShDegree) + ".");
+                 "The header declares SH degree " +
+                     std::to_string(static_cast<int>(header->shDegree)) +
+                     ", outside the specification range 0-" +
+                     std::to_string(kSpecMaxShDegree) + ".");
         return false;
     }
     return true;
@@ -380,10 +400,9 @@ std::uint64_t ExpectedPayloadBytes(const SpzHeader& header) noexcept
     // spherical harmonics. pointCount <= INT32_MAX and the per-point width is
     // at most 92 bytes (v3, degree 4), so the product stays far below 2^63.
     const std::uint64_t perPoint =
-        static_cast<std::uint64_t>(header.BytesPerPosition()) +
-        1 +                     // alpha
-        3 +                     // color
-        3 +                     // scale
+        static_cast<std::uint64_t>(header.BytesPerPosition()) + 1 + // alpha
+        3 +                                                         // color
+        3 +                                                         // scale
         header.BytesPerRotation() +
         3 * static_cast<std::uint64_t>(header.ShDimensions());
     return perPoint * header.pointCount;
@@ -391,24 +410,25 @@ std::uint64_t ExpectedPayloadBytes(const SpzHeader& header) noexcept
 
 // The declared payload must be producible from the compressed bytes that are
 // actually present. `compressedAvailable` excludes the gzip trailer.
-bool CheckDeclaredSizePlausible(
-    const SpzHeader& header,
-    std::uint64_t compressedAvailable,
-    std::string* error)
+bool CheckDeclaredSizePlausible(const SpzHeader& header,
+                                std::uint64_t compressedAvailable,
+                                std::string* error)
 {
     const std::uint64_t expected = ExpectedPayloadBytes(header);
     if (expected > std::numeric_limits<std::size_t>::max() - kHeaderSize) {
         SetError(error, diag::kInvalidPointCount,
-            "The declared payload of " + std::to_string(expected) +
-            " bytes is not addressable on this platform.");
+                 "The declared payload of " + std::to_string(expected) +
+                     " bytes is not addressable on this platform.");
         return false;
     }
     if (kHeaderSize + expected > compressedAvailable * kMaxDeflateExpansion) {
-        SetError(error, diag::kTruncatedContainer,
+        SetError(
+            error, diag::kTruncatedContainer,
             "The header declares " + std::to_string(header.pointCount) +
-            " Gaussians (" + std::to_string(expected) + " payload bytes), "
-            "but the compressed stream is too small to contain them; the "
-            "file is truncated.");
+                " Gaussians (" + std::to_string(expected) +
+                " payload bytes), "
+                "but the compressed stream is too small to contain them; the "
+                "file is truncated.");
         return false;
     }
     return true;
@@ -417,12 +437,9 @@ bool CheckDeclaredSizePlausible(
 // Decompresses exactly the 16 header bytes and validates them. Returns
 // NeedMore when `complete` is false and the compressed prefix ran out before
 // the header materialized.
-GzipParse ReadHeaderFromBuffer(
-    const std::vector<unsigned char>& data,
-    bool complete,
-    std::uint64_t fileSize,
-    SpzHeader* header,
-    std::string* error)
+GzipParse ReadHeaderFromBuffer(const std::vector<unsigned char>& data,
+                               bool complete, std::uint64_t fileSize,
+                               SpzHeader* header, std::string* error)
 {
     std::size_t deflateOffset = 0;
     const GzipParse framing =
@@ -435,7 +452,7 @@ GzipParse ReadHeaderFromBuffer(
     if (!inflator.Init(data.data() + deflateOffset,
                        data.size() - deflateOffset)) {
         SetError(error, diag::kInternalError,
-            "The DEFLATE decompressor could not be initialized.");
+                 "The DEFLATE decompressor could not be initialized.");
         return GzipParse::Malformed;
     }
 
@@ -445,22 +462,22 @@ GzipParse ReadHeaderFromBuffer(
         inflator.Pump(headerBytes, kHeaderSize, &produced);
     if (status == RawInflator::Status::Corrupt) {
         SetError(error, diag::kCorruptContainer,
-            "The DEFLATE stream is not decodable.");
+                 "The DEFLATE stream is not decodable.");
         return GzipParse::Malformed;
     }
     if (produced < kHeaderSize) {
         if (status == RawInflator::Status::End) {
             SetError(error, diag::kMalformedContainer,
-                "The decompressed stream is shorter than the 16-byte SPZ "
-                "header.");
+                     "The decompressed stream is shorter than the 16-byte SPZ "
+                     "header.");
             return GzipParse::Malformed;
         }
         if (!complete) {
             return GzipParse::NeedMore;
         }
         SetError(error, diag::kTruncatedContainer,
-            "The compressed stream ends before the 16-byte SPZ header is "
-            "complete.");
+                 "The compressed stream ends before the 16-byte SPZ header is "
+                 "complete.");
         return GzipParse::Malformed;
     }
 
@@ -471,11 +488,11 @@ GzipParse ReadHeaderFromBuffer(
     // Trailer bytes are not decompressed input; require room for them.
     if (fileSize < deflateOffset + 8) {
         SetError(error, diag::kTruncatedContainer,
-            "The file is too small to hold the gzip trailer.");
+                 "The file is too small to hold the gzip trailer.");
         return GzipParse::Malformed;
     }
-    if (!CheckDeclaredSizePlausible(
-            *header, fileSize - deflateOffset - 8, error)) {
+    if (!CheckDeclaredSizePlausible(*header, fileSize - deflateOffset - 8,
+                                    error)) {
         return GzipParse::Malformed;
     }
     return GzipParse::Ok;
@@ -550,14 +567,12 @@ bool SpzReader::CanRead(const std::string& path) const noexcept
     }
 }
 
-bool SpzReader::ReadHeader(
-    const std::string& path,
-    SpzHeader* header,
-    std::string* error) const
+bool SpzReader::ReadHeader(const std::string& path, SpzHeader* header,
+                           std::string* error) const
 {
     if (!header) {
         SetError(error, diag::kInternalError,
-            "SpzReader received a null header output.");
+                 "SpzReader received a null header output.");
         return false;
     }
 
@@ -571,18 +586,18 @@ bool SpzReader::ReadHeader(
         return FailPlaintextContainer(data, error);
     case Signature::Unknown:
         SetError(error, diag::kNotSpzContainer,
-            "The file has neither the gzip signature of an SPZ v1-v3 "
-            "container nor a plaintext SPZ magic.");
+                 "The file has neither the gzip signature of an SPZ v1-v3 "
+                 "container nor a plaintext SPZ magic.");
         return false;
     case Signature::Gzip:
         break;
     }
 
-    GzipParse result = ReadHeaderFromBuffer(
-        data, data.size() >= fileSize, fileSize, header, error);
+    GzipParse result = ReadHeaderFromBuffer(data, data.size() >= fileSize,
+                                            fileSize, header, error);
     if (result == GzipParse::NeedMore) {
-        if (!LoadFile(path, std::numeric_limits<std::size_t>::max(),
-                      &data, &fileSize, error)) {
+        if (!LoadFile(path, std::numeric_limits<std::size_t>::max(), &data,
+                      &fileSize, error)) {
             return false;
         }
         result = ReadHeaderFromBuffer(data, true, fileSize, header, error);
@@ -590,21 +605,19 @@ bool SpzReader::ReadHeader(
     return result == GzipParse::Ok;
 }
 
-bool SpzReader::Read(
-    const std::string& path,
-    SpzPackedDocument* document,
-    std::string* error) const
+bool SpzReader::Read(const std::string& path, SpzPackedDocument* document,
+                     std::string* error) const
 {
     if (!document) {
         SetError(error, diag::kInternalError,
-            "SpzReader received a null document output.");
+                 "SpzReader received a null document output.");
         return false;
     }
 
     std::vector<unsigned char> file;
     std::uint64_t fileSize = 0;
-    if (!LoadFile(path, std::numeric_limits<std::size_t>::max(),
-                  &file, &fileSize, error)) {
+    if (!LoadFile(path, std::numeric_limits<std::size_t>::max(), &file,
+                  &fileSize, error)) {
         return false;
     }
     switch (DetectSignature(file)) {
@@ -612,8 +625,8 @@ bool SpzReader::Read(
         return FailPlaintextContainer(file, error);
     case Signature::Unknown:
         SetError(error, diag::kNotSpzContainer,
-            "The file has neither the gzip signature of an SPZ v1-v3 "
-            "container nor a plaintext SPZ magic.");
+                 "The file has neither the gzip signature of an SPZ v1-v3 "
+                 "container nor a plaintext SPZ magic.");
         return false;
     case Signature::Gzip:
         break;
@@ -625,7 +638,7 @@ bool SpzReader::Read(
     }
     if (file.size() < deflateOffset + 8) {
         SetError(error, diag::kTruncatedContainer,
-            "The file is too small to hold the gzip trailer.");
+                 "The file is too small to hold the gzip trailer.");
         return false;
     }
 
@@ -633,7 +646,7 @@ bool SpzReader::Read(
     if (!inflator.Init(file.data() + deflateOffset,
                        file.size() - deflateOffset)) {
         SetError(error, diag::kInternalError,
-            "The DEFLATE decompressor could not be initialized.");
+                 "The DEFLATE decompressor could not be initialized.");
         return false;
     }
 
@@ -644,18 +657,18 @@ bool SpzReader::Read(
         inflator.Pump(headerBytes, kHeaderSize, &produced);
     if (status == RawInflator::Status::Corrupt) {
         SetError(error, diag::kCorruptContainer,
-            "The DEFLATE stream is not decodable.");
+                 "The DEFLATE stream is not decodable.");
         return false;
     }
     if (produced < kHeaderSize) {
         if (status == RawInflator::Status::End) {
             SetError(error, diag::kMalformedContainer,
-                "The decompressed stream is shorter than the 16-byte SPZ "
-                "header.");
+                     "The decompressed stream is shorter than the 16-byte SPZ "
+                     "header.");
         } else {
             SetError(error, diag::kTruncatedContainer,
-                "The compressed stream ends before the 16-byte SPZ header "
-                "is complete.");
+                     "The compressed stream ends before the 16-byte SPZ header "
+                     "is complete.");
         }
         return false;
     }
@@ -664,8 +677,8 @@ bool SpzReader::Read(
     if (!ValidateHeaderBytes(headerBytes, &header, error)) {
         return false;
     }
-    if (!CheckDeclaredSizePlausible(
-            header, file.size() - deflateOffset - 8, error)) {
+    if (!CheckDeclaredSizePlausible(header, file.size() - deflateOffset - 8,
+                                    error)) {
         return false;
     }
 
@@ -674,20 +687,27 @@ bool SpzReader::Read(
     // compressed bytes could actually produce.
     const std::size_t expected =
         static_cast<std::size_t>(ExpectedPayloadBytes(header));
-    document->payload.assign(expected, 0);
+    if (!TryResize(&document->payload, expected)) {
+        SetError(error, diag::kModelAllocationFailed,
+                 "The " + std::to_string(expected) +
+                     "-byte SPZ payload could not be allocated.");
+        return false;
+    }
+    std::fill(document->payload.begin(), document->payload.end(), 0);
     document->extensions.clear();
 
     status = inflator.Pump(document->payload.data(), expected, &produced);
     if (status == RawInflator::Status::Corrupt) {
         SetError(error, diag::kCorruptContainer,
-            "The DEFLATE stream is not decodable.");
+                 "The DEFLATE stream is not decodable.");
         return false;
     }
     if (produced < expected) {
         SetError(error, diag::kTruncatedContainer,
-            "The attribute streams end after " + std::to_string(produced) +
-            " of the " + std::to_string(expected) + " bytes the header "
-            "declares.");
+                 "The attribute streams end after " + std::to_string(produced) +
+                     " of the " + std::to_string(expected) +
+                     " bytes the header "
+                     "declares.");
         return false;
     }
 
@@ -699,26 +719,35 @@ bool SpzReader::Read(
         status = inflator.Pump(scratch, sizeof scratch, &produced);
         if (status == RawInflator::Status::Corrupt) {
             SetError(error, diag::kCorruptContainer,
-                "The DEFLATE stream is not decodable.");
+                     "The DEFLATE stream is not decodable.");
             return false;
         }
         if (header.HasExtensions()) {
-            document->extensions.insert(
-                document->extensions.end(), scratch, scratch + produced);
+            if (produced >
+                64ull * 1024ull * 1024ull - document->extensions.size()) {
+                SetError(
+                    error, diag::kImportLimitExceeded,
+                    "SPZ extension records exceed the 64 MiB import limit.");
+                return false;
+            }
+            document->extensions.insert(document->extensions.end(), scratch,
+                                        scratch + produced);
         } else {
             undeclaredTrailing += produced;
         }
         if (status == RawInflator::Status::Progress && produced == 0) {
-            SetError(error, diag::kTruncatedContainer,
+            SetError(
+                error, diag::kTruncatedContainer,
                 "The compressed stream ends without a DEFLATE terminator.");
             return false;
         }
     }
     if (undeclaredTrailing != 0) {
         SetError(error, diag::kTrailingData,
-            std::to_string(undeclaredTrailing) + " decompressed bytes follow "
-            "the attribute streams, but the header does not declare "
-            "extensions.");
+                 std::to_string(undeclaredTrailing) +
+                     " decompressed bytes follow "
+                     "the attribute streams, but the header does not declare "
+                     "extensions.");
         return false;
     }
 
@@ -726,26 +755,28 @@ bool SpzReader::Read(
     const std::size_t trailerOffset = deflateOffset + inflator.ConsumedInput();
     if (file.size() < trailerOffset + 8) {
         SetError(error, diag::kTruncatedContainer,
-            "The gzip trailer is truncated.");
+                 "The gzip trailer is truncated.");
         return false;
     }
     const std::uint32_t storedCrc = ReadLe32(file.data() + trailerOffset);
     const std::uint32_t storedSize = ReadLe32(file.data() + trailerOffset + 4);
     if (storedCrc != inflator.Crc32()) {
         SetError(error, diag::kCorruptContainer,
-            "The gzip CRC32 does not match the decompressed stream.");
+                 "The gzip CRC32 does not match the decompressed stream.");
         return false;
     }
     if (storedSize !=
         static_cast<std::uint32_t>(inflator.TotalOutput() & 0xffffffffu)) {
-        SetError(error, diag::kCorruptContainer,
+        SetError(
+            error, diag::kCorruptContainer,
             "The gzip length field does not match the decompressed stream.");
         return false;
     }
     if (file.size() > trailerOffset + 8) {
         SetError(error, diag::kTrailingData,
-            std::to_string(file.size() - trailerOffset - 8) + " bytes follow "
-            "the gzip member.");
+                 std::to_string(file.size() - trailerOffset - 8) +
+                     " bytes follow "
+                     "the gzip member.");
         return false;
     }
 

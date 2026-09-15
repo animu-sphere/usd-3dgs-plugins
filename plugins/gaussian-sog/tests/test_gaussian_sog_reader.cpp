@@ -7,6 +7,7 @@
 // semantics or authors USD.
 
 #include "io/SogReader.h"
+#include "io/SogJson.h"
 #include "io/GaussianSogDiagnostics.h"
 
 #include <cstddef>
@@ -275,6 +276,8 @@ void TestMalformedContainers()
     ExpectCode("version-1.sog", gssog::diag::kUnsupportedVersion);
     ExpectCode("version-3.sog", gssog::diag::kUnsupportedVersion);
     ExpectCode("empty-count.sog", gssog::diag::kEmptyPointSet);
+    ExpectCode("too-many-gaussians/meta.json",
+               gssog::diag::kImportLimitExceeded);
     ExpectCode("count-exceeds-plane.sog", gssog::diag::kInvalidGaussianCount);
     ExpectCode("bad-bands.sog", gssog::diag::kInvalidShBands);
     ExpectCode("short-codebook.sog", gssog::diag::kInvalidCodebook);
@@ -314,6 +317,23 @@ void TestMalformedContainers()
     CHECK(HasCode(error, gssog::diag::kInternalError));
 }
 
+void TestJsonTokenLimit()
+{
+    std::string json = "[";
+    for (std::size_t i = 0; i < gssog::kJsonMaxTokens; ++i) {
+        if (i != 0) {
+            json += ',';
+        }
+        json += '0';
+    }
+    json += "]";
+
+    gssog::JsonValue value;
+    std::string error;
+    CHECK(!gssog::ParseJson(json.data(), json.size(), &value, &error));
+    CHECK(error.find("token limit") != std::string::npos);
+}
+
 } // namespace
 
 int main()
@@ -326,6 +346,7 @@ int main()
     TestInjectedCompanionLoader();
     TestMetadataOnly();
     TestMalformedContainers();
+    TestJsonTokenLimit();
 
     if (failures != 0) {
         std::cerr << failures << " SOG reader check(s) failed\n";
