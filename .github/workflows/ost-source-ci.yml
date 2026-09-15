@@ -39,9 +39,9 @@ jobs:
           - name: gaussian-ply-pr-windows
             lane: pull_request
             runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/windows/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/windows/x86_64/gl --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -60,9 +60,9 @@ jobs:
           - name: gaussian-ply-pr-macos-arm64
             lane: pull_request
             runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/macos/arm64/metal"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/macos/arm64/metal --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -81,9 +81,9 @@ jobs:
           - name: gaussian-ply-pr-linux
             lane: pull_request
             runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/linux/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/linux/x86_64/gl --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -102,9 +102,9 @@ jobs:
           - name: gaussian-spz-pr-windows
             lane: pull_request
             runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/windows/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/windows/x86_64/gl --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -123,9 +123,9 @@ jobs:
           - name: gaussian-spz-pr-macos-arm64
             lane: pull_request
             runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/macos/arm64/metal"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/macos/arm64/metal --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -144,9 +144,9 @@ jobs:
           - name: gaussian-spz-pr-linux
             lane: pull_request
             runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/linux/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/linux/x86_64/gl --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -165,9 +165,9 @@ jobs:
           - name: gaussian-sog-pr-windows
             lane: pull_request
             runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/windows/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/windows/x86_64/gl --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -186,9 +186,9 @@ jobs:
           - name: gaussian-sog-pr-macos-arm64
             lane: pull_request
             runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/macos/arm64/metal"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/macos/arm64/metal --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -207,9 +207,9 @@ jobs:
           - name: gaussian-sog-pr-linux
             lane: pull_request
             runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
-            require_openusd: ""
-            require_openusd_version: ""
-            openusd_flags: ""
+            require_openusd: "cy2026/linux/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/linux/x86_64/gl --require-openusd-version 26.08"
             target_trust: local
             minimum_trust: local
             require_evidence: all
