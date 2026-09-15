@@ -159,7 +159,7 @@ bool LooksLikeJsonObject(const std::vector<unsigned char>& data) noexcept
 
 bool RejectOversizedMetadata(std::uint64_t size, std::string* error)
 {
-    return Failure{error}(diag::kMalformedMetadata,
+    return Failure{error}(diag::kImportLimitExceeded,
                           "meta.json is " + std::to_string(size) +
                               " bytes, above the " +
                               std::to_string(kMaxMetadataBytes) +
@@ -708,6 +708,13 @@ bool DecodePlane(const std::vector<unsigned char>& bytes,
                     "The property plane '" + name +
                         "' declares dimensions whose "
                         "decoded size is not addressable on this platform.");
+    }
+    if (byteCount > kMaxPlaneBytes) {
+        return fail(
+            diag::kImportLimitExceeded,
+            "The property plane '" + name + "' declares " +
+                std::to_string(byteCount) + " decoded RGBA bytes, above the " +
+                std::to_string(kMaxPlaneBytes) + "-byte decoded limit.");
     }
     if (!TryResize(&plane->rgba, byteCount)) {
         return fail(diag::kModelAllocationFailed,
