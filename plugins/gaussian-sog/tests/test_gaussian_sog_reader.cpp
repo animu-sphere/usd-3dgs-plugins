@@ -334,6 +334,26 @@ void TestJsonTokenLimit()
     CHECK(error.find("token limit") != std::string::npos);
 }
 
+void TestJsonDepthLimit()
+{
+    std::string accepted;
+    accepted.append(gssog::kJsonMaxDepth, '[');
+    accepted += '0';
+    accepted.append(gssog::kJsonMaxDepth, ']');
+
+    gssog::JsonValue value;
+    std::string error;
+    CHECK(gssog::ParseJson(accepted.data(), accepted.size(), &value, &error));
+
+    std::string rejected;
+    rejected.append(gssog::kJsonMaxDepth + 1, '[');
+    rejected += '0';
+    rejected.append(gssog::kJsonMaxDepth + 1, ']');
+    error.clear();
+    CHECK(!gssog::ParseJson(rejected.data(), rejected.size(), &value, &error));
+    CHECK(error.find("nesting deeper") != std::string::npos);
+}
+
 } // namespace
 
 int main()
@@ -347,6 +367,7 @@ int main()
     TestMetadataOnly();
     TestMalformedContainers();
     TestJsonTokenLimit();
+    TestJsonDepthLimit();
 
     if (failures != 0) {
         std::cerr << failures << " SOG reader check(s) failed\n";

@@ -204,6 +204,10 @@ void TestHeaderOnlySemantics()
     CHECK(!reader.ReadHeader(
         Fixture("count-exceeds-stream-v2.spz"), &header, &error));
     CHECK(HasCode(error, gsspz::diag::kTruncatedContainer));
+    error.clear();
+    CHECK(!reader.ReadHeader(
+        Fixture("shared-limit-v2.spz"), &header, &error));
+    CHECK(HasCode(error, gsspz::diag::kImportLimitExceeded));
 }
 
 // CanRead is signature-only (§7.6): every structurally identifiable SPZ
@@ -220,6 +224,7 @@ void TestCanRead()
     CHECK(reader.CanRead(Fixture("version-5.spz")));
     CHECK(reader.CanRead(Fixture("empty-points-v2.spz")));
     CHECK(reader.CanRead(Fixture("huge-count-v2.spz")));
+    CHECK(reader.CanRead(Fixture("shared-limit-v2.spz")));
     CHECK(reader.CanRead(Fixture("sh-degree-5-v2.spz")));
     CHECK(reader.CanRead(Fixture("truncated-payload-v2.spz")));
     CHECK(reader.CanRead(Fixture("truncated-deflate-v2.spz")));
@@ -266,6 +271,7 @@ int main()
     TestReadFailure("version-5.spz", gsspz::diag::kUnsupportedVersion);
     TestReadFailure("empty-points-v2.spz", gsspz::diag::kEmptyPointSet);
     TestReadFailure("huge-count-v2.spz", gsspz::diag::kInvalidPointCount);
+    TestReadFailure("shared-limit-v2.spz", gsspz::diag::kImportLimitExceeded);
     TestReadFailure("sh-degree-5-v2.spz", gsspz::diag::kInvalidShDegree);
     TestReadFailure(
         "count-exceeds-stream-v2.spz", gsspz::diag::kTruncatedContainer);
