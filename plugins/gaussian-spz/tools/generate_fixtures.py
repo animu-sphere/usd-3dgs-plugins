@@ -154,6 +154,11 @@ def invalid_fixtures() -> None:
     write("version-5.spz", gzip_member(spz_stream(5, 1, 0)))
     write("empty-points-v2.spz", gzip_member(spz_header(2, 0, 0)))
     write("huge-count-v2.spz", gzip_member(spz_header(2, 0x80000000, 0)))
+    # The count is below SPZ's format maximum but above the shared importer
+    # ceiling, so the reader must report the shared limit rather than a
+    # malformed container or a truncated payload.
+    write("shared-limit-v2.spz", gzip_member(
+        spz_header(2, 8_000_001, 0)))
     write("sh-degree-5-v2.spz", gzip_member(
         spz_header(2, 1, 5) + payload(19)))
 
