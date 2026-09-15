@@ -246,6 +246,15 @@ jobs:
           set -euo pipefail
           mkdir -p .ost-ci
           ost plugin package --workspace --product --target "${{ matrix.platform }}" --profile "${{ matrix.profile }}" --json | tee .ost-ci/package.json
+      - name: Run the packaged consumer smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          ost plugin test --workspace --from-package \
+            --target "${{ matrix.platform }}" \
+            --profile "${{ matrix.profile }}" \
+            --up-to "${{ matrix.up_to }}" \
+            --json | tee .ost-ci/package-consumer-test.json
       # Release gate item 4. Repackaging reuses the existing build tree, so
       # this costs seconds rather than a second compile -- and unstable
       # digests would make the published SHA256SUMS meaningless.

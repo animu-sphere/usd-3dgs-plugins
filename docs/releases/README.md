@@ -44,8 +44,11 @@ Pushing a `vX.Y.Z` tag starts
 | 4. reproducible digests | the lane packages twice and fails on disagreeing `archive_digest` |
 | 6. draft for review | `gh release create --draft`; publishing stays a human action |
 
-Item 3's package-origin half and item 5 are not yet machine-enforced; item 3 is
-blocked upstream (see [roadmap/current.md](../roadmap/current.md)).
+The release lane now enforces the package-origin half of item 3 with
+`ost plugin test --workspace --from-package` at each cell's declared
+verification level. Broader consumer checks such as replacement or
+uninstallation behavior remain follow-up work (see
+[roadmap/current.md](../roadmap/current.md)).
 
 The workflow takes its runtime digests, `ost` version, and per-cell levels from
 `openstrata.ci.yaml` rather than restating them, so re-pinning a runtime moves
