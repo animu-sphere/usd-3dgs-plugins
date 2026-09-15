@@ -79,6 +79,13 @@ bool LoadCompanionThroughResolver(const std::string& anchorPath,
                         "' but could not be opened.");
     }
     const std::size_t size = asset->GetSize();
+    if (size > gssog::kMaxPlaneBytes) {
+        return fail(gssog::diag::kImportLimitExceeded,
+                    "The property plane '" + planeName + "' is " +
+                        std::to_string(size) + " bytes, above the " +
+                        std::to_string(gssog::kMaxPlaneBytes) +
+                        "-byte input limit.");
+    }
     try {
         bytes->resize(size);
     } catch (const std::exception&) {
