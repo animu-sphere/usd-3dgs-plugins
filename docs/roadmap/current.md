@@ -271,7 +271,8 @@ real environments and package paths were actually verified.
 
 - ✅ Update the README's v0.5.0 state to released.
 - ✅ Update the status in `docs/releases/v0.5.0.md`.
-- ⬜ Synchronize the capability matrix with hosted-verification evidence.
+- ✅ Synchronize the capability matrix with hosted-verification evidence from
+  release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493).
 - ✅ Add the shortest binary-install path to the README.
 - ✅ Add bundled and unbundled SOG usage examples.
 
@@ -280,8 +281,8 @@ real environments and package paths were actually verified.
 - ✅ Measure the SOG performance baseline.
 - ✅ Confirm the package-consumer smoke test.
 - ✅ Add SOG, PLY, and SPZ usdview screenshots or an equivalent visual example.
-- ⬜ Document manual release-artifact verification.
-- ⬜ Finalize the v0.5.1 scope.
+- ✅ Document manual release-artifact verification.
+- ✅ Finalize the v0.5.1 scope in `CHANGELOG.md` and pass the release guard.
 
 ### v0.6.0 preparation
 

@@ -11,7 +11,7 @@ manifest:
   schema: openstrata.plugin/v1alpha1
 plugin:
   name: gaussian-sog
-  version: 0.5.0
+  version: 0.5.1
   kind: usd-fileformat
 # SPDX license for this plugin's own code. Surfaced by `ost plugin inspect` and
 # recorded in the package manifest.

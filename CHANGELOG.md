@@ -6,6 +6,21 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-16
+
+**Release polish and hostile-input hardening.**
+
+### Added
+
+- Shared import safety limits now cover Gaussian counts, checked allocation
+  sizes, SOG plane dimensions and archive budgets, SPZ payloads, codebook and
+  palette sizes, JSON tokens and nesting, and resolver-backed companion data.
+  Hostile-input fixtures cover the shared limit and JSON-depth paths across the
+  readers.
+- Import-statistics observability is available from all three format readers,
+  including decode, validation, authoring, coordinate-conversion, warning, and
+  user-filter counters.
+
 ### Changed
 
 - The build and verification toolchain moves from OpenStrata **0.20.0 to
@@ -37,6 +52,16 @@ semantic versioning for tagged releases.
   artifact the CI cells pull, so local verification now reports `runtime source
   is 'artifact' (reproducible)` instead of an uncertified local build, and the
   packaged bundles are produced against the runtime CI will use.
+- The release lane now runs package-origin verification with `--from-package`
+  for every declared bundle before assembling the aggregate product archive.
+
+### Fixed
+
+- SOG unbundled companion-plane metadata is checked against the shared reader
+  limits before resolver-backed data is allocated, so hostile dimensions fail
+  with a bounded import diagnostic instead of driving an oversized allocation.
+- The package-consumer documentation now includes checksum, manifest, SBOM,
+  and target/ABI verification before manual activation.
 
 ## [0.5.0] - 2026-07-25
 

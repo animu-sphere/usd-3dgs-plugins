@@ -135,8 +135,10 @@ alongside `manifest.json`, `sbom.spdx.json`, and `SHA256SUMS`.
 
 The current package-origin run passes discovery, read, and stage-open checks
 for all three bundles on the Windows 0.22.10 baseline. The source-workspace L5
-checks also pass locally; hosted macOS/Linux confirmation remains pending after
-the OpenUSD 26.08 re-pin.
+checks also pass locally. Hosted release dry-run
+[#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493)
+passed package-origin verification at the declared Windows L4 cap and at L5 on
+macOS arm64 and Linux after the OpenUSD 26.08 re-pin.
 
 ## Manual package activation
 
@@ -168,6 +170,45 @@ packaged fixtures with no `ost` involvement. Two observations from that run:
 composes the environment from the package manifest. Outside a workspace, pass
 the target and profile explicitly, for example
 `ost plugin run <extracted-root> --target cy2026 --profile usd -- usdcat <fixture>`.
+
+## Verify a downloaded release artifact
+
+Download the target archive, its `manifest.json` and `sbom.spdx.json` sidecars,
+and `SHA256SUMS` from the same GitHub release. Keep those files in one
+directory before extracting or activating the package. On macOS or Linux,
+verify every downloaded file with:
+
+```sh
+sha256sum -c SHA256SUMS
+```
+
+On Windows PowerShell, use the equivalent check:
+
+```powershell
+Get-Content .\SHA256SUMS | ForEach-Object {
+  $expected, $name = $_ -split '\s+', 2
+  $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $name).Hash.ToLowerInvariant()
+  if ($actual -ne $expected) {
+    throw "$name has SHA-256 $actual, expected $expected"
+  }
+}
+```
+
+Do not extract or activate an archive when the check fails. After extraction,
+confirm that the manifest describes the selected `cy2026` target, OpenUSD
+profile, plugin version, and bundle names, and that the SBOM lists the same
+bundle and its declared runtime closure. At minimum, validate that both
+sidecars are well-formed JSON:
+
+```powershell
+Get-ChildItem -File -Include *.manifest.json,*.sbom.spdx.json |
+  ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null }
+```
+
+The checksum list covers the archive, sidecars, and source archive, but it is
+not a signature. Obtain all release files from the same GitHub release page,
+then use the target and ABI checks above before putting the extracted `lib`
+directory on a host search path.
 
 ## Plain CMake build
 

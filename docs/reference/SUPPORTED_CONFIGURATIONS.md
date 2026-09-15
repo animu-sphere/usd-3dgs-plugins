@@ -33,9 +33,9 @@ inside the declared range.
 
 | OS / architecture | CI contract | Observed in this repository |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | build, L0-L4, package | local Windows build, L0-L5, package, package-origin L0-L5, against the same pinned runtime artifact CI uses |
-| macOS 15 / arm64 / libc++ | build, L0-L5, package | declared; first hosted run pending |
-| Ubuntu 24.04 / x86_64 / glibc 2.38+ | build, L0-L5, package | declared; first hosted run pending |
+| Windows 2022 / x86_64 / MSVC 143 | build, L0-L4, package | local Windows build, L0-L5, package, package-origin L0-L5, against the same pinned runtime artifact CI uses; hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493) passed the declared L4 lane |
+| macOS 15 / arm64 / libc++ | build, L0-L5, package | hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493) passed build, L0-L5, package, and package-origin verification |
+| Ubuntu 24.04 / x86_64 / glibc 2.38+ | build, L0-L5, package | hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493) passed build, L0-L5, package, and package-origin verification |
 
 The matrix uses immutable runtime artifact and OCI digests from the reference
 `usd-vrm-plugins` workspace. Since 2026-09-05 those are the OpenUSD 26.08
