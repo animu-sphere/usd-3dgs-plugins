@@ -65,6 +65,8 @@ cells:
     lane: pull_request
     runner: windows-hosted
     runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+    require_openusd: cy2026/windows/x86_64/gl
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
       expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
@@ -77,6 +79,8 @@ cells:
     lane: pull_request
     runner: macos-arm64-hosted
     runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+    require_openusd: cy2026/macos/arm64/metal
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
       expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
@@ -90,6 +94,8 @@ cells:
     lane: pull_request
     runner: linux-hosted
     runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+    require_openusd: cy2026/linux/x86_64/gl
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
       expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
@@ -112,6 +118,8 @@ cells:
     lane: pull_request
     runner: windows-hosted
     runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+    require_openusd: cy2026/windows/x86_64/gl
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
       expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
@@ -124,6 +132,8 @@ cells:
     lane: pull_request
     runner: macos-arm64-hosted
     runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+    require_openusd: cy2026/macos/arm64/metal
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
       expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
@@ -137,6 +147,8 @@ cells:
     lane: pull_request
     runner: linux-hosted
     runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+    require_openusd: cy2026/linux/x86_64/gl
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
       expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
@@ -161,6 +173,8 @@ cells:
     lane: pull_request
     runner: windows-hosted
     runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+    require_openusd: cy2026/windows/x86_64/gl
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
       expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
@@ -173,6 +187,8 @@ cells:
     lane: pull_request
     runner: macos-arm64-hosted
     runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+    require_openusd: cy2026/macos/arm64/metal
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
       expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
@@ -186,6 +202,8 @@ cells:
     lane: pull_request
     runner: linux-hosted
     runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+    require_openusd: cy2026/linux/x86_64/gl
+    require_openusd_version: "26.08"
     runtime_remote:
       uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
       expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
