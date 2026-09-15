@@ -119,11 +119,13 @@ capabilities.
 ## Package and verify
 
 ```sh
-ost plugin package plugins/gaussian-ply
-ost plugin test plugins/gaussian-ply --from-package --up-to 5
+ost plugin package --workspace --product
+ost plugin test --workspace --from-package --up-to 5
 ```
 
-The package is written under:
+The package-origin command extracts the generated artifacts to a clean staging
+directory before running discovery, `usdcat`, and Python stage-open checks for
+all three bundles. The package is written under:
 
 ```text
 plugins/<bundle>/dist/plugins/<bundle>/<version>/<target>/

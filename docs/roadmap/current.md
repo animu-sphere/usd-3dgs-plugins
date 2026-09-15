@@ -1,6 +1,6 @@
 # Current
 
-Updated: 2026-07-25
+Updated: 2026-09-15
 Scope: post-v0.5.0 near-term work
 
 ## Current position
@@ -277,7 +277,7 @@ real environments and package paths were actually verified.
 ### Next
 
 - ✅ Measure the SOG performance baseline.
-- ⬜ Confirm the package-consumer smoke test.
+- ✅ Confirm the package-consumer smoke test.
 - ✅ Add SOG, PLY, and SPZ usdview screenshots or an equivalent visual example.
 - ⬜ Document manual release-artifact verification.
 - ⬜ Finalize the v0.5.1 scope.
