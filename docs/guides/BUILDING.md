@@ -6,7 +6,7 @@ installing a packaged release is in [INSTALL.md](INSTALL.md).
 
 ## OpenStrata path (primary)
 
-Requirements: `ost` 0.22.8 (verified baseline; the CI lane bootstraps the same
+Requirements: `ost` 0.22.10 (verified baseline; the CI lane bootstraps the same
 pinned version), a real `cy2026` / `usd` OpenStrata runtime, OpenUSD
 `>=26.05,<27.0`, a C++17 compiler. The verified local runtime is OpenUSD 26.08
 on Windows x86-64 / MSVC 143 / Python 3.13 — the same digest-pinned artifact

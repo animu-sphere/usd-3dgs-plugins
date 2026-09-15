@@ -9,7 +9,7 @@ semantic versioning for tagged releases.
 ### Changed
 
 - The build and verification toolchain moves from OpenStrata **0.20.0 to
-  0.22.8** (`openstrata.ci.yaml` bootstrap, regenerated `ost-source-ci.yml`,
+  0.22.10** (`openstrata.ci.yaml` bootstrap, regenerated `ost-source-ci.yml`,
   and the documented baseline; the release lane derives the same pin through
   `scripts/release.py`). Nothing in the plugins depends on the change. The
   regenerated workflow splits the artifact-registry cache into explicit
@@ -19,14 +19,14 @@ semantic versioning for tagged releases.
 - Package-origin L5 now executes and passes locally for **all three bundles**;
   it previously passed for `gaussian-ply` and `gaussian-sog` only. The
   documented local baseline also moves to OpenUSD 26.08, CMake 4.4.3, and MSVC
-  14.51 — the runtime and host toolchain the 0.22.8 verification ran against.
+  14.51 — the runtime and host toolchain the 0.22.10 verification ran against.
 - All nine CI cells are **re-pinned to the canonical OpenUSD 26.08 runtime
   leaves** (`26.08-gl` on Windows and Linux, `26.08-metal` on macOS arm64),
   adopted from the reference `usd-vrm-plugins` workspace. This was forced, not
   elective: the hand-driven 26.05 runtimes pinned through v0.5.0 were withdrawn
   upstream and every digest this repository carried now resolves to
   `MANIFEST_UNKNOWN`. The new leaves carry an SBOM and SLSA/in-toto provenance
-  and verify `trust: attested`, and consuming them needs the 0.22.8 bootstrap
+  and verify `trust: attested`, and consuming them needs the 0.22.10 bootstrap
   above. 26.08 is inside the plugins' unchanged `>=26.05,<27.0` range.
 - Every Linux cell declares `host_packages: apt: [libx11-dev, libxt-dev]`, and
   the hand-authored `release.yml` grows the equivalent step: OpenUSD 26.08's
