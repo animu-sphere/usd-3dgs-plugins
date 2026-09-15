@@ -110,7 +110,11 @@ def main() -> int:
 
     ranges = changed_ranges() if args.changed else {}
     paths = list(ranges) if args.changed else git_files("ls-files", "-z")
-    paths = sorted(path for path in paths if is_source(path))
+    paths = sorted(
+        path
+        for path in paths
+        if is_source(path) and (not args.changed or ranges.get(path))
+    )
     if not paths:
         print("clang-format: no matching C/C++ files")
         return 0
