@@ -10,8 +10,7 @@ namespace openstrata::gs {
 // driving unbounded parser and model allocations.
 inline constexpr std::size_t kMaxGaussianCount = 8'000'000;
 
-inline constexpr bool IsGaussianCountWithinLimit(
-    std::size_t count) noexcept
+inline constexpr bool IsGaussianCountWithinLimit(std::size_t count) noexcept
 {
     return count <= kMaxGaussianCount;
 }
