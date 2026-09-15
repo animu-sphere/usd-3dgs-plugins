@@ -8,6 +8,7 @@ CMakeUserPresets.json
 /.ost-ci/
 /.ost-ci-home/
 /release-stage/
+/dist/
 /dist-release/
 /release-notes.md
 

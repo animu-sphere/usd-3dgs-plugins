@@ -23,7 +23,7 @@
 #   the `sdk` layout profile, carrying an SPDX SBOM and SLSA/in-toto
 #   provenance, and verify `trust: attested` -- which is what the
 #   `--require-sbom --require-provenance` gate the generator renders demands.
-#   Consuming them needs ost >= 0.22.6; the bootstrap below is 0.22.8. The OCI
+#   Consuming them needs ost >= 0.22.6; the bootstrap below is 0.22.10. The OCI
 #   manifest digest is not stable across republishes, and `runtime_artifact`
 #   does not stay put either: re-pin both from the producer's push output.
 #
@@ -40,7 +40,7 @@ schema: 1
 
 bootstrap:
   ost:
-    version: "0.22.8"
+    version: "0.22.10"
     repository: animu-sphere/open-strata
 
 runners:

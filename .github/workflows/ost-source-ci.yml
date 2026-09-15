@@ -39,6 +39,9 @@ jobs:
           - name: gaussian-ply-pr-windows
             lane: pull_request
             runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -57,6 +60,9 @@ jobs:
           - name: gaussian-ply-pr-macos-arm64
             lane: pull_request
             runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -75,6 +81,9 @@ jobs:
           - name: gaussian-ply-pr-linux
             lane: pull_request
             runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -93,6 +102,9 @@ jobs:
           - name: gaussian-spz-pr-windows
             lane: pull_request
             runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -111,6 +123,9 @@ jobs:
           - name: gaussian-spz-pr-macos-arm64
             lane: pull_request
             runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -129,6 +144,9 @@ jobs:
           - name: gaussian-spz-pr-linux
             lane: pull_request
             runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -147,6 +165,9 @@ jobs:
           - name: gaussian-sog-pr-windows
             lane: pull_request
             runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -165,6 +186,9 @@ jobs:
           - name: gaussian-sog-pr-macos-arm64
             lane: pull_request
             runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -183,6 +207,9 @@ jobs:
           - name: gaussian-sog-pr-linux
             lane: pull_request
             runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+            require_openusd: ""
+            require_openusd_version: ""
+            openusd_flags: ""
             target_trust: local
             minimum_trust: local
             require_evidence: all
@@ -205,7 +232,7 @@ jobs:
         if: ${{ matrix.hosted }}
         shell: bash
         run: echo "::notice title=OpenStrata hosted-runner usage::This job uses GitHub-hosted infrastructure. Private repositories may incur GitHub Actions usage charges. Review repository billing and Actions usage settings."
-      - name: Bootstrap ost 0.22.8 (pinned release asset, checksum-verified)
+      - name: Bootstrap ost 0.22.10 (pinned release asset, checksum-verified)
         if: ${{ matrix.hosted }}
         shell: bash
         run: |
@@ -223,7 +250,7 @@ jobs:
             *) : ;;
           esac
           asset="ost-cli-${triple}.${ext}"
-          base="https://github.com/animu-sphere/open-strata/releases/download/v0.22.8"
+          base="https://github.com/animu-sphere/open-strata/releases/download/v0.22.10"
           curl -fsSLo "$asset" "$base/$asset"
           curl -fsSLo "$asset.sha256" "$base/$asset.sha256"
           actual="$( (command -v sha256sum > /dev/null && sha256sum "$asset" || shasum -a 256 "$asset") | cut -d' ' -f1 )"
@@ -257,7 +284,7 @@ jobs:
           echo "$exported_path" >> "$GITHUB_PATH"
           json_executable="$(printf '%s' "$executable" | sed 's/\\/\\\\/g; s/"/\\"/g')"
           json_exported_path="$(printf '%s' "$exported_path" | sed 's/\\/\\\\/g; s/"/\\"/g')"
-          printf '{"schema":1,"pinned_version":"%s","asset":"%s","sha256":"%s","executable":"%s","exported_path":"%s"}\n' "0.22.8" "$asset" "$actual" "$json_executable" "$json_exported_path" > .ost-ci/bootstrap.json
+          printf '{"schema":1,"pinned_version":"%s","asset":"%s","sha256":"%s","executable":"%s","exported_path":"%s"}\n' "0.22.10" "$asset" "$actual" "$json_executable" "$json_exported_path" > .ost-ci/bootstrap.json
       - name: Check ost is available and record its version
         shell: bash
         run: |
@@ -270,8 +297,8 @@ jobs:
           fi
 
           echo "$version"
-          if [ "${{ matrix.hosted }}" = "true" ] && [ "$version" != "ost 0.22.8" ]; then
-            echo "::error title=ost bootstrap::expected 'ost 0.22.8', got '$version'" ; exit 1
+          if [ "${{ matrix.hosted }}" = "true" ] && [ "$version" != "ost 0.22.10" ]; then
+            echo "::error title=ost bootstrap::expected 'ost 0.22.10', got '$version'" ; exit 1
           fi
           printf '{"schema":1,"ost_version":"%s"}\n' "$version" > .ost-ci/ost-version.json
       - name: Validate the CI manifest
@@ -283,29 +310,43 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .ost-ci-home/artifacts
-          key: ost-registry-0.22.8-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ matrix.runtime_artifact }}
+          key: ost-registry-0.22.10-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ matrix.runtime_artifact }}
       - name: Pull the pinned runtime SDK from its remote reference
         if: ${{ matrix.runtime_remote != '' }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .ost-ci
+          openusd_args=()
+          if [ -n "${{ matrix.require_openusd }}" ]; then
+            openusd_args+=(--require-openusd "${{ matrix.require_openusd }}")
+          fi
+          if [ -n "${{ matrix.require_openusd_version }}" ]; then
+            openusd_args+=(--require-openusd-version "${{ matrix.require_openusd_version }}")
+          fi
           if ost artifact show "${{ matrix.runtime_artifact }}" --json > /dev/null 2>&1 \
-             && ost artifact verify "${{ matrix.runtime_artifact }}" ${{ matrix.evidence_flags }} --json > .ost-ci/runtime-cache-verify.json; then
+             && ost artifact verify "${{ matrix.runtime_artifact }}" ${{ matrix.evidence_flags }} "${openusd_args[@]}" --json > .ost-ci/runtime-cache-verify.json; then
             echo "pinned runtime already present and verified (cache hit) -- skipping the remote pull"
           else
             if [ "${{ matrix.hosted }}" = "true" ] && [ -n "${OST_HOME:-}" ]; then
               rm -rf "${OST_HOME}/artifacts"
             fi
-            ost artifact pull "${{ matrix.runtime_remote }}" --expect-artifact "${{ matrix.runtime_artifact }}" --require-kind runtime --json | tee .ost-ci/runtime-pull.json
+            ost artifact pull "${{ matrix.runtime_remote }}" --expect-artifact "${{ matrix.runtime_artifact }}" --require-kind runtime "${openusd_args[@]}" --json | tee .ost-ci/runtime-pull.json
           fi
       - name: Verify and materialize the pinned runtime SDK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .ost-ci
-          printf '{"schema":1,"runtime_artifact":"%s","source":"%s"}\n' "${{ matrix.runtime_artifact }}" "${{ matrix.runtime_remote != '' && 'remote-pull' || 'local-registry' }}" > .ost-ci/runtime-source.json
-          ost artifact verify ${{ matrix.runtime_artifact }} --minimum-trust ${{ matrix.minimum_trust }} ${{ matrix.evidence_flags }}
+          printf '{"schema":1,"runtime_artifact":"%s","require_openusd":"%s","require_openusd_version":"%s","source":"%s"}\n' "${{ matrix.runtime_artifact }}" "${{ matrix.require_openusd }}" "${{ matrix.require_openusd_version }}" "${{ matrix.runtime_remote != '' && 'remote-pull' || 'local-registry' }}" > .ost-ci/runtime-source.json
+          openusd_args=()
+          if [ -n "${{ matrix.require_openusd }}" ]; then
+            openusd_args+=(--require-openusd "${{ matrix.require_openusd }}")
+          fi
+          if [ -n "${{ matrix.require_openusd_version }}" ]; then
+            openusd_args+=(--require-openusd-version "${{ matrix.require_openusd_version }}")
+          fi
+          ost artifact verify ${{ matrix.runtime_artifact }} --minimum-trust ${{ matrix.minimum_trust }} ${{ matrix.evidence_flags }} "${openusd_args[@]}"
           ost runtime pull ${{ matrix.platform }} --profile ${{ matrix.profile }} --from-artifact ${{ matrix.runtime_artifact }} --force
       - name: Remove resumable transfer state before caching
         if: ${{ matrix.hosted && vars.OST_CI_DISABLE_CACHE != 'true' && steps.runtime-cache-restore.outputs.cache-hit != 'true' }}
@@ -316,7 +357,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .ost-ci-home/artifacts
-          key: ost-registry-0.22.8-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ matrix.runtime_artifact }}
+          key: ost-registry-0.22.10-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ matrix.runtime_artifact }}
       - name: Install the host packages this runtime needs to be consumed
         if: ${{ matrix.host_packages_apt != '' || matrix.host_packages_brew != '' }}
         shell: bash

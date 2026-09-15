@@ -109,6 +109,6 @@ This table describes the current tree. Planned capabilities belong in the
 | Source L0-L5 verification | supported; locally green |
 | Target-specific package | supported; locally generated and tested |
 | Package-origin L0-L4 | supported; locally green |
-| Package-origin L5 | supported since the OST 0.20.0 pin; on the 0.22.8 pin it executes and passes locally for all three bundles (it was skipped on 0.18.0, which did not stage the golden). Hosted macOS/Linux confirmation pending — see [current.md](../roadmap/current.md) |
+| Package-origin L5 | supported since the OST 0.20.0 pin; on the 0.22.10 pin it executes and passes locally for all three bundles (it was skipped on 0.18.0, which did not stage the golden). Hosted macOS/Linux confirmation pending — see [current.md](../roadmap/current.md) |
 | Windows/macOS/Linux generated CI | declared and validated; hosted execution pending |
 | Hydra Gaussian renderer | unsupported here; owned by the sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) ([release plan](../roadmap/release-plan.md) v0.9.0) |

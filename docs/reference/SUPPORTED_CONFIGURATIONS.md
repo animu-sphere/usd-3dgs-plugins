@@ -8,7 +8,7 @@ support contract.
 
 | Item | Contract |
 | --- | --- |
-| OpenStrata | 0.22.8 (v0.5.0 was built with 0.20.0; v0.1.0-v0.4.0 with 0.18.0) |
+| OpenStrata | 0.22.10 (v0.5.0 was built with 0.20.0; v0.1.0-v0.4.0 with 0.18.0) |
 | OpenUSD tolerated range | `>=26.05,<27.0` |
 | OpenUSD exercised locally | 26.08 (26.05 through v0.5.0) |
 | OpenUSD in the pinned CI runtimes | 26.08, tag `v26.08` |
