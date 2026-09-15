@@ -9,6 +9,11 @@
 
 namespace openstrata::gs::sog {
 
+// Maximum compressed or decoded size accepted for one SOG property plane.
+// The file-format layer shares this bound so resolver-backed companions are
+// rejected before their bytes are copied into memory.
+inline constexpr std::uint64_t kMaxPlaneBytes = 512ull * 1024ull * 1024ull;
+
 // One decoded 8-bit RGBA property plane. SOG stores every property as a
 // lossless WebP image whose texel for Gaussian `i` is at
 // `x = i % width, y = i / width` (SOG_MAPPING.md §2), so a plane is addressed

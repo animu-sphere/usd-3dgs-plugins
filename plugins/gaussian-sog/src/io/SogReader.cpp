@@ -48,10 +48,6 @@ constexpr std::size_t kMaxMetadataBytes = 4 * 1024 * 1024;
 // `.json` larger than this is declined rather than parsed during format
 // resolution, because no SOG v2 `meta.json` approaches it.
 constexpr std::size_t kCanReadPrefixLimit = 1024 * 1024;
-// A decoded property plane is at most WebP's 16383x16383 at 4 bytes per texel;
-// the compressed entry that produces it is far smaller. The cap bounds what a
-// declared uncompressed size may make this reader allocate.
-constexpr std::uint64_t kMaxPlaneBytes = 512ull * 1024ull * 1024ull;
 constexpr std::size_t kMaxPlaneDimension = 16383;
 constexpr std::uint64_t kMaxZipArchiveBytes =
     1ull * 1024ull * 1024ull * 1024ull;

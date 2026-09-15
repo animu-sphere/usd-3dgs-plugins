@@ -28,8 +28,11 @@ The readers also use checked multiplication and allocation helpers for model
 arrays, reject zero-count clouds, require every SOG plane to be present and
 large enough for the declared count, reject duplicate SOG plane names and ZIP
 entries, and retain the SPZ format's `INT32_MAX` representability check. The
-shared 8,000,000 count ceiling is evaluated after those format-level range
-checks, so existing malformed-container diagnostics remain stable.
+unbundled SOG file-format loader applies the plane input bound to the
+resolver-provided asset size before allocating a companion buffer; the reader
+keeps the same check after the loader returns. The shared 8,000,000 count
+ceiling is evaluated after those format-level range checks, so existing
+malformed-container diagnostics remain stable.
 
 Limit failures use the format-specific stable diagnostic codes `GSPLY-E019`,
 `GSPZ-E015`, and `GSSOG-E016`. A failed import never produces a partial
