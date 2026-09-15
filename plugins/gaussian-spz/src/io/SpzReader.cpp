@@ -51,6 +51,10 @@ constexpr std::size_t kPrefixLimit = 64 * 1024;
 // magic is still not reachable within it is declined by CanRead rather than
 // decompressed in full during format resolution.
 constexpr std::size_t kCanReadRetryLimit = 1024 * 1024;
+// The shared Gaussian ceiling keeps valid payloads below this bound, while a
+// source-file cap prevents a small-count container with arbitrary trailing
+// data from forcing the reader to materialize an unbounded input file.
+constexpr std::uint64_t kMaxSpzFileBytes = 1ull * 1024ull * 1024ull * 1024ull;
 
 void SetError(std::string* error, const char* code, const std::string& message)
 {
@@ -581,6 +585,13 @@ bool SpzReader::ReadHeader(const std::string& path, SpzHeader* header,
     if (!LoadFile(path, kPrefixLimit, &data, &fileSize, error)) {
         return false;
     }
+    if (fileSize > kMaxSpzFileBytes) {
+        SetError(error, diag::kImportLimitExceeded,
+                 "The SPZ file is " + std::to_string(fileSize) +
+                     " bytes, above the " + std::to_string(kMaxSpzFileBytes) +
+                     "-byte input limit.");
+        return false;
+    }
     switch (DetectSignature(data)) {
     case Signature::PlaintextNgsp:
         return FailPlaintextContainer(data, error);
@@ -596,7 +607,7 @@ bool SpzReader::ReadHeader(const std::string& path, SpzHeader* header,
     GzipParse result = ReadHeaderFromBuffer(data, data.size() >= fileSize,
                                             fileSize, header, error);
     if (result == GzipParse::NeedMore) {
-        if (!LoadFile(path, std::numeric_limits<std::size_t>::max(), &data,
+        if (!LoadFile(path, static_cast<std::size_t>(kMaxSpzFileBytes), &data,
                       &fileSize, error)) {
             return false;
         }
@@ -616,8 +627,15 @@ bool SpzReader::Read(const std::string& path, SpzPackedDocument* document,
 
     std::vector<unsigned char> file;
     std::uint64_t fileSize = 0;
-    if (!LoadFile(path, std::numeric_limits<std::size_t>::max(), &file,
+    if (!LoadFile(path, static_cast<std::size_t>(kMaxSpzFileBytes), &file,
                   &fileSize, error)) {
+        return false;
+    }
+    if (fileSize > kMaxSpzFileBytes) {
+        SetError(error, diag::kImportLimitExceeded,
+                 "The SPZ file is " + std::to_string(fileSize) +
+                     " bytes, above the " + std::to_string(kMaxSpzFileBytes) +
+                     "-byte input limit.");
         return false;
     }
     switch (DetectSignature(file)) {

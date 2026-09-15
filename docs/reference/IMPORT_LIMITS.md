@@ -21,6 +21,7 @@ single import into an unbounded allocation request.
 | SOG ZIP entry / companion input size | 512 MiB | SOG planes |
 | SOG decoded plane dimensions | 16,383 x 16,383 pixels | SOG WebP planes |
 | SOG decoded RGBA plane size | 512 MiB | SOG WebP planes |
+| SPZ source file size | 1 GiB | SPZ v1-v3 |
 | SPZ extension records | 64 MiB | SPZ v1-v3 |
 
 The readers also use checked multiplication and allocation helpers for model
