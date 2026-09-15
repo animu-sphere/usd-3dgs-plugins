@@ -344,8 +344,8 @@ a reviewed third-party dependency and license list.
 
 ## Immediate focus
 
-The current development target is **v0.5.x — release polish** after the v0.5.0
-tag and publication on 2026-07-25. Work is tracked in [current.md](current.md)
-and focuses on package-consumer installation, SOG usage documentation,
-performance baselines, and verification evidence before the v0.6.0 tooling and
-diagnostics milestone.
+The current development target is **v0.6.0 — production import hardening**
+after the v0.5.1 tag and publication on 2026-09-16. Work is tracked in
+[current.md](current.md) and focuses on hostile-input coverage, asset-resolver
+verification, package-consumer checks, and diagnostics before selecting the
+next input format.

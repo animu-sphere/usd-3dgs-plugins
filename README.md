@@ -80,13 +80,13 @@ Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
 
 ## Install a binary release
 
-For the shortest package-consumer path, choose the v0.5.0 product archive that
+For the shortest package-consumer path, choose the v0.5.1 product archive that
 matches the host platform, the `cy2026` OpenUSD runtime, and Python 3.13:
 
 ```text
-usd-3dgs-plugins-0.5.0-cy2026-windows-x86_64-py313-usd-plugin-product.tar.zst
-usd-3dgs-plugins-0.5.0-cy2026-macos-arm64-py313-usd-plugin-product.tar.zst
-usd-3dgs-plugins-0.5.0-cy2026-linux-x86_64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-0.5.1-cy2026-windows-x86_64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-0.5.1-cy2026-macos-arm64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-0.5.1-cy2026-linux-x86_64-py313-usd-plugin-product.tar.zst
 ```
 
 Extract the target archive, then point `PXR_PLUGINPATH_NAME` at the extracted
@@ -159,8 +159,8 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-**v0.5.0 — SOG v2 import — is released.**
-([release record](docs/releases/v0.5.0.md)).
+**v0.5.1 — release polish and hostile-input hardening — is released.**
+([release record](docs/releases/v0.5.1.md)).
 
 v0.4.0 turned the decoder-to-USD seam PLY and SPZ share into a normative,
 enforced contract: shared semantic validation and overflow-checked size math, a

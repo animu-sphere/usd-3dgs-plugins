@@ -1,10 +1,10 @@
 # Building and installing USD 3DGS Plugins
 
-The latest tagged and published release is v0.5.0
+The latest tagged and published release is v0.5.1
 ([release records](../releases/README.md)). The verified paths are an
 OpenStrata source build, a
 locally generated OpenStrata package, and manual activation of an extracted
-package on Windows. The v0.5.0 product archive contains the `gaussian-ply`,
+package on Windows. The v0.5.1 product archive contains the `gaussian-ply`,
 `gaussian-spz`, and `gaussian-sog` member bundles.
 Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
 before reusing a binary package: OpenUSD plugin binaries must match the target
