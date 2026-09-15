@@ -347,8 +347,10 @@ bool GaussianSogDecoder::Decode(
     if (stats) {
         stats->sourceFormat = kSourceFormatToken;
         stats->sourceVersion = std::to_string(document.metadata.version);
+        stats->coordinateConversion = GaussianCoordinateConversion::RdfToRub;
         stats->gaussianCount = result.gaussianCount;
         stats->shDegree = result.shDegree;
+        stats->warningCount = warnings ? warnings->size() : 0;
         stats->sourceBytes = document.sourceBytes;
         stats->decodedBytes = ComputeDecodedByteSize(result);
         stats->readSeconds = seconds(readStart, decodeStart);

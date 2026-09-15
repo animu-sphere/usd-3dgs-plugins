@@ -427,8 +427,10 @@ bool GaussianSpzDecoder::Decode(
     if (stats) {
         stats->sourceFormat = kSourceFormatToken;
         stats->sourceVersion = std::to_string(header.version);
+        stats->coordinateConversion = GaussianCoordinateConversion::None;
         stats->gaussianCount = result.gaussianCount;
         stats->shDegree = result.shDegree;
+        stats->warningCount = warnings ? warnings->size() : 0;
         stats->sourceBytes = FileSizeOf(path);
         stats->decodedBytes = ComputeDecodedByteSize(result);
         stats->readSeconds = seconds(readStart, decodeStart);

@@ -284,7 +284,9 @@ real environments and package paths were actually verified.
 
 ### v0.6.0 preparation
 
-- ⬜ Design the shared import-statistics API.
+- ✅ Extend the shared import-statistics API with fixed coordinate conversion,
+  warning aggregation, and user-filter rejection counts across PLY, SPZ, and
+  SOG.
 - ⬜ Define hostile-input limits.
 - ⬜ Create the asset-resolver test matrix.
 - ⬜ Define the large-asset benchmark corpus.

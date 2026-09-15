@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-// The shared per-import statistics record (v0.4.0 import-statistics seam).
+// The shared per-import statistics record (v0.4.0 import-statistics seam,
+// extended for v0.6.0 observability).
 //
 // Every format bundle instruments an import through this one structure so
 // per-format instrumentation cannot diverge: the decoder fills the source and
@@ -11,10 +12,10 @@
 // (GAUSSIAN_MODEL_CONTRACT.md §3, retained source metadata): nothing here may
 // alter how a consumer interprets the model arrays.
 //
-// The plugin API deliberately does not expose the record in v0.4.0; bundles
-// emit it through their own debug channel (GSPLY_IMPORT_STATS /
-// GSPZ_IMPORT_STATS TfDebug flags). The v0.6.0 inspection tooling consumes
-// this same seam rather than growing a second one.
+// The plugin API deliberately does not expose the record; bundles emit it
+// through their own debug channel (GSPLY_IMPORT_STATS /
+// GSPZ_IMPORT_STATS/GSSOG_IMPORT_STATS TfDebug flags). Inspection tooling
+// consumes this same seam rather than growing a second one.
 
 #include "openstrata/gs/GaussianCloudData.h"
 
@@ -22,6 +23,14 @@
 #include <string>
 
 namespace openstrata::gs {
+
+enum class GaussianCoordinateConversion {
+    None,
+    RdfToRub,
+};
+
+const char*
+CoordinateConversionName(GaussianCoordinateConversion conversion) noexcept;
 
 struct GaussianImportStats {
     // The same source-format token the bundle passes to GaussianLayerWriter
@@ -31,8 +40,20 @@ struct GaussianImportStats {
     // "ascii", an SPZ container version). Empty when the format has none.
     std::string sourceVersion;
 
+    // The fixed conversion applied by the decoder, not an inferred property
+    // of the asset. Failed imports have no statistics record.
+    GaussianCoordinateConversion coordinateConversion =
+        GaussianCoordinateConversion::None;
+
     std::size_t gaussianCount = 0;
     int shDegree = 0;
+
+    // Gaussians omitted by a successful user-level import filter. A threshold
+    // rejection is included in this total and reported separately below.
+    std::size_t rejectedGaussianCount = 0;
+    std::size_t opacityThresholdRejectedCount = 0;
+    // Number of aggregated warning messages emitted for this import.
+    std::size_t warningCount = 0;
 
     // Container bytes on disk versus the decoded semantic bytes of the model
     // arrays; the pair is what makes compression ratios comparable across

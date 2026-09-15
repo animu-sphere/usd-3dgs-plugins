@@ -1,6 +1,7 @@
 # OpenStrata-generated build state and tool-owned presets.
 /build/
 /.strata/
+/strata.lock
 CMakeUserPresets.json
 
 # CI and release scratch. Written by the workflows on a runner; listed here so

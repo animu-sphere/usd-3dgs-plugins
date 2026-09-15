@@ -324,8 +324,12 @@ void TestImportStats()
     CHECK(decoder.Decode(path, &cloud, &warnings, &error, &stats));
     CHECK(stats.sourceFormat == gsspz::kSourceFormatToken);
     CHECK(stats.sourceVersion == "2");
+    CHECK(stats.coordinateConversion == gs::GaussianCoordinateConversion::None);
     CHECK(stats.gaussianCount == cloud.gaussianCount);
     CHECK(stats.shDegree == cloud.shDegree);
+    CHECK(stats.rejectedGaussianCount == 0);
+    CHECK(stats.opacityThresholdRejectedCount == 0);
+    CHECK(stats.warningCount == warnings.size());
     CHECK(stats.sourceBytes ==
         static_cast<std::uint64_t>(std::filesystem::file_size(path)));
     CHECK(stats.decodedBytes == gs::ComputeDecodedByteSize(cloud));
@@ -334,6 +338,12 @@ void TestImportStats()
     // stay with the file-format caller.
     CHECK(stats.authorSeconds == 0.0);
     CHECK(!stats.hasBounds);
+
+    warnings.clear();
+    CHECK(decoder.Decode(Fixture("extensions-v2.spz"), &cloud, &warnings,
+                         &error, &stats));
+    CHECK(stats.warningCount == warnings.size());
+    CHECK(stats.warningCount > 0);
 
     gs::GaussianImportStats v3Stats;
     CHECK(decoder.Decode(
