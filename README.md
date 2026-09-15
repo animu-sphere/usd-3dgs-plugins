@@ -1,4 +1,8 @@
-# USD 3DGS Plugins
+# OpenUSD 3D Gaussian Splatting Plugins
+
+[![CI](https://github.com/animu-sphere/usd-3dgs-plugins/actions/workflows/ost-source-ci.yml/badge.svg)](https://github.com/animu-sphere/usd-3dgs-plugins/actions/workflows/ost-source-ci.yml)
+[![License: Apache-2.0](https://img.shields.io/github/license/animu-sphere/usd-3dgs-plugins)](LICENSE)
+[![OpenUSD 26.08](https://img.shields.io/badge/OpenUSD-26.08-3b82f6)](docs/reference/SUPPORTED_CONFIGURATIONS.md)
 
 OpenUSD file-format plugins that import
 [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
