@@ -43,17 +43,13 @@ struct PlyDocument {
 // become +/-infinity so the decoder's finiteness validation still rejects
 // out-of-range source data.
 class PlyReader {
-public:
-    bool ReadHeader(
-        const std::string& path,
-        PlyHeader* header,
-        std::string* error = nullptr) const;
+  public:
+    bool ReadHeader(const std::string& path, PlyHeader* header,
+                    std::string* error = nullptr) const;
 
-    bool Read(
-        const std::string& path,
-        const std::vector<std::string>& requestedProperties,
-        PlyDocument* document,
-        std::string* error = nullptr) const;
+    bool Read(const std::string& path,
+              const std::vector<std::string>& requestedProperties,
+              PlyDocument* document, std::string* error = nullptr) const;
 };
 
 } // namespace openstrata::gs::ply

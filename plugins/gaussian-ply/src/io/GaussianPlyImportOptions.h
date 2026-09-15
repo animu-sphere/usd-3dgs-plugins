@@ -28,20 +28,17 @@ struct GaussianPlyImportOptions {
 // Validates and extracts the options this plugin defines from a file-format
 // argument map. Unknown keys are ignored (USD and hosts may add their own);
 // known keys with unparseable or out-of-range values are errors.
-bool ParseImportOptions(
-    const std::map<std::string, std::string>& arguments,
-    GaussianPlyImportOptions* options,
-    std::string* error = nullptr);
+bool ParseImportOptions(const std::map<std::string, std::string>& arguments,
+                        GaussianPlyImportOptions* options,
+                        std::string* error = nullptr);
 
 // The SH degree the imported stage will carry for a given source degree.
-int EffectiveShDegree(
-    const GaussianPlyImportOptions& options, int sourceDegree);
+int EffectiveShDegree(const GaussianPlyImportOptions& options,
+                      int sourceDegree);
 
 // Applies the options to a decoded cloud in place. Fails if opacityThreshold
 // removes every Gaussian.
-bool ApplyImportOptions(
-    const GaussianPlyImportOptions& options,
-    GaussianCloudData* cloud,
-    std::string* error = nullptr);
+bool ApplyImportOptions(const GaussianPlyImportOptions& options,
+                        GaussianCloudData* cloud, std::string* error = nullptr);
 
 } // namespace openstrata::gs::ply

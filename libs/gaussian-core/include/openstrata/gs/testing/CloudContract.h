@@ -34,7 +34,8 @@ namespace openstrata::gs::testing {
 // Returns one message per violated rule; an empty result means the cloud
 // conforms. Returning messages rather than asserting keeps the checker
 // independent of any bundle's test harness.
-inline std::vector<std::string> CheckCloudContract(const GaussianCloudData& cloud)
+inline std::vector<std::string>
+CheckCloudContract(const GaussianCloudData& cloud)
 {
     std::vector<std::string> violations;
     const auto fail = [&violations](std::string message) {
@@ -59,7 +60,8 @@ inline std::vector<std::string> CheckCloudContract(const GaussianCloudData& clou
     const auto checkLength = [&](const char* name, std::size_t actual) {
         if (actual != count) {
             fail(std::string("§3: ") + name + " has length " +
-                std::to_string(actual) + ", expected " + std::to_string(count));
+                 std::to_string(actual) + ", expected " +
+                 std::to_string(count));
         }
     };
     checkLength("positions", cloud.positions.size());
@@ -78,8 +80,8 @@ inline std::vector<std::string> CheckCloudContract(const GaussianCloudData& clou
     const std::size_t expectedRest = count * (perGaussian - 1);
     if (cloud.restCoefficients.size() != expectedRest) {
         fail("§3: restCoefficients has length " +
-            std::to_string(cloud.restCoefficients.size()) + ", expected " +
-            std::to_string(expectedRest));
+             std::to_string(cloud.restCoefficients.size()) + ", expected " +
+             std::to_string(expectedRest));
     }
 
     const auto finite3 = [](const Float3& v) {
@@ -100,20 +102,20 @@ inline std::vector<std::string> CheckCloudContract(const GaussianCloudData& clou
             fail("§3: non-finite scale" + at);
         } else if (scale.x <= 0.0f || scale.y <= 0.0f || scale.z <= 0.0f) {
             fail("§3: scale is not strictly positive" + at +
-                " (log-encoded scales reaching the model?)");
+                 " (log-encoded scales reaching the model?)");
         }
 
         // §3: opacity is already through sigmoid, never a logit.
         const float opacity = cloud.opacities[i];
         if (!std::isfinite(opacity) || opacity < 0.0f || opacity > 1.0f) {
             fail("§3: opacity outside [0, 1]" + at +
-                " (a logit reaching the model?)");
+                 " (a logit reaching the model?)");
         }
 
         // §3: quaternions reach the model normalized.
         const Quaternion& q = cloud.rotations[i];
-        const float norm = std::sqrt(
-            q.real * q.real + q.i * q.i + q.j * q.j + q.k * q.k);
+        const float norm =
+            std::sqrt(q.real * q.real + q.i * q.i + q.j * q.j + q.k * q.k);
         if (!std::isfinite(norm) || std::fabs(norm - 1.0f) > 1.0e-4f) {
             fail("§3: quaternion is not normalized" + at);
         }
@@ -126,7 +128,7 @@ inline std::vector<std::string> CheckCloudContract(const GaussianCloudData& clou
     for (std::size_t i = 0; i < cloud.restCoefficients.size(); ++i) {
         if (!finite3(cloud.restCoefficients[i])) {
             fail("§3: non-finite rest coefficient at index " +
-                std::to_string(i));
+                 std::to_string(i));
         }
     }
 

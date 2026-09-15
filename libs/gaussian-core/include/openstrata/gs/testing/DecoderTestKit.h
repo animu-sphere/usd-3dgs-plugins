@@ -104,14 +104,14 @@ struct CloudTolerances {
 // q and -q denote the same rotation and both are admissible
 // (GAUSSIAN_MODEL_CONTRACT.md §3), so equality holds under whichever sign
 // matches better.
-inline bool QuaternionsEquivalent(
-    const Quaternion& a, const Quaternion& b, float tolerance) noexcept
+inline bool QuaternionsEquivalent(const Quaternion& a, const Quaternion& b,
+                                  float tolerance) noexcept
 {
     const auto close = [tolerance](const Quaternion& p, const Quaternion& q) {
         return std::fabs(p.real - q.real) <= tolerance &&
-            std::fabs(p.i - q.i) <= tolerance &&
-            std::fabs(p.j - q.j) <= tolerance &&
-            std::fabs(p.k - q.k) <= tolerance;
+               std::fabs(p.i - q.i) <= tolerance &&
+               std::fabs(p.j - q.j) <= tolerance &&
+               std::fabs(p.k - q.k) <= tolerance;
     };
     const Quaternion negated = {-b.real, -b.i, -b.j, -b.k};
     return close(a, b) || close(a, negated);
@@ -121,10 +121,10 @@ inline bool QuaternionsEquivalent(
 // within the tolerances. Compares structure (count, degree, lengths), every
 // field per Gaussian, every rest coefficient by (gaussian, coefficient)
 // index, and the deterministic derived extent -- without any USD stage.
-inline std::vector<std::string> CompareClouds(
-    const GaussianCloudData& actual,
-    const GaussianCloudData& expected,
-    const CloudTolerances& tolerances = {})
+inline std::vector<std::string>
+CompareClouds(const GaussianCloudData& actual,
+              const GaussianCloudData& expected,
+              const CloudTolerances& tolerances = {})
 {
     std::vector<std::string> mismatches;
     const auto fail = [&mismatches](std::string message) {
@@ -133,79 +133,78 @@ inline std::vector<std::string> CompareClouds(
 
     if (actual.gaussianCount != expected.gaussianCount) {
         fail("gaussianCount " + std::to_string(actual.gaussianCount) +
-            " != expected " + std::to_string(expected.gaussianCount));
+             " != expected " + std::to_string(expected.gaussianCount));
         return mismatches;
     }
     if (actual.shDegree != expected.shDegree) {
-        fail("shDegree " + std::to_string(actual.shDegree) +
-            " != expected " + std::to_string(expected.shDegree));
+        fail("shDegree " + std::to_string(actual.shDegree) + " != expected " +
+             std::to_string(expected.shDegree));
         return mismatches;
     }
-    const auto checkLength = [&](
-        const char* name, std::size_t got, std::size_t want) {
+    const auto checkLength = [&](const char* name, std::size_t got,
+                                 std::size_t want) {
         if (got != want) {
             fail(std::string(name) + " has length " + std::to_string(got) +
-                ", expected " + std::to_string(want));
+                 ", expected " + std::to_string(want));
             return false;
         }
         return true;
     };
     if (!checkLength("positions", actual.positions.size(),
-            expected.positions.size()) ||
-        !checkLength("scales", actual.scales.size(),
-            expected.scales.size()) ||
+                     expected.positions.size()) ||
+        !checkLength("scales", actual.scales.size(), expected.scales.size()) ||
         !checkLength("rotations", actual.rotations.size(),
-            expected.rotations.size()) ||
+                     expected.rotations.size()) ||
         !checkLength("opacities", actual.opacities.size(),
-            expected.opacities.size()) ||
+                     expected.opacities.size()) ||
         !checkLength("dcCoefficients", actual.dcCoefficients.size(),
-            expected.dcCoefficients.size()) ||
+                     expected.dcCoefficients.size()) ||
         !checkLength("restCoefficients", actual.restCoefficients.size(),
-            expected.restCoefficients.size())) {
+                     expected.restCoefficients.size())) {
         return mismatches;
     }
 
     const auto close = [](float a, float b, float tolerance) {
         return std::fabs(a - b) <= tolerance;
     };
-    const auto checkFloat3 = [&](
-        const char* name, std::size_t index,
-        const Float3& got, const Float3& want, float tolerance) {
+    const auto checkFloat3 = [&](const char* name, std::size_t index,
+                                 const Float3& got, const Float3& want,
+                                 float tolerance) {
         if (!close(got.x, want.x, tolerance) ||
             !close(got.y, want.y, tolerance) ||
             !close(got.z, want.z, tolerance)) {
             fail(std::string(name) + "[" + std::to_string(index) + "] (" +
-                std::to_string(got.x) + ", " + std::to_string(got.y) + ", " +
-                std::to_string(got.z) + ") != expected (" +
-                std::to_string(want.x) + ", " + std::to_string(want.y) +
-                ", " + std::to_string(want.z) + ")");
+                 std::to_string(got.x) + ", " + std::to_string(got.y) + ", " +
+                 std::to_string(got.z) + ") != expected (" +
+                 std::to_string(want.x) + ", " + std::to_string(want.y) + ", " +
+                 std::to_string(want.z) + ")");
         }
     };
 
     for (std::size_t i = 0; i < actual.gaussianCount; ++i) {
-        checkFloat3("positions", i, actual.positions[i],
-            expected.positions[i], tolerances.position);
-        checkFloat3("scales", i, actual.scales[i],
-            expected.scales[i], tolerances.scale);
-        if (!QuaternionsEquivalent(actual.rotations[i],
-                expected.rotations[i], tolerances.rotation)) {
+        checkFloat3("positions", i, actual.positions[i], expected.positions[i],
+                    tolerances.position);
+        checkFloat3("scales", i, actual.scales[i], expected.scales[i],
+                    tolerances.scale);
+        if (!QuaternionsEquivalent(actual.rotations[i], expected.rotations[i],
+                                   tolerances.rotation)) {
             fail("rotations[" + std::to_string(i) +
-                "] differs beyond tolerance under either sign");
+                 "] differs beyond tolerance under either sign");
         }
         if (!close(actual.opacities[i], expected.opacities[i],
-                tolerances.opacity)) {
+                   tolerances.opacity)) {
             fail("opacities[" + std::to_string(i) + "] " +
-                std::to_string(actual.opacities[i]) + " != expected " +
-                std::to_string(expected.opacities[i]));
+                 std::to_string(actual.opacities[i]) + " != expected " +
+                 std::to_string(expected.opacities[i]));
         }
         checkFloat3("dcCoefficients", i, actual.dcCoefficients[i],
-            expected.dcCoefficients[i], tolerances.shCoefficient);
+                    expected.dcCoefficients[i], tolerances.shCoefficient);
     }
 
     const std::size_t restPerGaussian =
-        expected.gaussianCount == 0
-            ? 0
-            : expected.restCoefficients.size() / expected.gaussianCount;
+        expected.gaussianCount == 0 ?
+            0 :
+            expected.restCoefficients.size() / expected.gaussianCount;
     for (std::size_t i = 0; i < actual.restCoefficients.size(); ++i) {
         const std::size_t gaussian =
             restPerGaussian == 0 ? 0 : i / restPerGaussian;
@@ -217,11 +216,11 @@ inline std::vector<std::string> CompareClouds(
             !close(got.y, want.y, tolerances.shCoefficient) ||
             !close(got.z, want.z, tolerances.shCoefficient)) {
             fail("restCoefficients[gaussian " + std::to_string(gaussian) +
-                ", coefficient " + std::to_string(coefficient) + "] (" +
-                std::to_string(got.x) + ", " + std::to_string(got.y) + ", " +
-                std::to_string(got.z) + ") != expected (" +
-                std::to_string(want.x) + ", " + std::to_string(want.y) +
-                ", " + std::to_string(want.z) + ")");
+                 ", coefficient " + std::to_string(coefficient) + "] (" +
+                 std::to_string(got.x) + ", " + std::to_string(got.y) + ", " +
+                 std::to_string(got.z) + ") != expected (" +
+                 std::to_string(want.x) + ", " + std::to_string(want.y) + ", " +
+                 std::to_string(want.z) + ")");
         }
     }
 
@@ -241,8 +240,8 @@ inline std::vector<std::string> CompareClouds(
     } else if (actualHasExtent) {
         const auto extentClose = [&](const Float3& a, const Float3& b) {
             return close(a.x, b.x, tolerances.extent) &&
-                close(a.y, b.y, tolerances.extent) &&
-                close(a.z, b.z, tolerances.extent);
+                   close(a.y, b.y, tolerances.extent) &&
+                   close(a.z, b.z, tolerances.extent);
         };
         if (!extentClose(actualMinimum, expectedMinimum) ||
             !extentClose(actualMaximum, expectedMaximum)) {
@@ -325,8 +324,7 @@ inline std::vector<InvalidCloudCase> MakeInvalidCloudCases()
         // Degree above the supported ceiling, rest sized consistently for it.
         GaussianCloudData cloud = base;
         cloud.shDegree = kMaxShDegree + 1;
-        cloud.restCoefficients.resize(
-            cloud.CoefficientsPerGaussian() - 1);
+        cloud.restCoefficients.resize(cloud.CoefficientsPerGaussian() - 1);
         add("unsupported-sh-degree", std::move(cloud));
     }
     {

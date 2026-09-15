@@ -23,11 +23,13 @@ namespace {
 
 int failures = 0;
 
-#define CHECK(expr) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
 std::string Fixture(const std::string& name)
 {
@@ -73,8 +75,8 @@ void TestRouting()
     // from claiming unrelated JSON.
     CHECK(reader.CanReadUnbundled(
         Fixture("unbundled-kit-multi-degree3/meta.json")));
-    CHECK(reader.CanReadUnbundled(
-        Fixture("unbundled-missing-plane/meta.json")));
+    CHECK(
+        reader.CanReadUnbundled(Fixture("unbundled-missing-plane/meta.json")));
     CHECK(!reader.CanReadUnbundled(Fixture("not-sog.json")));
     CHECK(!reader.CanReadUnbundled(Fixture("kit-one-degree0.sog")));
     CHECK(!reader.CanReadUnbundled(Fixture("no-such-file.json")));
@@ -86,8 +88,8 @@ void TestBundledDegree0()
 {
     gssog::SogDocument document;
     std::string error;
-    CHECK(gssog::SogReader().Read(
-        Fixture("kit-one-degree0.sog"), &document, &error));
+    CHECK(gssog::SogReader().Read(Fixture("kit-one-degree0.sog"), &document,
+                                  &error));
     CHECK(error.empty());
 
     CHECK(document.metadata.version == 2);
@@ -120,8 +122,8 @@ void TestBundledDegree3()
 {
     gssog::SogDocument document;
     std::string error;
-    CHECK(gssog::SogReader().Read(
-        Fixture("kit-multi-degree3.sog"), &document, &error));
+    CHECK(gssog::SogReader().Read(Fixture("kit-multi-degree3.sog"), &document,
+                                  &error));
     CHECK(error.empty());
 
     CHECK(document.metadata.gaussianCount == 3);
@@ -153,10 +155,10 @@ void TestDeflatedArchiveMatchesStored()
     gssog::SogDocument stored;
     gssog::SogDocument deflated;
     std::string error;
-    CHECK(gssog::SogReader().Read(
-        Fixture("kit-multi-degree3.sog"), &stored, &error));
-    CHECK(gssog::SogReader().Read(
-        Fixture("kit-multi-degree3-deflated.sog"), &deflated, &error));
+    CHECK(gssog::SogReader().Read(Fixture("kit-multi-degree3.sog"), &stored,
+                                  &error));
+    CHECK(gssog::SogReader().Read(Fixture("kit-multi-degree3-deflated.sog"),
+                                  &deflated, &error));
     CHECK(stored.metadata.gaussianCount == deflated.metadata.gaussianCount);
     CHECK(stored.meansLow.rgba == deflated.meansLow.rgba);
     CHECK(stored.meansHigh.rgba == deflated.meansHigh.rgba);
@@ -176,8 +178,8 @@ void TestUnbundledMatchesBundled()
     gssog::SogDocument bundled;
     gssog::SogDocument unbundled;
     std::string error;
-    CHECK(gssog::SogReader().Read(
-        Fixture("kit-multi-degree3.sog"), &bundled, &error));
+    CHECK(gssog::SogReader().Read(Fixture("kit-multi-degree3.sog"), &bundled,
+                                  &error));
     CHECK(gssog::SogReader().Read(
         Fixture("unbundled-kit-multi-degree3/meta.json"), &unbundled, &error));
     CHECK(error.empty());
@@ -204,11 +206,9 @@ void TestInjectedCompanionLoader()
 
     int served = 0;
     const gssog::SogReader reader(
-        [&directory, &served](
-            const std::string& anchorPath,
-            const std::string& planeName,
-            std::vector<unsigned char>* bytes,
-            std::string* error) {
+        [&directory,
+         &served](const std::string& anchorPath, const std::string& planeName,
+                  std::vector<unsigned char>* bytes, std::string* error) {
             (void)anchorPath;
             (void)error;
             ++served;
@@ -218,16 +218,15 @@ void TestInjectedCompanionLoader()
             if (!in) {
                 return false;
             }
-            *bytes = std::vector<unsigned char>(
-                std::istreambuf_iterator<char>(in),
-                std::istreambuf_iterator<char>());
+            *bytes =
+                std::vector<unsigned char>(std::istreambuf_iterator<char>(in),
+                                           std::istreambuf_iterator<char>());
             return true;
         });
 
     gssog::SogDocument document;
     std::string error;
-    CHECK(reader.Read(
-        (directory / "meta.json").string(), &document, &error));
+    CHECK(reader.Read((directory / "meta.json").string(), &document, &error));
     CHECK(error.empty());
     CHECK(served == 7); // five per-Gaussian planes plus centroids and labels
     CHECK(document.metadata.gaussianCount == 3);
@@ -252,16 +251,16 @@ void TestMetadataOnly()
 
     // Bundled metadata comes out of the archive without decoding a plane.
     gssog::SogMetadata bundled;
-    CHECK(gssog::SogReader().ReadMetadata(
-        Fixture("kit-one-degree0.sog"), &bundled, &error));
+    CHECK(gssog::SogReader().ReadMetadata(Fixture("kit-one-degree0.sog"),
+                                          &bundled, &error));
     CHECK(bundled.gaussianCount == 1);
     CHECK(bundled.shBands == 0);
 
     // A zero-Gaussian file is rejected here exactly as in a full read.
     gssog::SogMetadata rejected;
     error.clear();
-    CHECK(!gssog::SogReader().ReadMetadata(
-        Fixture("empty-count.sog"), &rejected, &error));
+    CHECK(!gssog::SogReader().ReadMetadata(Fixture("empty-count.sog"),
+                                           &rejected, &error));
     CHECK(HasCode(error, gssog::diag::kEmptyPointSet));
 }
 
@@ -304,16 +303,16 @@ void TestMalformedContainers()
     // Missing files and null outputs.
     gssog::SogDocument document;
     std::string error;
-    CHECK(!gssog::SogReader().Read(
-        Fixture("no-such-file.sog"), &document, &error));
+    CHECK(!gssog::SogReader().Read(Fixture("no-such-file.sog"), &document,
+                                   &error));
     CHECK(HasCode(error, gssog::diag::kUnreadableFile));
     error.clear();
-    CHECK(!gssog::SogReader().Read(
-        Fixture("kit-one-degree0.sog"), nullptr, &error));
+    CHECK(!gssog::SogReader().Read(Fixture("kit-one-degree0.sog"), nullptr,
+                                   &error));
     CHECK(HasCode(error, gssog::diag::kInternalError));
     error.clear();
-    CHECK(!gssog::SogReader().ReadMetadata(
-        Fixture("kit-one-degree0.sog"), nullptr, &error));
+    CHECK(!gssog::SogReader().ReadMetadata(Fixture("kit-one-degree0.sog"),
+                                           nullptr, &error));
     CHECK(HasCode(error, gssog::diag::kInternalError));
 }
 

@@ -14,11 +14,13 @@ namespace {
 
 int failures = 0;
 
-#define CHECK(expr) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
 std::string Fixture(const char* name)
 {
@@ -43,10 +45,8 @@ bool PayloadMatchesPattern(const gsspz::SpzPackedDocument& document)
     return true;
 }
 
-bool SpanEquals(
-    const gsspz::SpzPackedDocument::Span& span,
-    std::size_t offset,
-    std::size_t size)
+bool SpanEquals(const gsspz::SpzPackedDocument::Span& span, std::size_t offset,
+                std::size_t size)
 {
     return span.offset == offset && span.size == size;
 }
@@ -54,11 +54,8 @@ bool SpanEquals(
 // A valid single-point degree-0 container in each supported version. The
 // versions differ only in per-point widths: v1 stores float16 positions,
 // v3 four-byte smallest-three rotations.
-void TestMinimalContainer(
-    const char* fixture,
-    std::uint32_t version,
-    std::size_t positionBytes,
-    std::size_t rotationBytes)
+void TestMinimalContainer(const char* fixture, std::uint32_t version,
+                          std::size_t positionBytes, std::size_t rotationBytes)
 {
     const gsspz::SpzReader reader;
     const std::string path = Fixture(fixture);
@@ -103,8 +100,8 @@ void TestMultiPointShLayout()
     const gsspz::SpzReader reader;
     gsspz::SpzPackedDocument document;
     std::string error;
-    CHECK(reader.Read(
-        Fixture("three-points-degree1-v2.spz"), &document, &error));
+    CHECK(
+        reader.Read(Fixture("three-points-degree1-v2.spz"), &document, &error));
     CHECK(document.header.pointCount == 3);
     CHECK(document.header.shDegree == 1);
     CHECK(document.payload.size() == 84);
@@ -121,7 +118,8 @@ void TestMultiPointShLayout()
 // channel. Degree 4 is the specification maximum and must pass the container
 // stage; whether the semantic decoder accepts it is a separate, later
 // decision (SPZ_FORMAT.md §7).
-void TestHighDegreeShSizing(const char* fixture, int degree, std::size_t shBytes)
+void TestHighDegreeShSizing(const char* fixture, int degree,
+                            std::size_t shBytes)
 {
     const gsspz::SpzReader reader;
     gsspz::SpzPackedDocument document;
@@ -165,8 +163,8 @@ void TestExtensionsPreserved()
     CHECK(document.header.HasExtensions());
     CHECK(document.payload.size() == 19);
     CHECK(document.extensions.size() == 8);
-    CHECK(std::string(document.extensions.begin(), document.extensions.end())
-          == "EXTBYTES");
+    CHECK(std::string(document.extensions.begin(), document.extensions.end()) ==
+          "EXTBYTES");
 }
 
 void TestReadFailure(const char* fixture, const char* code)
@@ -176,8 +174,8 @@ void TestReadFailure(const char* fixture, const char* code)
     std::string error;
     CHECK(!reader.Read(Fixture(fixture), &document, &error));
     if (!HasCode(error, code)) {
-        std::cerr << fixture << ": expected " << code << ", got: "
-                  << error << "\n";
+        std::cerr << fixture << ": expected " << code << ", got: " << error
+                  << "\n";
         ++failures;
     }
 }
@@ -191,8 +189,8 @@ void TestHeaderOnlySemantics()
     gsspz::SpzHeader header;
     std::string error;
 
-    CHECK(reader.ReadHeader(
-        Fixture("truncated-payload-v2.spz"), &header, &error));
+    CHECK(reader.ReadHeader(Fixture("truncated-payload-v2.spz"), &header,
+                            &error));
     CHECK(header.pointCount == 3);
     CHECK(reader.ReadHeader(Fixture("bad-crc-v2.spz"), &header, &error));
 
@@ -201,12 +199,11 @@ void TestHeaderOnlySemantics()
     CHECK(HasCode(error, gsspz::diag::kUnsupportedVersion));
     CHECK(!reader.ReadHeader(Fixture("empty-points-v2.spz"), &header, &error));
     CHECK(HasCode(error, gsspz::diag::kEmptyPointSet));
-    CHECK(!reader.ReadHeader(
-        Fixture("count-exceeds-stream-v2.spz"), &header, &error));
+    CHECK(!reader.ReadHeader(Fixture("count-exceeds-stream-v2.spz"), &header,
+                             &error));
     CHECK(HasCode(error, gsspz::diag::kTruncatedContainer));
     error.clear();
-    CHECK(!reader.ReadHeader(
-        Fixture("shared-limit-v2.spz"), &header, &error));
+    CHECK(!reader.ReadHeader(Fixture("shared-limit-v2.spz"), &header, &error));
     CHECK(HasCode(error, gsspz::diag::kImportLimitExceeded));
 }
 
@@ -273,23 +270,21 @@ int main()
     TestReadFailure("huge-count-v2.spz", gsspz::diag::kInvalidPointCount);
     TestReadFailure("shared-limit-v2.spz", gsspz::diag::kImportLimitExceeded);
     TestReadFailure("sh-degree-5-v2.spz", gsspz::diag::kInvalidShDegree);
-    TestReadFailure(
-        "count-exceeds-stream-v2.spz", gsspz::diag::kTruncatedContainer);
-    TestReadFailure(
-        "truncated-gzip-header.spz", gsspz::diag::kMalformedContainer);
+    TestReadFailure("count-exceeds-stream-v2.spz",
+                    gsspz::diag::kTruncatedContainer);
+    TestReadFailure("truncated-gzip-header.spz",
+                    gsspz::diag::kMalformedContainer);
     TestReadFailure("short-stream.spz", gsspz::diag::kMalformedContainer);
-    TestReadFailure(
-        "truncated-payload-v2.spz", gsspz::diag::kTruncatedContainer);
-    TestReadFailure(
-        "truncated-deflate-v2.spz", gsspz::diag::kTruncatedContainer);
+    TestReadFailure("truncated-payload-v2.spz",
+                    gsspz::diag::kTruncatedContainer);
+    TestReadFailure("truncated-deflate-v2.spz",
+                    gsspz::diag::kTruncatedContainer);
     TestReadFailure("corrupt-deflate.spz", gsspz::diag::kCorruptContainer);
     TestReadFailure("bad-crc-v2.spz", gsspz::diag::kCorruptContainer);
     TestReadFailure("bad-isize-v2.spz", gsspz::diag::kCorruptContainer);
     TestReadFailure("bad-fhcrc-v2.spz", gsspz::diag::kMalformedContainer);
-    TestReadFailure(
-        "trailing-decompressed-v2.spz", gsspz::diag::kTrailingData);
-    TestReadFailure(
-        "trailing-after-member-v2.spz", gsspz::diag::kTrailingData);
+    TestReadFailure("trailing-decompressed-v2.spz", gsspz::diag::kTrailingData);
+    TestReadFailure("trailing-after-member-v2.spz", gsspz::diag::kTrailingData);
     TestReadFailure("does-not-exist.spz", gsspz::diag::kUnreadableFile);
 
     TestHeaderOnlySemantics();

@@ -26,8 +26,8 @@
 namespace openstrata::gs {
 
 // True and writes `a * b` unless the product overflows std::size_t.
-inline bool CheckedMulSize(
-    std::size_t a, std::size_t b, std::size_t* product) noexcept
+inline bool CheckedMulSize(std::size_t a, std::size_t b,
+                           std::size_t* product) noexcept
 {
     if (!product) {
         return false;
@@ -40,8 +40,8 @@ inline bool CheckedMulSize(
 }
 
 // True and writes `a + b` unless the sum overflows std::size_t.
-inline bool CheckedAddSize(
-    std::size_t a, std::size_t b, std::size_t* sum) noexcept
+inline bool CheckedAddSize(std::size_t a, std::size_t b,
+                           std::size_t* sum) noexcept
 {
     if (!sum) {
         return false;
@@ -57,10 +57,8 @@ inline bool CheckedAddSize(
 // (GAUSSIAN_MODEL_CONTRACT.md §3), overflow-checked. Fails on a degree
 // outside the supported 0..kMaxShDegree range rather than computing a length
 // the shared gate would reject anyway.
-inline bool ComputeRestCoefficientCount(
-    std::size_t gaussianCount,
-    int shDegree,
-    std::size_t* restCount) noexcept
+inline bool ComputeRestCoefficientCount(std::size_t gaussianCount, int shDegree,
+                                        std::size_t* restCount) noexcept
 {
     if (!restCount || shDegree < 0 || shDegree > kMaxShDegree) {
         return false;

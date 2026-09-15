@@ -28,7 +28,8 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_DEFINE_PUBLIC_TOKENS(GaussianSogFileFormatTokens, GAUSSIANSOG_FILE_FORMAT_TOKENS);
+TF_DEFINE_PUBLIC_TOKENS(GaussianSogFileFormatTokens,
+                        GAUSSIANSOG_FILE_FORMAT_TOKENS);
 
 namespace {
 
@@ -45,11 +46,10 @@ constexpr const char* kSourceFormat = gssog::kSourceFormatToken;
 // path. That is what lets a search-path or packaged resolver find the planes of
 // a `meta.json` it resolved itself. The primary asset still arrives as a
 // resolved path and is read directly, exactly as in the PLY and SPZ bundles.
-bool LoadCompanionThroughResolver(
-    const std::string& anchorPath,
-    const std::string& planeName,
-    std::vector<unsigned char>* bytes,
-    std::string* error)
+bool LoadCompanionThroughResolver(const std::string& anchorPath,
+                                  const std::string& planeName,
+                                  std::vector<unsigned char>* bytes,
+                                  std::string* error)
 {
     const auto fail = [error](const char* code, const std::string& message) {
         if (error) {
@@ -65,23 +65,28 @@ bool LoadCompanionThroughResolver(
         resolver.Resolve(identifier.empty() ? planeName : identifier);
     if (!resolved) {
         return fail(gssog::diag::kMissingPlane,
-            "The property plane '" + planeName + "' declared by meta.json "
-            "could not be resolved relative to '" + anchorPath + "'.");
+                    "The property plane '" + planeName +
+                        "' declared by meta.json "
+                        "could not be resolved relative to '" +
+                        anchorPath + "'.");
     }
 
     const std::shared_ptr<ArAsset> asset = resolver.OpenAsset(resolved);
     if (!asset) {
         return fail(gssog::diag::kUnreadableFile,
-            "The property plane '" + planeName + "' resolved to '" +
-            resolved.GetPathString() + "' but could not be opened.");
+                    "The property plane '" + planeName + "' resolved to '" +
+                        resolved.GetPathString() +
+                        "' but could not be opened.");
     }
     const std::size_t size = asset->GetSize();
     try {
         bytes->resize(size);
     } catch (const std::exception&) {
         return fail(gssog::diag::kUnreadableFile,
-            "A " + std::to_string(size) + "-byte buffer for the property "
-            "plane '" + planeName + "' could not be allocated.");
+                    "A " + std::to_string(size) +
+                        "-byte buffer for the property "
+                        "plane '" +
+                        planeName + "' could not be allocated.");
     }
     if (size == 0) {
         return true;
@@ -94,8 +99,9 @@ bool LoadCompanionThroughResolver(
     }
     if (asset->Read(bytes->data(), size, 0) != size) {
         return fail(gssog::diag::kUnreadableFile,
-            "The property plane '" + planeName + "' could not be read from '" +
-            resolved.GetPathString() + "'.");
+                    "The property plane '" + planeName +
+                        "' could not be read from '" +
+                        resolved.GetPathString() + "'.");
     }
     return true;
 }
@@ -123,26 +129,24 @@ TF_DEBUG_CODES(GSSOG_IMPORT_STATS);
 
 TF_REGISTRY_FUNCTION(TfDebug)
 {
-    TF_DEBUG_ENVIRONMENT_SYMBOL(GSSOG_IMPORT_STATS,
+    TF_DEBUG_ENVIRONMENT_SYMBOL(
+        GSSOG_IMPORT_STATS,
         "gaussian-sog: one line of per-import statistics through the shared "
         "GaussianImportStats seam");
 }
 
 GaussianSogFileFormat::GaussianSogFileFormat()
-    : SdfFileFormat(
-          GaussianSogFileFormatTokens->Id,
-          GaussianSogFileFormatTokens->Version,
-          GaussianSogFileFormatTokens->Target,
-          std::vector<std::string>{
-              GaussianSogFileFormatTokens->Extension.GetString(),
-              GaussianSogFileFormatTokens->MetaExtension.GetString()})
-{
-}
+    : SdfFileFormat(GaussianSogFileFormatTokens->Id,
+                    GaussianSogFileFormatTokens->Version,
+                    GaussianSogFileFormatTokens->Target,
+                    std::vector<std::string>{
+                        GaussianSogFileFormatTokens->Extension.GetString(),
+                        GaussianSogFileFormatTokens->MetaExtension.GetString()})
+{}
 
 GaussianSogFileFormat::~GaussianSogFileFormat() = default;
 
-bool
-GaussianSogFileFormat::CanRead(const std::string& file) const
+bool GaussianSogFileFormat::CanRead(const std::string& file) const
 {
     // The two layouts have two different gates (SOG_FORMAT.md §6): a bundled
     // `.sog` is claimed by the ZIP signature, while the far broader `.json`
@@ -161,11 +165,9 @@ GaussianSogFileFormat::CanRead(const std::string& file) const
     return false;
 }
 
-bool
-GaussianSogFileFormat::Read(
-    SdfLayer* layer,
-    const std::string& resolvedPath,
-    bool metadataOnly) const
+bool GaussianSogFileFormat::Read(SdfLayer* layer,
+                                 const std::string& resolvedPath,
+                                 bool metadataOnly) const
 {
     const gssog::GaussianSogDecoder decoder = MakeDecoder();
     std::string error;
@@ -175,16 +177,19 @@ GaussianSogFileFormat::Read(
     // GSSOG-E1xx codes. The struct is six same-typed pointers, so it is
     // assigned by name: a positional list would let a swapped pair compile
     // silently and emit the wrong code to users (see GaussianLayerWriter.h).
-    static const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes = [] {
-        openstrata::gs::usd::LayerWriterDiagnosticCodes codes;
-        codes.internalError = gssog::diag::kInternalError;
-        codes.cloudValidationFailed = gssog::diag::kCloudValidationFailed;
-        codes.stageCreationFailed = gssog::diag::kStageCreationFailed;
-        codes.scaffoldAuthoringFailed = gssog::diag::kScaffoldAuthoringFailed;
-        codes.attributeAuthoringFailed = gssog::diag::kAttributeAuthoringFailed;
-        codes.extentOverflow = gssog::diag::kExtentOverflow;
-        return codes;
-    }();
+    static const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes =
+        [] {
+            openstrata::gs::usd::LayerWriterDiagnosticCodes codes;
+            codes.internalError = gssog::diag::kInternalError;
+            codes.cloudValidationFailed = gssog::diag::kCloudValidationFailed;
+            codes.stageCreationFailed = gssog::diag::kStageCreationFailed;
+            codes.scaffoldAuthoringFailed =
+                gssog::diag::kScaffoldAuthoringFailed;
+            codes.attributeAuthoringFailed =
+                gssog::diag::kAttributeAuthoringFailed;
+            codes.extentOverflow = gssog::diag::kExtentOverflow;
+            return codes;
+        }();
     const openstrata::gs::usd::GaussianLayerWriter writer(kWriterCodes);
 
     // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached
@@ -199,20 +204,18 @@ GaussianSogFileFormat::Read(
         // decoded.
         gssog::GaussianSogMetadata metadata;
         if (!decoder.DecodeMetadata(resolvedPath, &metadata, &error)) {
-            TF_RUNTIME_ERROR(
-                "gaussian-sog: failed to read '%s': %s",
-                resolvedPath.c_str(), error.c_str());
+            TF_RUNTIME_ERROR("gaussian-sog: failed to read '%s': %s",
+                             resolvedPath.c_str(), error.c_str());
             return false;
         }
         auto task = std::async(std::launch::async, [&]() {
-            return writer.WriteMetadataToLayer(
-                metadata.gaussianCount, metadata.shDegree,
-                kSourceFormat, &generated, &error);
+            return writer.WriteMetadataToLayer(metadata.gaussianCount,
+                                               metadata.shDegree, kSourceFormat,
+                                               &generated, &error);
         });
         if (!task.get()) {
-            TF_RUNTIME_ERROR(
-                "gaussian-sog: failed to author USD for '%s': %s",
-                resolvedPath.c_str(), error.c_str());
+            TF_RUNTIME_ERROR("gaussian-sog: failed to author USD for '%s': %s",
+                             resolvedPath.c_str(), error.c_str());
             return false;
         }
         layer->TransferContent(generated);
@@ -228,9 +231,8 @@ GaussianSogFileFormat::Read(
     openstrata::gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error, statsOut)) {
-        TF_RUNTIME_ERROR(
-            "gaussian-sog: failed to read '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+        TF_RUNTIME_ERROR("gaussian-sog: failed to read '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
     for (const std::string& warning : warnings) {
@@ -248,50 +250,49 @@ GaussianSogFileFormat::Read(
     // authored.
     const auto authorStart = std::chrono::steady_clock::now();
     auto task = std::async(std::launch::async, [&]() {
-        return writer.WriteToLayer(
-            std::move(cloud), kSourceFormat, &generated, &error);
+        return writer.WriteToLayer(std::move(cloud), kSourceFormat, &generated,
+                                   &error);
     });
     if (!task.get()) {
-        TF_RUNTIME_ERROR(
-            "gaussian-sog: failed to author USD for '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+        TF_RUNTIME_ERROR("gaussian-sog: failed to author USD for '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
     if (statsOut) {
-        stats.authorSeconds = std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - authorStart).count();
-        TF_DEBUG(GSSOG_IMPORT_STATS).Msg("gaussian-sog: %s\n",
-            openstrata::gs::FormatImportStats(stats).c_str());
+        stats.authorSeconds =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                          authorStart)
+                .count();
+        TF_DEBUG(GSSOG_IMPORT_STATS)
+            .Msg("gaussian-sog: %s\n",
+                 openstrata::gs::FormatImportStats(stats).c_str());
     }
 
     layer->TransferContent(generated);
     return true;
 }
 
-bool
-GaussianSogFileFormat::WriteToFile(
-    const SdfLayer& layer,
-    const std::string& filePath,
-    const std::string& comment,
-    const FileFormatArguments& args) const
+bool GaussianSogFileFormat::WriteToFile(const SdfLayer& layer,
+                                        const std::string& filePath,
+                                        const std::string& comment,
+                                        const FileFormatArguments& args) const
 {
     (void)layer;
     (void)filePath;
     (void)comment;
     (void)args;
-    TF_RUNTIME_ERROR("%s",
-        gssog::diag::Format(
-            gssog::diag::kWriteUnsupported,
-            "gaussian-sog is read-only; USD to SOG writing is "
-            "unsupported").c_str());
+    TF_RUNTIME_ERROR(
+        "%s",
+        gssog::diag::Format(gssog::diag::kWriteUnsupported,
+                            "gaussian-sog is read-only; USD to SOG writing is "
+                            "unsupported")
+            .c_str());
     return false;
 }
 
-bool
-GaussianSogFileFormat::WriteToString(
-    const SdfLayer& layer,
-    std::string* str,
-    const std::string& comment) const
+bool GaussianSogFileFormat::WriteToString(const SdfLayer& layer,
+                                          std::string* str,
+                                          const std::string& comment) const
 {
     SdfFileFormatConstPtr usda = SdfFileFormat::FindByExtension("usda");
     if (usda) {

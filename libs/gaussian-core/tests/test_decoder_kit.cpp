@@ -34,18 +34,22 @@ namespace {
 
 int failures = 0;
 
-#define CHECK(expr) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
-#define CHECK_MSG(expr, context) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr \
-                  << " [" << (context) << "]\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK_MSG(expr, context)                                               \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr << " ["     \
+                      << (context) << "]\n";                                   \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
 // --- The mock format --------------------------------------------------------
 
@@ -89,12 +93,11 @@ MockSplatDocument EncodeMockSplat(const gs::GaussianCloudData& model)
     MockSplatDocument document;
     document.count = source.gaussianCount;
     document.shDegree = source.shDegree;
-    const std::size_t restPerGaussian =
-        source.CoefficientsPerGaussian() - 1;
+    const std::size_t restPerGaussian = source.CoefficientsPerGaussian() - 1;
     for (std::size_t i = 0; i < source.gaussianCount; ++i) {
         const gs::Float3& p = source.positions[i];
-        document.positionsRdf.insert(
-            document.positionsRdf.end(), {p.x, p.y, p.z});
+        document.positionsRdf.insert(document.positionsRdf.end(),
+                                     {p.x, p.y, p.z});
         const gs::Float3& s = source.scales[i];
         document.logScales.insert(
             document.logScales.end(),
@@ -118,8 +121,9 @@ MockSplatDocument EncodeMockSplat(const gs::GaussianCloudData& model)
             for (std::size_t c = 0; c < restPerGaussian; ++c) {
                 const gs::Float3& value =
                     source.restCoefficients[i * restPerGaussian + c];
-                document.restChannelMajor.push_back(
-                    channel == 0 ? value.x : channel == 1 ? value.y : value.z);
+                document.restChannelMajor.push_back(channel == 0 ? value.x :
+                                                    channel == 1 ? value.y :
+                                                                   value.z);
             }
         }
     }
@@ -130,10 +134,8 @@ MockSplatDocument EncodeMockSplat(const gs::GaussianCloudData& model)
 // the contract alone. Structure mirrors what the guide asks of a real
 // decoder: overflow-checked allocation, shared conversion helpers, frame
 // conversion after arrays are built, shared validation last.
-bool DecodeMockSplat(
-    const MockSplatDocument& document,
-    gs::GaussianCloudData* cloud,
-    std::string* error)
+bool DecodeMockSplat(const MockSplatDocument& document,
+                     gs::GaussianCloudData* cloud, std::string* error)
 {
     const auto fail = [error](const char* message) {
         if (error) {
@@ -149,8 +151,8 @@ bool DecodeMockSplat(
     // Contract §3, maximum count and overflow: derived sizes go through the
     // shared checked arithmetic before any allocation.
     std::size_t restCount = 0;
-    if (!gs::ComputeRestCoefficientCount(
-            document.count, document.shDegree, &restCount)) {
+    if (!gs::ComputeRestCoefficientCount(document.count, document.shDegree,
+                                         &restCount)) {
         return fail("rest-coefficient count overflows");
     }
     if (!gs::TryResize(&result.positions, document.count) ||
@@ -162,32 +164,27 @@ bool DecodeMockSplat(
         return fail("model arrays could not be allocated");
     }
 
-    const std::size_t restPerGaussian =
-        result.CoefficientsPerGaussian() - 1;
+    const std::size_t restPerGaussian = result.CoefficientsPerGaussian() - 1;
     for (std::size_t i = 0; i < document.count; ++i) {
-        result.positions[i] = {
-            document.positionsRdf[i * 3],
-            document.positionsRdf[i * 3 + 1],
-            document.positionsRdf[i * 3 + 2]};
-        if (!gs::DecodeLogScale(
-                {document.logScales[i * 3],
-                 document.logScales[i * 3 + 1],
-                 document.logScales[i * 3 + 2]},
-                &result.scales[i])) {
+        result.positions[i] = {document.positionsRdf[i * 3],
+                               document.positionsRdf[i * 3 + 1],
+                               document.positionsRdf[i * 3 + 2]};
+        if (!gs::DecodeLogScale({document.logScales[i * 3],
+                                 document.logScales[i * 3 + 1],
+                                 document.logScales[i * 3 + 2]},
+                                &result.scales[i])) {
             return fail("log scale does not decode");
         }
         // Reorder vector-first to the model's scalar-first convention, then
         // normalize through the shared helper.
         const float* r = document.rotationsVectorFirst.data() + i * 4;
-        if (!gs::NormalizeQuaternion(
-                {r[3], r[0], r[1], r[2]}, &result.rotations[i])) {
+        if (!gs::NormalizeQuaternion({r[3], r[0], r[1], r[2]},
+                                     &result.rotations[i])) {
             return fail("quaternion is not normalizable");
         }
         result.opacities[i] = gs::Sigmoid(document.opacityLogits[i]);
-        result.dcCoefficients[i] = {
-            document.dc[i * 3],
-            document.dc[i * 3 + 1],
-            document.dc[i * 3 + 2]};
+        result.dcCoefficients[i] = {document.dc[i * 3], document.dc[i * 3 + 1],
+                                    document.dc[i * 3 + 2]};
     }
     // Channel-major to Gaussian-major transpose.
     const std::size_t channelStride = document.count * restPerGaussian;
@@ -225,16 +222,15 @@ bool DecodeMockSplat(
 void TestMockDecoderRoundTrip()
 {
     for (const bool multi : {false, true}) {
-        const gs::GaussianCloudData expected = multi
-            ? kit::MakeCanonicalMultiGaussianCloud()
-            : kit::MakeCanonicalOneGaussianCloud();
+        const gs::GaussianCloudData expected =
+            multi ? kit::MakeCanonicalMultiGaussianCloud() :
+                    kit::MakeCanonicalOneGaussianCloud();
         const MockSplatDocument document = EncodeMockSplat(expected);
 
         gs::GaussianCloudData decoded;
         std::string error;
         CHECK_MSG(DecodeMockSplat(document, &decoded, &error), error);
-        for (const std::string& violation :
-             kit::CheckCloudContract(decoded)) {
+        for (const std::string& violation : kit::CheckCloudContract(decoded)) {
             CHECK_MSG(false, violation);
         }
         for (const std::string& mismatch :
@@ -253,9 +249,9 @@ void TestInvalidCasesAreRejected()
     for (const auto& invalid : cases) {
         std::string error;
         CHECK_MSG(!gs::ValidateGaussianCloud(invalid.cloud, &error),
-            invalid.name);
+                  invalid.name);
         CHECK_MSG(!kit::CheckCloudContract(invalid.cloud).empty(),
-            invalid.name);
+                  invalid.name);
     }
 }
 
@@ -266,8 +262,7 @@ void TestComparisonDistinguishesOrderings()
 {
     const gs::GaussianCloudData expected =
         kit::MakeCanonicalMultiGaussianCloud();
-    const std::size_t restPerGaussian =
-        expected.CoefficientsPerGaussian() - 1;
+    const std::size_t restPerGaussian = expected.CoefficientsPerGaussian() - 1;
 
     CHECK(kit::CompareClouds(expected, expected).empty());
 
@@ -275,7 +270,7 @@ void TestComparisonDistinguishesOrderings()
     gs::GaussianCloudData pointSwapped = expected;
     for (std::size_t c = 0; c < restPerGaussian; ++c) {
         std::swap(pointSwapped.restCoefficients[c],
-            pointSwapped.restCoefficients[restPerGaussian + c]);
+                  pointSwapped.restCoefficients[restPerGaussian + c]);
     }
     CHECK(!kit::CompareClouds(pointSwapped, expected).empty());
 
@@ -312,13 +307,12 @@ void TestQuaternionSignEquivalence()
 // extent must match ComputeCloudExtent exactly.
 void TestExtentComparison()
 {
-    const gs::GaussianCloudData expected =
-        kit::MakeCanonicalOneGaussianCloud();
+    const gs::GaussianCloudData expected = kit::MakeCanonicalOneGaussianCloud();
 
     gs::Float3 minimum, maximum;
-    CHECK(gs::ComputeCloudExtent(
-        expected.positions.data(), expected.scales.data(),
-        expected.gaussianCount, &minimum, &maximum));
+    CHECK(gs::ComputeCloudExtent(expected.positions.data(),
+                                 expected.scales.data(), expected.gaussianCount,
+                                 &minimum, &maximum));
     const float radius = 3.0f * 0.04f;
     CHECK(std::fabs(minimum.x - (0.5f - radius)) <= 1.0e-6f);
     CHECK(std::fabs(maximum.z - (2.0f + radius)) <= 1.0e-6f);
@@ -328,9 +322,9 @@ void TestExtentComparison()
     CHECK(!kit::CompareClouds(widened, expected).empty());
 
     // Zero count and non-finite bounds are not computable.
-    CHECK(!gs::ComputeCloudExtent(
-        expected.positions.data(), expected.scales.data(), 0,
-        &minimum, &maximum));
+    CHECK(!gs::ComputeCloudExtent(expected.positions.data(),
+                                  expected.scales.data(), 0, &minimum,
+                                  &maximum));
 }
 
 void TestSizeMath()
@@ -359,8 +353,7 @@ void TestSizeMath()
 
 void TestImportStatsSeam()
 {
-    const gs::GaussianCloudData cloud =
-        kit::MakeCanonicalMultiGaussianCloud();
+    const gs::GaussianCloudData cloud = kit::MakeCanonicalMultiGaussianCloud();
     // 3 Gaussians, degree 3: exact semantic bytes, independent of capacity.
     const std::uint64_t expectedBytes =
         3ull * (12 + 12 + 16 + 4 + 12) + 45ull * 12;
@@ -397,14 +390,13 @@ void TestImportStatsSeam()
     CHECK(line.find("warnings=1") != std::string::npos);
     CHECK(line.find("sourceBytes=1234") != std::string::npos);
     CHECK(line.find("decodedBytes=" + std::to_string(expectedBytes)) !=
-        std::string::npos);
+          std::string::npos);
     CHECK(line.find("boundsMin=") != std::string::npos);
     CHECK(line.find("readSeconds=0.25") != std::string::npos);
 
     // Without bounds the bounds keys are absent, not zero-filled.
     stats.hasBounds = false;
-    CHECK(gs::FormatImportStats(stats).find("boundsMin=") ==
-        std::string::npos);
+    CHECK(gs::FormatImportStats(stats).find("boundsMin=") == std::string::npos);
 }
 
 } // namespace

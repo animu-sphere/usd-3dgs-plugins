@@ -28,12 +28,12 @@ namespace openstrata::gs::equivalence {
 
 inline int failures = 0;
 
-#define CHECK(expr)                                                      \
-    do {                                                                 \
-        if (!(expr)) {                                                   \
-            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-            ++openstrata::gs::equivalence::failures;                     \
-        }                                                                \
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++openstrata::gs::equivalence::failures;                           \
+        }                                                                      \
     } while (false)
 
 inline std::string Fixture(const char* name)
@@ -41,12 +41,8 @@ inline std::string Fixture(const char* name)
     return (std::filesystem::path(EQUIVALENCE_FIXTURE_DIR) / name).string();
 }
 
-inline void CheckClose(
-    float reference,
-    float other,
-    float tolerance,
-    const char* what,
-    std::size_t index)
+inline void CheckClose(float reference, float other, float tolerance,
+                       const char* what, std::size_t index)
 {
     if (!(std::fabs(reference - other) <= tolerance)) {
         std::cerr << what << '[' << index << "]: ply " << reference << " vs "
@@ -56,12 +52,8 @@ inline void CheckClose(
     }
 }
 
-inline void CheckRelative(
-    float reference,
-    float other,
-    float tolerance,
-    const char* what,
-    std::size_t index)
+inline void CheckRelative(float reference, float other, float tolerance,
+                          const char* what, std::size_t index)
 {
     // Reported as delta against bound rather than as a ratio: a reference of
     // zero makes the bound zero too, and dividing by it would print nan for
@@ -91,7 +83,7 @@ inline void CheckContract(const GaussianCloudData& cloud, const char* which)
 inline Quaternion AlignSign(const Quaternion& reference, Quaternion other)
 {
     const float dot = reference.real * other.real + reference.i * other.i +
-        reference.j * other.j + reference.k * other.k;
+                      reference.j * other.j + reference.k * other.k;
     if (dot < 0.0f) {
         other.real = -other.real;
         other.i = -other.i;
@@ -103,8 +95,8 @@ inline Quaternion AlignSign(const Quaternion& reference, Quaternion other)
 
 // Structural agreement, checked before any per-element comparison so a pair
 // whose sizes differ reports that instead of thousands of value mismatches.
-inline bool ShapesAgree(
-    const GaussianCloudData& reference, const GaussianCloudData& other)
+inline bool ShapesAgree(const GaussianCloudData& reference,
+                        const GaussianCloudData& other)
 {
     const int before = failures;
     CHECK(reference.gaussianCount == other.gaussianCount);

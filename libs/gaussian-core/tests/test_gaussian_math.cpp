@@ -14,11 +14,13 @@ namespace {
 
 int failures = 0;
 
-#define CHECK(expr) \
-    do { if (!(expr)) { \
-        std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n"; \
-        ++failures; \
-    } } while (false)
+#define CHECK(expr)                                                            \
+    do {                                                                       \
+        if (!(expr)) {                                                         \
+            std::cerr << __FILE__ << ':' << __LINE__ << ": " #expr "\n";       \
+            ++failures;                                                        \
+        }                                                                      \
+    } while (false)
 
 bool Close(float a, float b, float epsilon = 1.0e-6f)
 {
@@ -45,11 +47,11 @@ void TestTransforms()
     gs::Quaternion q;
     bool identity = false;
     bool changed = false;
-    CHECK(gs::NormalizeQuaternion({2.0f, 0.0f, 0.0f, 0.0f},
-                                  &q, &identity, &changed));
+    CHECK(gs::NormalizeQuaternion({2.0f, 0.0f, 0.0f, 0.0f}, &q, &identity,
+                                  &changed));
     CHECK(!identity && changed && Close(q.real, 1.0f));
-    CHECK(gs::NormalizeQuaternion({0.0f, 0.0f, 0.0f, 0.0f},
-                                  &q, &identity, &changed));
+    CHECK(gs::NormalizeQuaternion({0.0f, 0.0f, 0.0f, 0.0f}, &q, &identity,
+                                  &changed));
     CHECK(identity && changed && Close(q.real, 1.0f));
 }
 
@@ -100,8 +102,7 @@ void TestValidation()
     // even when the rest array is sized consistently for it.
     gs::GaussianCloudData degree4 = oneGaussian();
     degree4.shDegree = gs::kMaxShDegree + 1;
-    degree4.restCoefficients.resize(
-        degree4.CoefficientsPerGaussian() - 1);
+    degree4.restCoefficients.resize(degree4.CoefficientsPerGaussian() - 1);
     CHECK(!gs::ValidateGaussianCloud(degree4, &error));
 
     // §4: the gate rejects an unnormalized quaternion, while one within the
@@ -120,9 +121,9 @@ void TestValidation()
 // itself. Derived from the reference flipSh basis
 // {y, z, x, xy, yz, zz, xz, xx-yy, band 3...} at (x, y, z) = (+1, -1, -1).
 constexpr float kExpectedShFlip[15] = {
-    -1.0f, -1.0f, +1.0f,                       // band 1
-    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,         // band 2
-    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f,  // band 3
+    -1.0f, -1.0f, +1.0f,                      // band 1
+    -1.0f, +1.0f, +1.0f, -1.0f, +1.0f,        // band 2
+    -1.0f, +1.0f, -1.0f, -1.0f, +1.0f, -1.0f, // band 3
     +1.0f,
 };
 

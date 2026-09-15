@@ -22,7 +22,8 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_DEFINE_PUBLIC_TOKENS(GaussianSpzFileFormatTokens, GAUSSIANSPZ_FILE_FORMAT_TOKENS);
+TF_DEFINE_PUBLIC_TOKENS(GaussianSpzFileFormatTokens,
+                        GAUSSIANSPZ_FILE_FORMAT_TOKENS);
 
 namespace {
 
@@ -48,24 +49,22 @@ TF_DEBUG_CODES(GSPZ_IMPORT_STATS);
 
 TF_REGISTRY_FUNCTION(TfDebug)
 {
-    TF_DEBUG_ENVIRONMENT_SYMBOL(GSPZ_IMPORT_STATS,
+    TF_DEBUG_ENVIRONMENT_SYMBOL(
+        GSPZ_IMPORT_STATS,
         "gaussian-spz: one line of per-import statistics through the shared "
         "GaussianImportStats seam");
 }
 
 GaussianSpzFileFormat::GaussianSpzFileFormat()
-    : SdfFileFormat(
-          GaussianSpzFileFormatTokens->Id,
-          GaussianSpzFileFormatTokens->Version,
-          GaussianSpzFileFormatTokens->Target,
-          GaussianSpzFileFormatTokens->Extension)
-{
-}
+    : SdfFileFormat(GaussianSpzFileFormatTokens->Id,
+                    GaussianSpzFileFormatTokens->Version,
+                    GaussianSpzFileFormatTokens->Target,
+                    GaussianSpzFileFormatTokens->Extension)
+{}
 
 GaussianSpzFileFormat::~GaussianSpzFileFormat() = default;
 
-bool
-GaussianSpzFileFormat::CanRead(const std::string& file) const
+bool GaussianSpzFileFormat::CanRead(const std::string& file) const
 {
     if (SdfFileFormat::GetFileExtension(file) != "spz") {
         return false;
@@ -73,11 +72,9 @@ GaussianSpzFileFormat::CanRead(const std::string& file) const
     return openstrata::gs::spz::GaussianSpzDecoder().CanRead(file);
 }
 
-bool
-GaussianSpzFileFormat::Read(
-    SdfLayer* layer,
-    const std::string& resolvedPath,
-    bool metadataOnly) const
+bool GaussianSpzFileFormat::Read(SdfLayer* layer,
+                                 const std::string& resolvedPath,
+                                 bool metadataOnly) const
 {
     namespace gsspz = openstrata::gs::spz;
 
@@ -89,16 +86,19 @@ GaussianSpzFileFormat::Read(
     // struct is six same-typed pointers, so it is assigned by name: a
     // positional list would let a swapped pair compile silently and emit the
     // wrong code to users (see GaussianLayerWriter.h).
-    static const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes = [] {
-        openstrata::gs::usd::LayerWriterDiagnosticCodes codes;
-        codes.internalError = gsspz::diag::kInternalError;
-        codes.cloudValidationFailed = gsspz::diag::kCloudValidationFailed;
-        codes.stageCreationFailed = gsspz::diag::kStageCreationFailed;
-        codes.scaffoldAuthoringFailed = gsspz::diag::kScaffoldAuthoringFailed;
-        codes.attributeAuthoringFailed = gsspz::diag::kAttributeAuthoringFailed;
-        codes.extentOverflow = gsspz::diag::kExtentOverflow;
-        return codes;
-    }();
+    static const openstrata::gs::usd::LayerWriterDiagnosticCodes kWriterCodes =
+        [] {
+            openstrata::gs::usd::LayerWriterDiagnosticCodes codes;
+            codes.internalError = gsspz::diag::kInternalError;
+            codes.cloudValidationFailed = gsspz::diag::kCloudValidationFailed;
+            codes.stageCreationFailed = gsspz::diag::kStageCreationFailed;
+            codes.scaffoldAuthoringFailed =
+                gsspz::diag::kScaffoldAuthoringFailed;
+            codes.attributeAuthoringFailed =
+                gsspz::diag::kAttributeAuthoringFailed;
+            codes.extentOverflow = gsspz::diag::kExtentOverflow;
+            return codes;
+        }();
     const openstrata::gs::usd::GaussianLayerWriter writer(kWriterCodes);
 
     // Sdf reload executes under an outer SdfChangeBlock. Authoring a detached
@@ -112,20 +112,18 @@ GaussianSpzFileFormat::Read(
         // from the container header; no attribute streams are decompressed.
         gsspz::GaussianSpzMetadata metadata;
         if (!decoder.DecodeMetadata(resolvedPath, &metadata, &error)) {
-            TF_RUNTIME_ERROR(
-                "gaussian-spz: failed to read '%s': %s",
-                resolvedPath.c_str(), error.c_str());
+            TF_RUNTIME_ERROR("gaussian-spz: failed to read '%s': %s",
+                             resolvedPath.c_str(), error.c_str());
             return false;
         }
         auto task = std::async(std::launch::async, [&]() {
-            return writer.WriteMetadataToLayer(
-                metadata.gaussianCount, metadata.shDegree,
-                kSourceFormat, &generated, &error);
+            return writer.WriteMetadataToLayer(metadata.gaussianCount,
+                                               metadata.shDegree, kSourceFormat,
+                                               &generated, &error);
         });
         if (!task.get()) {
-            TF_RUNTIME_ERROR(
-                "gaussian-spz: failed to author USD for '%s': %s",
-                resolvedPath.c_str(), error.c_str());
+            TF_RUNTIME_ERROR("gaussian-spz: failed to author USD for '%s': %s",
+                             resolvedPath.c_str(), error.c_str());
             return false;
         }
         layer->TransferContent(generated);
@@ -141,9 +139,8 @@ GaussianSpzFileFormat::Read(
     openstrata::gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error, statsOut)) {
-        TF_RUNTIME_ERROR(
-            "gaussian-spz: failed to read '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+        TF_RUNTIME_ERROR("gaussian-spz: failed to read '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
     for (const std::string& warning : warnings) {
@@ -161,50 +158,49 @@ GaussianSpzFileFormat::Read(
     // authored.
     const auto authorStart = std::chrono::steady_clock::now();
     auto task = std::async(std::launch::async, [&]() {
-        return writer.WriteToLayer(
-            std::move(cloud), kSourceFormat, &generated, &error);
+        return writer.WriteToLayer(std::move(cloud), kSourceFormat, &generated,
+                                   &error);
     });
     if (!task.get()) {
-        TF_RUNTIME_ERROR(
-            "gaussian-spz: failed to author USD for '%s': %s",
-            resolvedPath.c_str(), error.c_str());
+        TF_RUNTIME_ERROR("gaussian-spz: failed to author USD for '%s': %s",
+                         resolvedPath.c_str(), error.c_str());
         return false;
     }
     if (statsOut) {
-        stats.authorSeconds = std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - authorStart).count();
-        TF_DEBUG(GSPZ_IMPORT_STATS).Msg("gaussian-spz: %s\n",
-            openstrata::gs::FormatImportStats(stats).c_str());
+        stats.authorSeconds =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                          authorStart)
+                .count();
+        TF_DEBUG(GSPZ_IMPORT_STATS)
+            .Msg("gaussian-spz: %s\n",
+                 openstrata::gs::FormatImportStats(stats).c_str());
     }
 
     layer->TransferContent(generated);
     return true;
 }
 
-bool
-GaussianSpzFileFormat::WriteToFile(
-    const SdfLayer& layer,
-    const std::string& filePath,
-    const std::string& comment,
-    const FileFormatArguments& args) const
+bool GaussianSpzFileFormat::WriteToFile(const SdfLayer& layer,
+                                        const std::string& filePath,
+                                        const std::string& comment,
+                                        const FileFormatArguments& args) const
 {
     (void)layer;
     (void)filePath;
     (void)comment;
     (void)args;
     TF_RUNTIME_ERROR("%s",
-        openstrata::gs::spz::diag::Format(
-            openstrata::gs::spz::diag::kWriteUnsupported,
-            "gaussian-spz is read-only; USD to SPZ writing is "
-            "unsupported").c_str());
+                     openstrata::gs::spz::diag::Format(
+                         openstrata::gs::spz::diag::kWriteUnsupported,
+                         "gaussian-spz is read-only; USD to SPZ writing is "
+                         "unsupported")
+                         .c_str());
     return false;
 }
 
-bool
-GaussianSpzFileFormat::WriteToString(
-    const SdfLayer& layer,
-    std::string* str,
-    const std::string& comment) const
+bool GaussianSpzFileFormat::WriteToString(const SdfLayer& layer,
+                                          std::string* str,
+                                          const std::string& comment) const
 {
     SdfFileFormatConstPtr usda = SdfFileFormat::FindByExtension("usda");
     if (usda) {
