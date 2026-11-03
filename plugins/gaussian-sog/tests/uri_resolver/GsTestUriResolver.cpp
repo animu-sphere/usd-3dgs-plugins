@@ -109,12 +109,15 @@ std::string StoreFile(const std::string& identifier)
 // null and GetFileUnsafe() has no FILE*, as for a resolver that downloads or
 // decrypts its assets.
 class GsTestStreamAsset : public ArAsset {
-public:
+  public:
     GsTestStreamAsset(std::string identifier, std::vector<char> bytes)
         : _identifier(std::move(identifier)), _bytes(std::move(bytes))
     {}
 
-    size_t GetSize() const override { return _bytes.size(); }
+    size_t GetSize() const override
+    {
+        return _bytes.size();
+    }
 
     std::shared_ptr<const char> GetBuffer() const override
     {
@@ -138,7 +141,7 @@ public:
         return std::pair<FILE*, size_t>(nullptr, 0);
     }
 
-private:
+  private:
     std::string _identifier;
     std::vector<char> _bytes;
 };
@@ -146,11 +149,11 @@ private:
 } // namespace
 
 class GsTestUriResolver : public ArResolver {
-public:
+  public:
     GsTestUriResolver() = default;
     ~GsTestUriResolver() override = default;
 
-protected:
+  protected:
     // An identifier with the scheme is absolute: it is normalized and the
     // anchor is ignored. Anything else reaches this resolver only because its
     // anchor is a `gstest:` identifier (Ar dispatches a scheme-less path to
@@ -184,10 +187,9 @@ protected:
                    std::string();
     }
 
-    std::string
-    _CreateIdentifierForNewAsset(const std::string& assetPath,
-                                 const ArResolvedPath& anchorAssetPath)
-        const override
+    std::string _CreateIdentifierForNewAsset(
+        const std::string& assetPath,
+        const ArResolvedPath& anchorAssetPath) const override
     {
         return _CreateIdentifier(assetPath, anchorAssetPath);
     }
@@ -196,8 +198,7 @@ protected:
     {
         std::string normalized;
         if (!HasScheme(assetPath) ||
-            !NormalizeStorePath(assetPath.substr(kSchemeLength),
-                                &normalized)) {
+            !NormalizeStorePath(assetPath.substr(kSchemeLength), &normalized)) {
             return ArResolvedPath();
         }
         const std::string identifier = kScheme + normalized;
