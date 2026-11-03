@@ -79,7 +79,14 @@ else()
             "Could not locate OpenUSD CMake targets or PXR_LIBRARIES for gaussianUsd.")
     endif()
 endif()
-target_include_directories(gaussianUsd PUBLIC ${PXR_INCLUDE_DIRS})
+# Build-tree only. An installed consumer gets OpenUSD's headers from the pxr
+# targets linked above and from its own find_package(pxr), so the export must
+# not freeze the build machine's runtime path. CMake also refuses to export it
+# when the runtime lives under the source tree, as in CI, where OST_HOME is
+# the checkout's .ost-ci-home and the composed root build installs this
+# target ("prefixed in the source directory").
+target_include_directories(gaussianUsd PUBLIC
+    "$<BUILD_INTERFACE:${PXR_INCLUDE_DIRS}>")
 target_link_libraries(gaussianUsd PUBLIC openstrata::gaussianCore)
 
 # /Brepro: MSVC stamps wall-clock times into object files and archive-member
