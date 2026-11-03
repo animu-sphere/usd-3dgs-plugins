@@ -2,6 +2,7 @@
 #include "io/SpzReader.h"
 
 #include "io/GaussianSpzDiagnostics.h"
+#include "openstrata/gs/GaussianFileIO.h"
 #include "openstrata/gs/GaussianImportLimits.h"
 #include "openstrata/gs/GaussianSizeMath.h"
 
@@ -75,7 +76,8 @@ bool LoadFile(const std::string& path, std::size_t limit,
               std::vector<unsigned char>* out, std::uint64_t* fileSize,
               std::string* error)
 {
-    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    std::ifstream in =
+        openstrata::gs::OpenInputFile(path, std::ios::binary | std::ios::ate);
     if (!in) {
         SetError(error, diag::kUnreadableFile,
                  "The file could not be opened for reading: " + path);

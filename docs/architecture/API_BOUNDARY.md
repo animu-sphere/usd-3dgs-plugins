@@ -64,8 +64,10 @@ Contributor API. USD-independent by contract
 | `GaussianSizeMath.h` | Contributor | Overflow-checked size arithmetic and `TryResize` for the contract's allocation rule. |
 | `GaussianImportStats.h` | Contributor | The shared per-import statistics record and formatter. |
 | `GaussianDiagnostics.h` | Contributor | `FormatDiagnostic` — the one code/message join, so bracketed spelling cannot drift between bundles. |
+| `GaussianFileIO.h` | Contributor | `PathFromUtf8`, `OpenInputFile` — the one way a reader opens a UTF-8 source path, so no bundle reintroduces a narrow-string open that Windows reads in the ANSI code page. |
 | `testing/CloudContract.h` | Contributor (test-only) | The runtime-independent contract checker every decoder's tests run. |
 | `testing/DecoderTestKit.h` | Contributor (test-only) | Canonical models, `CompareClouds`, invalid cases — a decoder tested without a USD stage. |
+| `testing/Utf8TestPaths.h` | Contributor (test-only) | A fixture directory whose name no Windows ANSI code page can spell, for non-ASCII path tests. |
 
 The `testing/` subdirectory is a naming convention, not a separate install:
 those headers are header-only and used only from test executables. They are

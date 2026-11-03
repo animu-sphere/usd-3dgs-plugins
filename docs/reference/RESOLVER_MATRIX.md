@@ -43,7 +43,7 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 | Reference by absolute path written with `/` | opens on every platform | ✅ | `case_anchored_references` |
 | Search-path identifier through `ArDefaultResolverContext`, opened directly or by reference | opens | ✅ | `case_search_path` |
 | Windows: `\` and `/` spellings of one absolute path | both open | ⚠️ | `case_windows_spellings` (runs on Windows only; POSIX has one spelling) |
-| Non-ASCII characters in the path | POSIX: expected to open. Windows: the primary read uses `std::ifstream` on a narrow string, which Windows interprets in the ANSI code page, so a UTF-8 path outside that code page fails. PLY and SPZ read the same way. | ⛔ | not tested |
+| Non-ASCII characters in the path | opens. Every reader opens its UTF-8 path through `openstrata::gs::OpenInputFile` (`GaussianFileIO.h`), which on Windows opens the UTF-16 name instead of reinterpreting the bytes in the ANSI code page. PLY and SPZ share the helper. | ⚠️ | reader `TestNonAsciiPath` (both layouts and the directory loader), `gaussianCore_file_io`, and the PLY and SPZ decoder `TestNonAsciiPath`; observed on Linux only, the Windows cells run the same tests |
 | Package-relative path (`asset.usdz[meta.json]`, or a `.sog` inside a `.usdz`) | not supported: the primary asset is read from the filesystem, not through `ArAsset` | ⛔ | not tested |
 | URI-style identifier served by a custom resolver | not supported, for the same reason | ⛔ | not tested |
 
@@ -83,7 +83,6 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
   resolver-independent seam (`TestResolverSeam`,
   `TestInjectedCompanionLoader`). It needs no USD.
 
-Next steps for the ⛔ and ⬜ rows: open the primary asset through `ArAsset`
-(this enables package-relative and URI-style identifiers), open files from
-UTF-8 paths on Windows in every bundle, and add a minimal test resolver
-plugin.
+Next steps for the ⛔, ⚠️, and ⬜ rows: open the primary asset through
+`ArAsset` (this enables package-relative and URI-style identifiers), observe
+the non-ASCII tests on a Windows cell, and add a minimal test resolver plugin.
