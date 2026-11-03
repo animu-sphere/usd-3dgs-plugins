@@ -1,6 +1,6 @@
 # Current
 
-Updated: 2026-09-16
+Updated: 2026-11-03
 Scope: v0.6.0 preparation
 
 ## Current position
@@ -170,8 +170,12 @@ real environments and package paths were actually verified.
 
 ## Immediate actions
 
-- 🚧 Broaden hostile-input fixture coverage beyond the implemented shared count
-  and reader resource budgets.
+- 🚧 Broaden hostile-input fixture coverage. Every declared-size budget now
+  has a fixture (ZIP entry count, entry and expanded size, duplicate entries
+  and plane names, plane dimensions and decoded size, SPZ extension records);
+  see the [coverage table](../reference/IMPORT_LIMITS.md#test-coverage).
+  Remaining: the real-file-size bounds (1 GiB SOG archive and SPZ source,
+  512 MiB resolver-supplied SOG companion).
 - ⬜ Create the asset-resolver test matrix.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.

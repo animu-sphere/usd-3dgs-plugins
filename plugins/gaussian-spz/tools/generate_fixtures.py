@@ -159,6 +159,11 @@ def invalid_fixtures() -> None:
     # malformed container or a truncated payload.
     write("shared-limit-v2.spz", gzip_member(
         spz_header(2, 8_000_001, 0)))
+    # Extension records one byte past the 64 MiB budget. Zeros compress
+    # about 1000:1, so the member stays small on disk; the reader must stop
+    # inflating at the budget rather than buffer the whole tail.
+    write("oversized-extensions-v2.spz", gzip_member(
+        spz_stream(2, 1, 0, flags=0x02) + bytes(64 * 1024 * 1024 + 1)))
     write("sh-degree-5-v2.spz", gzip_member(
         spz_header(2, 1, 5) + payload(19)))
 

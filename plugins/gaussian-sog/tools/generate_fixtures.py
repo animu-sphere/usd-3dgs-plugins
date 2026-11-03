@@ -37,6 +37,7 @@ import json
 import math
 import pathlib
 import struct
+import warnings
 import zipfile
 
 ROOT = pathlib.Path(__file__).parents[1] / "tests" / "fixtures"
@@ -174,6 +175,20 @@ def webp_lossy_header(width: int, height: int) -> bytes:
     if len(frame) % 2:
         chunk += b"\x00"
     return b"RIFF" + struct.pack("<I", 4 + len(chunk)) + b"WEBP" + chunk
+
+
+def webp_declared_size(image: bytes, width: int, height: int) -> bytes:
+    """`image` (a VP8L file from webp_lossless) with its header rewritten to
+    declare `width` x `height` pixels. WebPGetFeatures reports the declared
+    size from the header alone, so the reader's dimension and decoded-size
+    limits must reject it before any pixel buffer exists; the bitstream that
+    follows is never decoded."""
+    assert 1 <= width <= 16384 and 1 <= height <= 16384
+    assert image[12:16] == b"VP8L" and image[20] == 0x2F
+    # Bits after the signature byte: width-1 (14), height-1 (14), alpha (1),
+    # version (3) -- exactly one little-endian 32-bit word.
+    word = (width - 1) | ((height - 1) << 14) | (1 << 28)
+    return image[:21] + struct.pack("<I", word) + image[25:]
 
 
 # --- SOG v2 encoding ---------------------------------------------------------
@@ -349,27 +364,74 @@ def write_bundle(
     compress: bool = False,
     extra: dict[str, bytes] | None = None,
     root: pathlib.Path | None = None,
+    duplicates: dict[str, bytes] | None = None,
+    declared_sizes: dict[str, int] | None = None,
 ) -> None:
     """A bundled `.sog`: `meta.json` plus its planes in one ZIP archive.
     `meta=None` omits the entry entirely, which is a ZIP but not a SOG.
     `root` overrides the destination, which lets the cross-format equivalence
-    generator reuse this encoder for its own fixture directory."""
-    entries: dict[str, bytes] = {}
+    generator reuse this encoder for its own fixture directory.
+
+    The hostile-input fixtures use the last two arguments: `duplicates`
+    appends entries whose names repeat earlier ones, and `declared_sizes`
+    writes the named entries DEFLATE-compressed and then rewrites the
+    uncompressed size their local and central headers declare -- a small
+    archive that claims a decompression bomb's worth of output."""
+    entries: list[tuple[str, bytes]] = []
     if meta is not None:
-        entries["meta.json"] = meta if isinstance(meta, bytes) else meta_bytes(meta)
-    entries.update(planes)
+        entries.append(("meta.json",
+                        meta if isinstance(meta, bytes) else meta_bytes(meta)))
+    entries.extend(planes.items())
     if extra:
-        entries.update(extra)
+        entries.extend(extra.items())
+    if duplicates:
+        entries.extend(duplicates.items())
+    declared_sizes = declared_sizes or {}
     path = (root or ROOT) / name
     path.parent.mkdir(parents=True, exist_ok=True)
     method = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
-    with zipfile.ZipFile(path, "w") as archive:
-        for entry, payload in entries.items():
-            info = zipfile.ZipInfo(entry, date_time=(1980, 1, 1, 0, 0, 0))
-            info.compress_type = method
-            info.external_attr = 0o644 << 16
-            archive.writestr(info, payload)
+    with warnings.catch_warnings():
+        # zipfile warns on a repeated name; the duplicate is the point.
+        warnings.simplefilter("ignore", UserWarning)
+        with zipfile.ZipFile(path, "w") as archive:
+            for entry, payload in entries:
+                info = zipfile.ZipInfo(entry, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = (zipfile.ZIP_DEFLATED
+                                      if entry in declared_sizes else method)
+                info.external_attr = 0o644 << 16
+                # zipfile stamps the host OS into each header; pin it so the
+                # bytes are identical whichever platform regenerates them.
+                info.create_system = 0
+                archive.writestr(info, payload)
+    if declared_sizes:
+        _rewrite_declared_sizes(path, declared_sizes)
     print(f"  {name}")
+
+
+def _rewrite_declared_sizes(path: pathlib.Path, sizes: dict[str, int]) -> None:
+    """Patch the 32-bit uncompressed-size field of each named entry in both
+    its local header (offset 22) and its central-directory header (offset
+    24). The CRC is left alone: the reader must refuse the declared size
+    before it extracts, let alone verifies, a single byte."""
+    data = bytearray(path.read_bytes())
+    with zipfile.ZipFile(path) as archive:
+        for info in archive.infolist():
+            if info.filename in sizes:
+                assert data[info.header_offset:info.header_offset + 4] == b"PK\x03\x04"
+                struct.pack_into("<I", data, info.header_offset + 22,
+                                 sizes[info.filename])
+    patched = set()
+    offset = data.find(b"PK\x01\x02")
+    while offset != -1 and data[offset:offset + 4] == b"PK\x01\x02":
+        name_length, extra_length, comment_length = struct.unpack_from(
+            "<HHH", data, offset + 28)
+        entry = data[offset + 46:offset + 46 + name_length].decode("utf-8")
+        if entry in sizes:
+            struct.pack_into("<I", data, offset + 24, sizes[entry])
+            patched.add(entry)
+        offset += 46 + name_length + extra_length + comment_length
+    assert patched == set(sizes), (patched, sizes)
+    path.write_bytes(bytes(data))
 
 
 def write_unbundled(directory: str, meta: dict | bytes, planes: dict[str, bytes]) -> None:
@@ -544,6 +606,46 @@ def main() -> None:
     bad_quats = dict(one_planes)
     bad_quats["quats.webp"] = webp_lossless(1, 1, [(128, 128, 128, 100)])
     write_bundle("bad-quat-tag.sog", one_meta, bad_quats)
+
+    # --- hostile input: one fixture per IMPORT_LIMITS.md container budget.
+    # Every one fails with GSSOG-E016 (or the malformed-archive/-metadata
+    # code where the defect is structural) before a plane buffer is sized
+    # from the hostile value.
+    MIB = 1024 * 1024
+
+    # One entry past the 64-entry ZIP budget.
+    padding = {f"pad-{index:02d}.bin": b"" for index in range(65 - 1 - len(one_planes))}
+    write_bundle("too-many-entries.sog", one_meta, one_planes, extra=padding)
+
+    # A single entry declaring more than the 512 MiB per-entry bound.
+    write_bundle("oversized-entry.sog", one_meta, one_planes,
+                 extra={"padding.bin": bytes(64)},
+                 declared_sizes={"padding.bin": 600 * MIB})
+
+    # Five entries, each under the per-entry bound, that together declare
+    # more than the 2 GiB expanded-size budget.
+    bombs = {f"bomb-{index}.bin": bytes(64) for index in range(5)}
+    write_bundle("oversized-expansion.sog", one_meta, one_planes, extra=bombs,
+                 declared_sizes={entry: 500 * MIB for entry in bombs})
+
+    # The same entry name twice: lookup by name would be ambiguous.
+    write_bundle("duplicate-entry.sog", one_meta, one_planes,
+                 duplicates={"scales.webp": one_planes["scales.webp"]})
+
+    # Two properties naming one plane file.
+    shared_plane = json.loads(json.dumps(one_meta))
+    shared_plane["scales"]["files"] = list(shared_plane["sh0"]["files"])
+    write_bundle("duplicate-plane-name.sog", shared_plane, one_planes)
+
+    # A plane whose header declares one pixel past the dimension limit, and
+    # one within it whose decoded RGBA size (16383^2 * 4 bytes, ~1 GiB) is
+    # past the 512 MiB decoded-plane bound.
+    wide = dict(one_planes)
+    wide["scales.webp"] = webp_declared_size(one_planes["scales.webp"], 16384, 1)
+    write_bundle("oversized-plane-dimensions.sog", one_meta, wide)
+    huge = dict(one_planes)
+    huge["scales.webp"] = webp_declared_size(one_planes["scales.webp"], 16383, 16383)
+    write_bundle("oversized-plane-bytes.sog", one_meta, huge)
 
     # Routing: valid JSON that is not a SOG meta.json must not be claimed.
     (ROOT / "not-sog.json").write_bytes(
