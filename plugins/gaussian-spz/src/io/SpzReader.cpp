@@ -611,6 +611,13 @@ bool SpzReader::ReadHeader(const std::string& path, SpzHeader* header,
                       &fileSize, error)) {
             return false;
         }
+        if (fileSize > kMaxSpzFileBytes) {
+            SetError(error, diag::kImportLimitExceeded,
+                     "The SPZ file grew beyond the " +
+                         std::to_string(kMaxSpzFileBytes) +
+                         "-byte input limit while it was being read.");
+            return false;
+        }
         result = ReadHeaderFromBuffer(data, true, fileSize, header, error);
     }
     return result == GzipParse::Ok;
@@ -627,8 +634,10 @@ bool SpzReader::Read(const std::string& path, SpzPackedDocument* document,
 
     std::vector<unsigned char> file;
     std::uint64_t fileSize = 0;
-    if (!LoadFile(path, static_cast<std::size_t>(kMaxSpzFileBytes), &file,
-                  &fileSize, error)) {
+    // Probe the size before the bulk read: loading up to the bound first and
+    // checking afterwards would make an oversized file cost a full
+    // kMaxSpzFileBytes allocation and read just to be refused.
+    if (!LoadFile(path, 0, &file, &fileSize, error)) {
         return false;
     }
     if (fileSize > kMaxSpzFileBytes) {
@@ -636,6 +645,19 @@ bool SpzReader::Read(const std::string& path, SpzPackedDocument* document,
                  "The SPZ file is " + std::to_string(fileSize) +
                      " bytes, above the " + std::to_string(kMaxSpzFileBytes) +
                      "-byte input limit.");
+        return false;
+    }
+    if (!LoadFile(path, static_cast<std::size_t>(kMaxSpzFileBytes), &file,
+                  &fileSize, error)) {
+        return false;
+    }
+    // The file may grow between the two opens; only the bounded prefix was
+    // read, so refuse rather than parse a truncated view of it.
+    if (fileSize > kMaxSpzFileBytes) {
+        SetError(error, diag::kImportLimitExceeded,
+                 "The SPZ file grew beyond the " +
+                     std::to_string(kMaxSpzFileBytes) +
+                     "-byte input limit while it was being read.");
         return false;
     }
     switch (DetectSignature(file)) {
