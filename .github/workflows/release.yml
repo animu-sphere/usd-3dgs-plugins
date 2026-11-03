@@ -211,17 +211,20 @@ jobs:
           printf '{"schema":1,"runtime_artifact":"%s","source":"%s"}\n' "${{ matrix.runtime_artifact }}" "${{ matrix.runtime_remote != '' && 'remote-pull' || 'local-registry' }}" > .ost-ci/runtime-source.json
           ost artifact verify ${{ matrix.runtime_artifact }} --minimum-trust ${{ matrix.minimum_trust }} ${{ matrix.evidence_flags }}
           ost runtime pull ${{ matrix.platform }} --profile ${{ matrix.profile }} --from-artifact ${{ matrix.runtime_artifact }} --force
+      # Host Python comes before runtime validation, as in the generated
+      # source workflow: ost 0.23.x validation runs a C++ consumer whose USD
+      # DLLs need the host interpreter's shared library.
+      - name: Set up host Python for schema tooling
+        if: ${{ matrix.hosted && matrix.host_python != '' }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.host_python }}
       - name: Validate the materialized runtime (runnable tools)
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .ost-ci
           ost runtime validate ${{ matrix.platform }} --profile ${{ matrix.profile }} --json | tee .ost-ci/runtime-validate.json
-      - name: Set up host Python for schema tooling
-        if: ${{ matrix.hosted && matrix.host_python != '' }}
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-        with:
-          python-version: ${{ matrix.host_python }}
       - name: Build the plugin from source
         shell: bash
         run: |
