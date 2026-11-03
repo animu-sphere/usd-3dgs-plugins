@@ -253,6 +253,10 @@ def cmd_matrix(args: argparse.Namespace) -> int:
         # source cells describe work a tag can reproduce from the checkout.
         if cell.get("plugin_artifact"):
             continue
+        # A workspace cell runs the repository's own CTest suites on the PR
+        # lane. It names no bundle and builds nothing a release ships.
+        if cell.get("kind") == "workspace":
+            continue
         # `publish: never` marks a cell whose bundle must not ship — the
         # gaussian-sog skeleton runs the PR lane but is excluded here, so a
         # bundle joins the release by removing the marker, not by editing

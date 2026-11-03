@@ -54,7 +54,16 @@ Gaussian splats.
 
 ## CTest coverage
 
-The repository carries CTest coverage beyond OST's verification pyramid:
+The repository carries CTest coverage beyond OST's verification pyramid. The
+`workspace-ctest-pr-*` CI cells run all of it on every hosted platform
+through the composed root build:
+
+```sh
+ost build --target cy2026 --profile usd
+ost test --target cy2026 --profile usd
+```
+
+Per-bundle build trees run their own suites:
 
 ```sh
 ctest --test-dir libs/gaussian-core/build/cy2026-windows-x86_64-py313-usd --output-on-failure
