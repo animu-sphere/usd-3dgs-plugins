@@ -1,0 +1,411 @@
+{
+  "schema": "usd-3dgs-plugins.benchmark-corpus/v1",
+  "description": "The large-asset benchmark corpus. Documented in docs/reference/BENCHMARK_CORPUS.md; generated, verified, and measured by scripts/benchmark_corpus.py.",
+  "targets": {
+    "status": "provisional",
+    "metadata_only_seconds_max": 0.25,
+    "can_read_seconds_max": 0.25,
+    "peak_resident_gib": {
+      "base": 0.35,
+      "per_million_gaussians": 0.6
+    }
+  },
+  "scale_source": {
+    "path": "plugins/gaussian-ply/tests/corpus/yashica-t4/yashica-t4-top8192.ply",
+    "sha256": "42537f23b36c093e96b4378845f0d86f77d755b7a611434aa95edbb4fcf53cde",
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "license": "CC0-1.0"
+  },
+  "assets": [
+    {
+      "id": "fixture-ply-three",
+      "tier": "fixture",
+      "format": "ply",
+      "gaussian_count": 3,
+      "sh_degree": 1,
+      "license": "Apache-2.0 (generated fixture)",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-ply/tests/fixtures/three-gaussian-binary-le.ply",
+        "sha256": "5405ea82a4bc7ea8e4f432c2797951bc1cdfe7b480667da042e6ffa694c5b9d8"
+      }
+    },
+    {
+      "id": "fixture-spz-degree3",
+      "tier": "fixture",
+      "format": "spz",
+      "gaussian_count": 2,
+      "sh_degree": 3,
+      "license": "Apache-2.0 (generated fixture)",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-spz/tests/fixtures/decode-degree3-v2.spz",
+        "sha256": "9b2cdbb9a4df55687991a234f8ecb64e8df2ea785e621b7ba5758f52c59d1373"
+      }
+    },
+    {
+      "id": "fixture-sog-kit-multi",
+      "tier": "fixture",
+      "format": "sog",
+      "gaussian_count": 3,
+      "sh_degree": 3,
+      "license": "Apache-2.0 (generated fixture)",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-sog/tests/fixtures/kit-multi-degree3.sog",
+        "sha256": "a5a138ebbab6d0c40810124b60a291ec64d705b41c4eda7668f47a61763690f5"
+      }
+    },
+    {
+      "id": "corpus-yashica-t4-ply",
+      "tier": "corpus",
+      "format": "ply",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-ply/tests/corpus/yashica-t4/yashica-t4-top8192.ply",
+        "sha256": "42537f23b36c093e96b4378845f0d86f77d755b7a611434aa95edbb4fcf53cde"
+      }
+    },
+    {
+      "id": "corpus-leica-sofort-ply",
+      "tier": "corpus",
+      "format": "ply",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-ply/tests/corpus/leica-sofort/leica-sofort-top8192.ply",
+        "sha256": "853cd6d8f1c59c471f5a53333d752282daea42ff4f70b89fb1b7d9d7f968d847"
+      }
+    },
+    {
+      "id": "corpus-yashica-t4-spz",
+      "tier": "corpus",
+      "format": "spz",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-spz/tests/corpus/yashica-t4/yashica-t4-top8192.spz",
+        "sha256": "91b235c9657316113cb9feff49e246927eb7a772132ea98461c445eef2343a09"
+      }
+    },
+    {
+      "id": "corpus-leica-sofort-spz",
+      "tier": "corpus",
+      "format": "spz",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-spz/tests/corpus/leica-sofort/leica-sofort-top8192.spz",
+        "sha256": "e613e3956fc1a42068615e5c9122984670cbb06bd62885090eedaf99adc556ae"
+      }
+    },
+    {
+      "id": "corpus-yashica-t4-sog",
+      "tier": "corpus",
+      "format": "sog",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-sog/tests/corpus/yashica-t4/yashica-t4-top8192.sog",
+        "sha256": "0e6f606a60c76f7d78efdcbe8a400a0a6ba7d31bc172c7a39dbc3623ef9ff104"
+      }
+    },
+    {
+      "id": "corpus-leica-sofort-sog",
+      "tier": "corpus",
+      "format": "sog",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-sog/tests/corpus/leica-sofort/leica-sofort-top8192.sog",
+        "sha256": "58b9d1db0e15af28683e064d47cb76ddffe0feca154bd4d38abf889d18687384"
+      }
+    },
+    {
+      "id": "scale-1m-ply",
+      "tier": "scale",
+      "format": "ply",
+      "gaussian_count": 1048576,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "ci": true,
+      "source": {
+        "kind": "generated",
+        "tiles": 128,
+        "file": "scale-1m.ply",
+        "sha256": "002da71acbf527594a0aaa82211175b00a259c88e9758e709bfefd3e4d130e00",
+        "bytes": 247465619
+      }
+    },
+    {
+      "id": "scale-1m-spz",
+      "tier": "scale",
+      "format": "spz",
+      "gaussian_count": 1048576,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "ci": true,
+      "source": {
+        "kind": "generated",
+        "tiles": 128,
+        "file": "scale-1m.spz",
+        "payload_sha256": "468841df2921a5259ecd0dbf334fdf7066d2c7ace7a00f574d815e59b8f272e4"
+      }
+    },
+    {
+      "id": "scale-1m-sog",
+      "tier": "scale",
+      "format": "sog",
+      "gaussian_count": 1048576,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "ci": true,
+      "source": {
+        "kind": "generated",
+        "tiles": 128,
+        "file": "scale-1m.sog",
+        "sha256": "7ee60c97c188146f212ba08b6b8080328b3bb432e7e63671a18c0a2cc795216d",
+        "bytes": 25680307
+      }
+    },
+    {
+      "id": "scale-4m-ply",
+      "tier": "scale",
+      "format": "ply",
+      "gaussian_count": 4194304,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 512,
+        "file": "scale-4m.ply",
+        "sha256": "57db50627346b857790dfd3e0c91e38cc1327df4034d92ed436949aadc1cf60e",
+        "bytes": 989857427
+      }
+    },
+    {
+      "id": "scale-4m-spz",
+      "tier": "scale",
+      "format": "spz",
+      "gaussian_count": 4194304,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 512,
+        "file": "scale-4m.spz",
+        "payload_sha256": "702c3f5d0ec4322d13bd42ad86ecb63e6ff1b536118387be9c8a2d0ca3c90829"
+      }
+    },
+    {
+      "id": "scale-4m-sog",
+      "tier": "scale",
+      "format": "sog",
+      "gaussian_count": 4194304,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 512,
+        "file": "scale-4m.sog",
+        "sha256": "d09839571644c1b5cbe1ffdc6eb7376d74a84c4b14934121c8268f33c8b1472f",
+        "bytes": 101177777
+      }
+    },
+    {
+      "id": "scale-ceiling-ply",
+      "tier": "scale",
+      "format": "ply",
+      "gaussian_count": 7995392,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 976,
+        "file": "scale-ceiling.ply",
+        "sha256": "e5bd388dda0dfa23409d6dfa91a294b31d9eea64fade2da6cdab624396ecaaa3",
+        "bytes": 1886914195
+      }
+    },
+    {
+      "id": "scale-ceiling-spz",
+      "tier": "scale",
+      "format": "spz",
+      "gaussian_count": 7995392,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 976,
+        "file": "scale-ceiling.spz",
+        "payload_sha256": "297b518292260d8b4d5b7411f0a7f7e3c5d6f01ed8330f4e27f68b0b733e2e50"
+      }
+    },
+    {
+      "id": "scale-ceiling-sog",
+      "tier": "scale",
+      "format": "sog",
+      "gaussian_count": 7995392,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 976,
+        "file": "scale-ceiling.sog",
+        "sha256": "5578b7f17fc79b87d443ffd81afd9fec2675fc82820d87e00ec753d8f1582e0c",
+        "bytes": 192456498
+      }
+    },
+    {
+      "id": "real-yashica-t4-ply",
+      "tier": "real",
+      "format": "ply",
+      "gaussian_count": 59559,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "source": {
+        "kind": "local",
+        "file": "camera_01_30000.ply",
+        "sha256": "12d644e1a13c54bed4692a0444229653fd69135024946d74473173332e7f8543",
+        "bytes": 14057474,
+        "producer": "Brush v0.3.0",
+        "availability": "full source export of the committed yashica-t4 corpus subset; retained by the repository author, not yet published"
+      }
+    },
+    {
+      "id": "real-leica-sofort-ply",
+      "tier": "real",
+      "format": "ply",
+      "gaussian_count": 145912,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "source": {
+        "kind": "local",
+        "file": "camera_02_30000.ply",
+        "sha256": "dc5651d86d820aa30c0dadccda70f7bce9d7e80921e87a01e09909da692b0c98",
+        "bytes": 34436783,
+        "producer": "Brush v0.3.0",
+        "availability": "full source export of the committed leica-sofort corpus subset; retained by the repository author, not yet published"
+      }
+    },
+    {
+      "id": "real-yashica-t4-spz",
+      "tier": "real",
+      "format": "spz",
+      "gaussian_count": 55662,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "source": {
+        "kind": "local",
+        "file": "yashica_t4.spz",
+        "sha256": "46c8258dc96583dbe628fb5d24058b1828bb105c22ed456298b8685981facbff",
+        "bytes": 1185360,
+        "producer": "Scaniverse",
+        "availability": "full source export of the committed yashica-t4 SPZ subset; retained by the repository author, not yet published"
+      }
+    },
+    {
+      "id": "real-leica-sofort-spz",
+      "tier": "real",
+      "format": "spz",
+      "gaussian_count": 171397,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "source": {
+        "kind": "local",
+        "file": "leica_sofort.spz",
+        "sha256": "89894d8756ff4dbbf5d5a0050b71181310bd56cb9f831b4732b721a0b253be02",
+        "bytes": 3991056,
+        "producer": "Scaniverse",
+        "availability": "full source export of the committed leica-sofort SPZ subset; retained by the repository author, not yet published"
+      }
+    },
+    {
+      "id": "real-cactus-142k-ply",
+      "tier": "real",
+      "format": "ply",
+      "gaussian_count": 139410,
+      "sh_degree": 3,
+      "license": "unrecorded (personal test data; not redistributable)",
+      "source": {
+        "kind": "local",
+        "file": "cactus_splat3_30kSteps_142k_splats.ply",
+        "sha256": null,
+        "producer": "Jawset Postshot",
+        "availability": "personal test data of the repository author; local measurement only"
+      }
+    },
+    {
+      "id": "real-cactus-2m-ply",
+      "tier": "real",
+      "format": "ply",
+      "gaussian_count": 1935120,
+      "sh_degree": 3,
+      "license": "unrecorded (personal test data; not redistributable)",
+      "source": {
+        "kind": "local",
+        "file": "cactus_splat3_30kSteps_2M_splats.ply",
+        "sha256": null,
+        "producer": "Jawset Postshot",
+        "availability": "personal test data of the repository author; local measurement only"
+      }
+    },
+    {
+      "id": "real-garden-ply",
+      "tier": "real",
+      "format": "ply",
+      "gaussian_count": 5834784,
+      "sh_degree": 3,
+      "license": "Gaussian-Splatting License (Inria / MPII): non-commercial research and evaluation only; never committed, cached, or redistributed",
+      "source": {
+        "kind": "download",
+        "file": "garden-point_cloud.ply",
+        "url": "https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip",
+        "member": "garden/point_cloud/iteration_30000/point_cloud.ply",
+        "sha256": null,
+        "producer": "Graphdeco reference trainer, Mip-NeRF 360 garden",
+        "availability": "download on demand; extract the member and save it under the file name above"
+      }
+    },
+    {
+      "id": "real-bicycle-ply",
+      "tier": "real",
+      "format": "ply",
+      "gaussian_count": null,
+      "sh_degree": 3,
+      "license": "Gaussian-Splatting License (Inria / MPII): non-commercial research and evaluation only; never committed, cached, or redistributed",
+      "source": {
+        "kind": "download",
+        "file": "bicycle-point_cloud.ply",
+        "url": "https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip",
+        "member": "bicycle/point_cloud/iteration_30000/point_cloud.ply",
+        "sha256": null,
+        "producer": "Graphdeco reference trainer, Mip-NeRF 360 bicycle",
+        "availability": "download on demand; not yet measured, so its Gaussian count is unrecorded"
+      }
+    }
+  ]
+}
