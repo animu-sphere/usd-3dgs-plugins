@@ -177,7 +177,7 @@ real environments and package paths were actually verified.
   [coverage table](../reference/IMPORT_LIMITS.md#test-coverage). That work
   found and fixed the SPZ full read loading up to 1 GiB before refusing an
   oversized file.
-- 🚧 Asset-resolver test matrix: the
+- ✅ Asset-resolver test matrix: the
   [matrix](../reference/RESOLVER_MATRIX.md) is defined and its
   `ArDefaultResolver` rows are automated. That work found and fixed a missing
   companion being replaced by a same-named file from the current directory or
@@ -192,8 +192,9 @@ real environments and package paths were actually verified.
   all three. A test-only `gstest:` URI resolver plugin now covers the last
   ⬜ rows: a URI-style primary identifier, companions served by a custom
   resolver, and assets served as a stream without `GetBuffer()`
-  (`gaussianSog_python_uri_resolver`). Remaining: observe it in the hosted
-  cells.
+  (`gaussianSog_python_uri_resolver`). Its first hosted run passed in all
+  three `workspace-ctest-pr-*` cells. Only the Windows-only separator row
+  stays ⚠️, by nature.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
