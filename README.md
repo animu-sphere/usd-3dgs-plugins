@@ -76,7 +76,8 @@ OpenUSD `hdParticleField` example delegate:
 
 Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
 [capability matrix](docs/reference/CAPABILITY_MATRIX.md) ·
-[performance baselines](docs/reference/PERFORMANCE_BASELINES.md).
+[performance baselines](docs/reference/PERFORMANCE_BASELINES.md) ·
+[benchmark corpus](docs/reference/BENCHMARK_CORPUS.md).
 
 ## Install a binary release
 

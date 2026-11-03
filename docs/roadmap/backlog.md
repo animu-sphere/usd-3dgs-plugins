@@ -72,7 +72,10 @@ allocation size remains unmeasured.
 - 🚧 Benchmark harness:
   [scripts/benchmark_import.py](../../scripts/benchmark_import.py)
   measures the §12.1 end-to-end set (CanRead, metadata-only, stage open,
-  flatten, peak resident) per asset; the finer file-read / semantic-decode /
+  flatten, peak resident) per asset, and
+  [scripts/benchmark_corpus.py](../../scripts/benchmark_corpus.py) runs it
+  over the declared [benchmark corpus](../reference/BENCHMARK_CORPUS.md)
+  against its resource targets; the finer file-read / semantic-decode /
   USD-authoring split remains v0.7.0 work.
 - ⬜ Investigate memory mapping only after the benchmark identifies I/O or copy
   cost as material.
