@@ -183,10 +183,14 @@ real environments and package paths were actually verified.
   companion being replaced by a same-named file from the current directory or
   search path. Every reader now opens UTF-8 paths through the shared
   `GaussianFileIO.h` helper, so non-ASCII paths no longer depend on the
-  Windows ANSI code page; the tests are observed on Linux and compile with
-  MSVC in CI, but hosted CI runs no CTest, so a Windows CTest run is still
-  owed. Remaining: package-relative and URI-style primary identifiers
-  (the primary is read from the filesystem) and a test resolver plugin.
+  Windows ANSI code page. The SOG primary asset is now read through
+  `ArAsset`, so a `meta.json` or `.sog` inside a `.usdz` opens, with
+  companions anchored inside the package rather than beside it. The
+  `workspace-ctest-pr-*` CI cells now run the CTest suites on Windows, macOS,
+  and Linux, which makes those suites, the Windows non-ASCII run included, a
+  hosted gate. Remaining: observe those runs and record them in the matrix,
+  and add a test resolver plugin for URI-style identifiers and
+  resolver-served companions.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 

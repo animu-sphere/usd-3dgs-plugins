@@ -164,53 +164,6 @@ bool RejectOversizedMetadata(std::uint64_t size, std::string* error)
                               "-byte bound for a SOG v2 document.");
 }
 
-// Reads a container whole, under the bound its own layout admits.
-//
-// The layout is decided from the 4-byte ZIP signature before the bulk read,
-// because the two bounds differ by orders of magnitude: a bundled archive is
-// as large as its planes require, while a `meta.json` above kMaxMetadataBytes
-// is refused outright. Probing first is what keeps a mis-named or hostile
-// multi-gigabyte `.json` from being loaded in full only to be rejected by the
-// parser afterwards. ParseMetaJson keeps its own check as the backstop: the
-// file may grow between the two opens.
-bool LoadContainer(const std::string& path, std::vector<unsigned char>* data,
-                   std::uint64_t* fileSize, bool* bundled, std::string* error)
-{
-    std::vector<unsigned char> prefix;
-    std::uint64_t probedSize = 0;
-    if (!LoadFile(path, sizeof kZipSignature, &prefix, &probedSize, error)) {
-        return false;
-    }
-    *bundled = HasZipSignature(prefix);
-    const std::uint64_t maxBytes =
-        *bundled ? kMaxZipArchiveBytes : kMaxMetadataBytes;
-    if (probedSize > maxBytes) {
-        if (*bundled) {
-            return Failure{error}(
-                diag::kImportLimitExceeded,
-                "The .sog archive is " + std::to_string(probedSize) +
-                    " bytes, above the " + std::to_string(maxBytes) +
-                    "-byte archive limit.");
-        }
-        return RejectOversizedMetadata(probedSize, error);
-    }
-    if (!LoadFile(path, static_cast<std::size_t>(maxBytes), data, fileSize,
-                  error)) {
-        return false;
-    }
-    if (*fileSize > maxBytes) {
-        if (*bundled) {
-            return Failure{error}(diag::kImportLimitExceeded,
-                                  "The .sog archive grew beyond the " +
-                                      std::to_string(maxBytes) +
-                                      "-byte archive limit while it was "
-                                      "being read.");
-        }
-        return RejectOversizedMetadata(*fileSize, error);
-    }
-    return true;
-}
-
 std::string DirectoryOf(const std::string& path)
 {
     const std::size_t slash = path.find_last_of("/\\");
@@ -915,13 +868,105 @@ SogReader::SogReader(SogCompanionLoader companionLoader)
     : _companionLoader(std::move(companionLoader))
 {}
 
+SogReader::SogReader(SogCompanionLoader companionLoader,
+                     SogPrimaryLoader primaryLoader)
+    : _companionLoader(std::move(companionLoader)),
+      _primaryLoader(std::move(primaryLoader))
+{}
+
+bool SogReader::LoadPrimary(const std::string& path, std::size_t limit,
+                            std::vector<unsigned char>* bytes,
+                            std::uint64_t* size, std::string* error) const
+{
+    if (!_primaryLoader) {
+        return LoadFile(path, limit, bytes, size, error);
+    }
+    bytes->clear();
+    *size = 0;
+    // The routing gates pass no error string; a loader always gets one, so it
+    // never has to test for null before reporting.
+    std::string loaderError;
+    if (!_primaryLoader(path, limit, bytes, size, &loaderError)) {
+        if (error) {
+            *error = loaderError.empty() ?
+                         diag::Format(diag::kUnreadableFile,
+                                      "The primary asset could not be read: " +
+                                          path) :
+                         loaderError;
+        }
+        return false;
+    }
+    // An injected loader is held to its contract: never more than `limit`
+    // bytes, and never more than the size it reported. Every bound below
+    // relies on both.
+    if (bytes->size() > limit || bytes->size() > *size) {
+        return Failure{error}(
+            diag::kInternalError,
+            "The primary-asset loader returned " +
+                std::to_string(bytes->size()) + " bytes for '" + path +
+                "', more than the " + std::to_string(limit) +
+                "-byte request or the " + std::to_string(*size) +
+                "-byte size it reported.");
+    }
+    return true;
+}
+
+// Reads a container whole, under the bound its own layout admits.
+//
+// The layout is decided from the 4-byte ZIP signature before the bulk read,
+// because the two bounds differ by orders of magnitude: a bundled archive is
+// as large as its planes require, while a `meta.json` above kMaxMetadataBytes
+// is refused outright. Probing first is what keeps a mis-named or hostile
+// multi-gigabyte `.json` from being loaded in full only to be rejected by the
+// parser afterwards. ParseMetaJson keeps its own check as the backstop: the
+// file may grow between the two opens.
+bool SogReader::LoadContainer(const std::string& path,
+                              std::vector<unsigned char>* data,
+                              std::uint64_t* fileSize, bool* bundled,
+                              std::string* error) const
+{
+    std::vector<unsigned char> prefix;
+    std::uint64_t probedSize = 0;
+    if (!LoadPrimary(path, sizeof kZipSignature, &prefix, &probedSize, error)) {
+        return false;
+    }
+    *bundled = HasZipSignature(prefix);
+    const std::uint64_t maxBytes =
+        *bundled ? kMaxZipArchiveBytes : kMaxMetadataBytes;
+    if (probedSize > maxBytes) {
+        if (*bundled) {
+            return Failure{error}(
+                diag::kImportLimitExceeded,
+                "The .sog archive is " + std::to_string(probedSize) +
+                    " bytes, above the " + std::to_string(maxBytes) +
+                    "-byte archive limit.");
+        }
+        return RejectOversizedMetadata(probedSize, error);
+    }
+    if (!LoadPrimary(path, static_cast<std::size_t>(maxBytes), data, fileSize,
+                     error)) {
+        return false;
+    }
+    if (*fileSize > maxBytes) {
+        if (*bundled) {
+            return Failure{error}(diag::kImportLimitExceeded,
+                                  "The .sog archive grew beyond the " +
+                                      std::to_string(maxBytes) +
+                                      "-byte archive limit while it was "
+                                      "being read.");
+        }
+        return RejectOversizedMetadata(*fileSize, error);
+    }
+    return true;
+}
+
 bool SogReader::CanReadBundled(const std::string& path) const noexcept
 {
     try {
         std::vector<unsigned char> prefix;
         std::uint64_t fileSize = 0;
-        if (!LoadFile(path, sizeof kZipSignature, &prefix, &fileSize,
-                      nullptr)) {
+        if (!LoadPrimary(path, sizeof kZipSignature, &prefix, &fileSize,
+                         nullptr)) {
             return false;
         }
         // The signature alone, deliberately: whether the archive holds a
@@ -938,7 +983,8 @@ bool SogReader::CanReadUnbundled(const std::string& path) const noexcept
     try {
         std::vector<unsigned char> data;
         std::uint64_t fileSize = 0;
-        if (!LoadFile(path, kCanReadPrefixLimit, &data, &fileSize, nullptr)) {
+        if (!LoadPrimary(path, kCanReadPrefixLimit, &data, &fileSize,
+                         nullptr)) {
             return false;
         }
         if (fileSize > data.size()) {

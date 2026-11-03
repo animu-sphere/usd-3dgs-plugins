@@ -11,6 +11,7 @@
 #include "io/GaussianSogDiagnostics.h"
 #include "openstrata/gs/testing/Utf8TestPaths.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -329,6 +330,161 @@ void TestResolverSeam()
     CHECK(!refusing.Read(anchor, &document, &error));
     CHECK(error == gssog::diag::Format(gssog::diag::kMissingPlane,
                                        "resolver refused 'means_l.webp'"));
+}
+
+// The primary-asset seam the file-format plugin uses to read the `.sog`
+// archive or `meta.json` through `ArAsset`: the loader receives an identifier
+// the reader never interprets, so an in-memory "asset" whose name is not a
+// filesystem path must read exactly like the file it was copied from.
+// RESOLVER_MATRIX.md's package-relative and URI-style rows rest on this.
+struct MemoryAsset {
+    std::vector<unsigned char> bytes;
+    std::vector<std::size_t> limits; // every `limit` the reader asked for
+
+    gssog::SogPrimaryLoader Loader(const std::string& expectedName)
+    {
+        return [this, expectedName](const std::string& path, std::size_t limit,
+                                    std::vector<unsigned char>* out,
+                                    std::uint64_t* size, std::string* error) {
+            limits.push_back(limit);
+            if (path != expectedName) {
+                *error = gssog::diag::Format(gssog::diag::kUnreadableFile,
+                                             "no asset named '" + path + "'");
+                return false;
+            }
+            *size = bytes.size();
+            const std::size_t want = std::min(bytes.size(), limit);
+            out->assign(bytes.begin(),
+                        bytes.begin() + static_cast<std::ptrdiff_t>(want));
+            return true;
+        };
+    }
+};
+
+std::vector<unsigned char> ReadBytes(const std::filesystem::path& path)
+{
+    std::ifstream in(path, std::ios::binary);
+    return std::vector<unsigned char>(std::istreambuf_iterator<char>(in),
+                                      std::istreambuf_iterator<char>());
+}
+
+void TestInjectedPrimaryLoader()
+{
+    // Bundled: the whole archive is served from memory under a URI-like name.
+    {
+        const std::string name = "mem://assets/scene.sog";
+        MemoryAsset asset;
+        asset.bytes = ReadBytes(Fixture("kit-multi-degree3.sog"));
+        const gssog::SogReader reader(gssog::SogCompanionLoader(),
+                                      asset.Loader(name));
+
+        CHECK(reader.CanReadBundled(name));
+        CHECK(!reader.CanReadUnbundled(name));
+
+        gssog::SogDocument fromMemory;
+        gssog::SogDocument fromFile;
+        std::string error;
+        asset.limits.clear();
+        CHECK(reader.Read(name, &fromMemory, &error));
+        CHECK(error.empty());
+        CHECK(gssog::SogReader().Read(Fixture("kit-multi-degree3.sog"),
+                                      &fromFile, &error));
+        CHECK(fromMemory.metadata.gaussianCount ==
+              fromFile.metadata.gaussianCount);
+        CHECK(fromMemory.shCodebook == fromFile.shCodebook);
+        CHECK(fromMemory.meansLow.rgba == fromFile.meansLow.rgba);
+        CHECK(fromMemory.shLabels.rgba == fromFile.shLabels.rgba);
+        CHECK(fromMemory.sourceBytes == asset.bytes.size());
+        // A 4-byte layout probe, then one bulk read under the archive bound.
+        CHECK(asset.limits.size() == 2);
+        CHECK(!asset.limits.empty() && asset.limits.front() == 4);
+
+        gssog::SogMetadata metadata;
+        CHECK(reader.ReadMetadata(name, &metadata, &error));
+        CHECK(metadata.gaussianCount == fromFile.metadata.gaussianCount);
+    }
+
+    // Unbundled: meta.json from memory under a package-relative name; the
+    // companions are anchored on that same name, never on a filesystem path.
+    {
+        const std::string name = "scene.usdz[meta.json]";
+        const std::filesystem::path directory =
+            std::filesystem::path(GAUSSIAN_SOG_FIXTURE_DIR) /
+            "unbundled-kit-multi-degree3";
+        MemoryAsset asset;
+        asset.bytes = ReadBytes(directory / "meta.json");
+
+        std::vector<std::string> anchors;
+        const gssog::SogReader reader(
+            [&anchors, &directory](
+                const std::string& anchorPath, const std::string& planeName,
+                std::vector<unsigned char>* bytes, std::string*) {
+                anchors.push_back(anchorPath);
+                *bytes = ReadBytes(directory / planeName);
+                return !bytes->empty();
+            },
+            asset.Loader(name));
+
+        CHECK(reader.CanReadUnbundled(name));
+        CHECK(!reader.CanReadBundled(name));
+
+        gssog::SogDocument document;
+        std::string error;
+        CHECK(reader.Read(name, &document, &error));
+        CHECK(error.empty());
+        CHECK(document.metadata.gaussianCount == 3);
+        CHECK(anchors.size() == 7);
+        for (const std::string& seen : anchors) {
+            CHECK(seen == name);
+        }
+    }
+
+    // The loader's own diagnostic reaches the caller unchanged, and a routing
+    // gate that cannot read the asset declines it rather than throwing.
+    {
+        MemoryAsset asset;
+        const gssog::SogReader reader(gssog::SogCompanionLoader(),
+                                      asset.Loader("expected"));
+        gssog::SogDocument document;
+        std::string error;
+        CHECK(!reader.Read("other", &document, &error));
+        CHECK(error == gssog::diag::Format(gssog::diag::kUnreadableFile,
+                                           "no asset named 'other'"));
+        CHECK(!reader.CanReadBundled("other"));
+        CHECK(!reader.CanReadUnbundled("other"));
+    }
+
+    // An oversized meta.json is refused from the size the probe reports: the
+    // reader never asks for the bulk read.
+    {
+        MemoryAsset asset;
+        asset.bytes.assign(4 * 1024 * 1024 + 1, ' ');
+        asset.bytes.front() = '{';
+        const gssog::SogReader reader(gssog::SogCompanionLoader(),
+                                      asset.Loader("big.json"));
+        gssog::SogDocument document;
+        std::string error;
+        CHECK(!reader.Read("big.json", &document, &error));
+        CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+        CHECK(asset.limits.size() == 1);
+    }
+
+    // A loader that breaks its contract (more bytes than asked for) is caught
+    // before any bound is trusted.
+    {
+        const gssog::SogReader reader(gssog::SogCompanionLoader(),
+                                      [](const std::string&, std::size_t limit,
+                                         std::vector<unsigned char>* out,
+                                         std::uint64_t* size, std::string*) {
+                                          out->assign(limit + 1, '{');
+                                          *size = limit + 1;
+                                          return true;
+                                      });
+        gssog::SogDocument document;
+        std::string error;
+        CHECK(!reader.Read("liar", &document, &error));
+        CHECK(HasCode(error, gssog::diag::kInternalError));
+    }
 }
 
 // --- metadata-only -----------------------------------------------------------
@@ -681,6 +837,7 @@ int main()
     TestUnbundledMatchesBundled();
     TestInjectedCompanionLoader();
     TestResolverSeam();
+    TestInjectedPrimaryLoader();
     TestMetadataOnly();
     TestMalformedContainers();
     TestContainerBudgets();
