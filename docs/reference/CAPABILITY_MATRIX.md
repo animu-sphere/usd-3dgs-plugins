@@ -61,7 +61,7 @@ This table describes the current tree. Planned capabilities belong in the
 | Capability | Status | Evidence / behavior |
 | --- | --- | --- |
 | SOG v2 bundled `.sog` (ZIP) | supported | container reader walks the archive's central directory (vendored miniz); reader and decoder fixtures for stored *and* DEFLATE-compressed entries |
-| SOG v2 unbundled `meta.json` | supported | companion WebP planes load through the asset resolver, anchored on the layer's own path; a fixture directory proves both layouts author the same stage |
+| SOG v2 unbundled `meta.json` | supported | companion WebP planes load through the asset resolver, always anchored on the layer's own resolved path; a fixture directory proves both layouts author the same stage; per-case resolver behavior and known gaps in [RESOLVER_MATRIX.md](RESOLVER_MATRIX.md) |
 | SOG v1 (no `version`, per-channel `mins`/`maxs`) | unsupported | rejected with the specific unsupported-version diagnostic `GSSOG-E003`, not as corruption |
 | Streamed SOG (`lod-meta.json`, chunks, LOD) | unsupported | not read; SOG M2-M4 ([release plan](../roadmap/release-plan.md)) |
 | Lossless WebP property planes | supported | decoded through the vendored libwebp v1.6.0 decoder subset |

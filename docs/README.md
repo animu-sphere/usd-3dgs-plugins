@@ -38,6 +38,11 @@ workspace contract wins; structural changes must update that contract first.
   [reference/SPZ_MAPPING.md](reference/SPZ_MAPPING.md) and
   [reference/SOG_MAPPING.md](reference/SOG_MAPPING.md) are its counterparts for
   `gaussian-spz` and `gaussian-sog`.
+- [reference/IMPORT_LIMITS.md](reference/IMPORT_LIMITS.md) lists the resource
+  budgets every reader enforces, and
+  [reference/RESOLVER_MATRIX.md](reference/RESOLVER_MATRIX.md) describes how
+  unbundled SOG companions resolve, which cases are verified, and which are
+  known gaps.
 - [architecture/API_BOUNDARY.md](architecture/API_BOUNDARY.md) classifies
   every installed header by audience and stability tier — "installed" is not
   "public and stable" before v1.0.0.
