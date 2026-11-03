@@ -58,11 +58,19 @@ bool LoadCompanionThroughResolver(const std::string& anchorPath,
         return false;
     };
 
+    // The plane is named with an explicit "./" so the identifier is always
+    // anchored on meta.json. A bare "scales.webp" is a *search-path* asset
+    // path to ArDefaultResolver: when no file of that name sits beside
+    // meta.json, CreateIdentifier keeps it unanchored and Resolve then finds
+    // whatever "scales.webp" the current directory or the context's search
+    // path holds -- silently importing another asset's plane. SogReader has
+    // already confined planeName to a bare file name, so the prefix cannot
+    // change which directory it names (RESOLVER_MATRIX.md).
     ArResolver& resolver = ArGetResolver();
     const std::string identifier =
-        resolver.CreateIdentifier(planeName, ArResolvedPath(anchorPath));
+        resolver.CreateIdentifier("./" + planeName, ArResolvedPath(anchorPath));
     const ArResolvedPath resolved =
-        resolver.Resolve(identifier.empty() ? planeName : identifier);
+        identifier.empty() ? ArResolvedPath() : resolver.Resolve(identifier);
     if (!resolved) {
         return fail(gssog::diag::kMissingPlane,
                     "The property plane '" + planeName +
