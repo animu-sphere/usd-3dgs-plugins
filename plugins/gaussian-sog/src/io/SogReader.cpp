@@ -3,6 +3,7 @@
 
 #include "io/GaussianSogDiagnostics.h"
 #include "io/SogJson.h"
+#include "openstrata/gs/GaussianFileIO.h"
 #include "openstrata/gs/GaussianImportLimits.h"
 #include "openstrata/gs/GaussianSizeMath.h"
 
@@ -96,7 +97,8 @@ bool LoadFile(const std::string& path, std::size_t limit,
               std::string* error)
 {
     const Failure fail{error};
-    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    std::ifstream in =
+        openstrata::gs::OpenInputFile(path, std::ios::binary | std::ios::ate);
     if (!in) {
         return fail(diag::kUnreadableFile,
                     "The file could not be opened for reading: " + path);
@@ -226,7 +228,8 @@ bool LoadCompanionFromDirectory(const std::string& anchorPath,
 {
     std::uint64_t size = 0;
     const std::string path = DirectoryOf(anchorPath) + planeName;
-    std::ifstream probe(path, std::ios::binary | std::ios::ate);
+    std::ifstream probe =
+        openstrata::gs::OpenInputFile(path, std::ios::binary | std::ios::ate);
     if (!probe) {
         return Failure{error}(diag::kMissingPlane,
                               "The property plane '" + planeName +

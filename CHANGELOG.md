@@ -16,6 +16,11 @@ semantic versioning for tagged releases.
 - `gaussian-spz`: a source file above the 1 GiB input bound is now refused
   from its size before the bulk read. Previously the full read loaded the
   first 1 GiB into memory and only then reported `GSPZ-E015`.
+- All three bundles: on Windows, a source whose path contains characters
+  outside the system ANSI code page now opens. Previously every reader passed
+  USD's UTF-8 path to a narrow-string `std::ifstream`, which Windows reads in
+  the ANSI code page, so such a file was reported as unreadable. Readers now
+  open paths through the shared `GaussianFileIO.h` helper.
 
 ### Added
 

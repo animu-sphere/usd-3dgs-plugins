@@ -4,6 +4,7 @@
 #include "openstrata/gs/GaussianCloudData.h"
 #include "openstrata/gs/GaussianImportStats.h"
 #include "openstrata/gs/testing/CloudContract.h"
+#include "openstrata/gs/testing/Utf8TestPaths.h"
 
 #include <cmath>
 #include <cstddef>
@@ -358,6 +359,45 @@ void TestImportStats()
 
 } // namespace
 
+// A source under a directory no Windows ANSI code page can spell
+// (RESOLVER_MATRIX.md, non-ASCII paths). Routing, the header-only read, the
+// full read, and the source-size statistic must all open the UTF-8 path USD
+// hands the file format.
+void TestNonAsciiPath()
+{
+    const char* kTag = "gaussian-spz-decoder-non-ascii";
+    const std::filesystem::path fixtures[] = {
+        std::filesystem::path(Fixture("decode-degree1-v2.spz"))};
+    const std::string directory =
+        openstrata::gs::testing::MakeNonAsciiFixtureDirectory(kTag, fixtures,
+                                                              1);
+    CHECK(!directory.empty());
+    if (directory.empty()) {
+        return;
+    }
+    const std::string path = directory + "decode-degree1-v2.spz";
+
+    const gsspz::GaussianSpzDecoder decoder;
+    CHECK(decoder.CanRead(path));
+
+    gsspz::GaussianSpzMetadata metadata;
+    std::string error;
+    CHECK(decoder.DecodeMetadata(path, &metadata, &error));
+    CHECK(error.empty());
+    CHECK(metadata.gaussianCount == 2);
+
+    openstrata::gs::GaussianCloudData cloud;
+    openstrata::gs::GaussianImportStats stats;
+    CHECK(decoder.Decode(path, &cloud, nullptr, &error, &stats));
+    CHECK(error.empty());
+    CHECK(cloud.gaussianCount == 2);
+    CHECK(stats.sourceBytes ==
+          static_cast<std::uint64_t>(
+              std::filesystem::file_size(openstrata::gs::PathFromUtf8(path))));
+
+    openstrata::gs::testing::RemoveNonAsciiFixtureDirectory(kTag);
+}
+
 int main()
 {
     TestDegree1FullPipeline();
@@ -370,6 +410,7 @@ int main()
     TestWarningsForIgnoredData();
     TestInternalMisuse();
     TestImportStats();
+    TestNonAsciiPath();
 
     if (failures != 0) {
         std::cerr << failures << " check(s) failed\n";

@@ -4,6 +4,7 @@
 #include "openstrata/gs/GaussianImportStats.h"
 #include "openstrata/gs/GaussianMath.h"
 #include "openstrata/gs/testing/CloudContract.h"
+#include "openstrata/gs/testing/Utf8TestPaths.h"
 
 #include <cmath>
 #include <cstddef>
@@ -452,6 +453,47 @@ void TestImportStats()
     CHECK(binaryStats.sourceVersion == "binary_little_endian");
 }
 
+// A source under a directory no Windows ANSI code page can spell
+// (RESOLVER_MATRIX.md, non-ASCII paths). The decoder receives the UTF-8 path
+// USD hands every file format; routing, the metadata-only read, the full read,
+// and the source-size statistic must all open the same file.
+void TestNonAsciiPath()
+{
+    const char* kTag = "gaussian-ply-decoder-non-ascii";
+    const std::filesystem::path fixtures[] = {
+        std::filesystem::path(Fixture("three-gaussian-binary-le.ply")),
+        std::filesystem::path(Fixture("one-gaussian-ascii.ply"))};
+    const std::string directory =
+        gs::testing::MakeNonAsciiFixtureDirectory(kTag, fixtures, 2);
+    CHECK(!directory.empty());
+    if (directory.empty()) {
+        return;
+    }
+
+    gs::ply::GaussianPlyDecoder decoder;
+    for (const char* name :
+         {"three-gaussian-binary-le.ply", "one-gaussian-ascii.ply"}) {
+        const std::string path = directory + name;
+        CHECK(decoder.CanRead(path));
+
+        gs::ply::GaussianPlyMetadata metadata;
+        std::string error;
+        CHECK(decoder.DecodeMetadata(path, &metadata, &error));
+        CHECK(error.empty());
+
+        gs::GaussianCloudData cloud;
+        gs::GaussianImportStats stats;
+        CHECK(decoder.Decode(path, &cloud, nullptr, &error, &stats));
+        CHECK(error.empty());
+        CHECK(cloud.gaussianCount == metadata.gaussianCount);
+        CHECK(stats.sourceBytes ==
+              static_cast<std::uint64_t>(
+                  std::filesystem::file_size(gs::PathFromUtf8(path))));
+    }
+
+    gs::testing::RemoveNonAsciiFixtureDirectory(kTag);
+}
+
 void TestContractConformance()
 {
     // Every fixture the bundle considers valid, across encodings, SH degrees,
@@ -501,5 +543,6 @@ int main()
     TestImportOptionParsing();
     TestImportOptionApplication();
     TestImportStats();
+    TestNonAsciiPath();
     return failures == 0 ? 0 : 1;
 }

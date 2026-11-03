@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "io/PlyReader.h"
 
+#include "openstrata/gs/GaussianFileIO.h"
 #include "tinyply.h"
 
 #include <cstdint>
@@ -177,7 +178,8 @@ std::string ExceptionMessage(const char* context,
 bool PlyReader::ReadHeader(const std::string& path, PlyHeader* header,
                            std::string* error) const
 {
-    std::ifstream stream(path, std::ios::binary);
+    std::ifstream stream =
+        openstrata::gs::OpenInputFile(path, std::ios::binary);
     if (!stream) {
         if (error)
             *error = "Could not open PLY file '" + path + "'.";
@@ -209,7 +211,8 @@ bool PlyReader::Read(const std::string& path,
         return false;
     }
 
-    std::ifstream stream(path, std::ios::binary);
+    std::ifstream stream =
+        openstrata::gs::OpenInputFile(path, std::ios::binary);
     if (!stream) {
         if (error)
             *error = "Could not open PLY file '" + path + "'.";

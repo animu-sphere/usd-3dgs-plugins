@@ -9,6 +9,7 @@
 #include "io/SogReader.h"
 #include "io/SogJson.h"
 #include "io/GaussianSogDiagnostics.h"
+#include "openstrata/gs/testing/Utf8TestPaths.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -626,6 +627,51 @@ void TestJsonDepthLimit()
 
 } // namespace
 
+// Both layouts under a directory no Windows ANSI code page can spell
+// (RESOLVER_MATRIX.md, non-ASCII paths): the bundled archive, the unbundled
+// meta.json, and the companion planes the default directory loader composes
+// beside it must all open from the UTF-8 path USD hands the file format.
+void TestNonAsciiPath()
+{
+    const char* kTag = "gaussian-sog-reader-non-ascii";
+    std::vector<std::filesystem::path> fixtures = {
+        std::filesystem::path(Fixture("kit-multi-degree3.sog"))};
+    for (const auto& entry : std::filesystem::directory_iterator(
+             std::filesystem::path(Fixture("unbundled-kit-multi-degree3")))) {
+        fixtures.push_back(entry.path());
+    }
+    const std::string directory =
+        openstrata::gs::testing::MakeNonAsciiFixtureDirectory(
+            kTag, fixtures.data(), fixtures.size());
+    CHECK(!directory.empty());
+    if (directory.empty()) {
+        return;
+    }
+    const std::string bundledPath = directory + "kit-multi-degree3.sog";
+    const std::string unbundledPath = directory + "meta.json";
+
+    const gssog::SogReader reader;
+    CHECK(reader.CanReadBundled(bundledPath));
+    CHECK(reader.CanReadUnbundled(unbundledPath));
+
+    gssog::SogMetadata metadata;
+    std::string error;
+    CHECK(reader.ReadMetadata(bundledPath, &metadata, &error));
+    CHECK(reader.ReadMetadata(unbundledPath, &metadata, &error));
+    CHECK(error.empty());
+
+    gssog::SogDocument bundled;
+    gssog::SogDocument unbundled;
+    CHECK(reader.Read(bundledPath, &bundled, &error));
+    CHECK(reader.Read(unbundledPath, &unbundled, &error));
+    CHECK(error.empty());
+    CHECK(bundled.metadata.gaussianCount == metadata.gaussianCount);
+    CHECK(unbundled.metadata.gaussianCount == metadata.gaussianCount);
+    CHECK(unbundled.shCentroids.rgba == bundled.shCentroids.rgba);
+
+    openstrata::gs::testing::RemoveNonAsciiFixtureDirectory(kTag);
+}
+
 int main()
 {
     TestRouting();
@@ -643,6 +689,7 @@ int main()
     TestOversizedUnbundledCompanion();
     TestJsonTokenLimit();
     TestJsonDepthLimit();
+    TestNonAsciiPath();
 
     if (failures != 0) {
         std::cerr << failures << " SOG reader check(s) failed\n";

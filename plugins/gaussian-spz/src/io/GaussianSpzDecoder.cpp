@@ -3,6 +3,7 @@
 
 #include "io/GaussianSpzDiagnostics.h"
 #include "io/SpzReader.h"
+#include "openstrata/gs/GaussianFileIO.h"
 #include "openstrata/gs/GaussianMath.h"
 #include "openstrata/gs/GaussianSizeMath.h"
 
@@ -113,7 +114,8 @@ float UnquantizeSh(unsigned char stored) noexcept
 // what was actually read; 0 when the size cannot be determined.
 std::uint64_t FileSizeOf(const std::string& path)
 {
-    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    std::ifstream in =
+        openstrata::gs::OpenInputFile(path, std::ios::binary | std::ios::ate);
     if (!in) {
         return 0;
     }
