@@ -183,8 +183,9 @@ real environments and package paths were actually verified.
   companion being replaced by a same-named file from the current directory or
   search path. Every reader now opens UTF-8 paths through the shared
   `GaussianFileIO.h` helper, so non-ASCII paths no longer depend on the
-  Windows ANSI code page; the tests are observed on Linux and still need a
-  Windows cell. Remaining: package-relative and URI-style primary identifiers
+  Windows ANSI code page; the tests are observed on Linux and compile with
+  MSVC in CI, but hosted CI runs no CTest, so a Windows CTest run is still
+  owed. Remaining: package-relative and URI-style primary identifiers
   (the primary is read from the filesystem) and a test resolver plugin.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
