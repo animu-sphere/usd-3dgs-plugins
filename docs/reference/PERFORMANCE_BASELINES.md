@@ -135,6 +135,10 @@ metadataOnly=True)` and do not decode property planes.
 
 ## Corpus policy
 
+The inputs for future measurements, including a generated scale ladder up to
+the import ceiling in all three formats, are declared in
+[BENCHMARK_CORPUS.md](BENCHMARK_CORPUS.md). The rows above predate it.
+
 The committed corpus stays small (two 8,192-Gaussian CC0 assets with full
 provenance). The local rows are provenance-noted personal test data
 (`Desktop/testdata_3dgs`) and the Graphdeco reference `garden` capture;

@@ -88,9 +88,13 @@ cmake --build --preset default
 ctest --test-dir build/default --output-on-failure
 ```
 
-This composes all three bundles plus the shared libraries and runs all sixteen
-tests, including `gaussian_ply_spz_equivalence` and
-`gaussian_ply_sog_equivalence`. Regenerate the equivalence fixtures after
+This composes all three bundles plus the shared libraries and runs all eighteen
+tests, including `gaussian_ply_spz_equivalence`,
+`gaussian_ply_sog_equivalence`, and the two
+[benchmark corpus](../reference/BENCHMARK_CORPUS.md) cases.
+`benchmark_corpus_ci` generates and imports 1,048,576-Gaussian assets in all
+three formats, so it needs about 300 MiB of temporary disk and takes the
+longest; `ctest -LE benchmark` skips it. Regenerate the equivalence fixtures after
 changing any mapping contract:
 
 ```sh

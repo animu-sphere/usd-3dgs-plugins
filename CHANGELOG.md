@@ -23,6 +23,18 @@ semantic versioning for tagged releases.
   with every companion resolved and served by that resolver as a stream
   without `GetBuffer()`, and checks that a plane missing from it stays
   missing.
+- The large-asset benchmark corpus
+  ([BENCHMARK_CORPUS.md](docs/reference/BENCHMARK_CORPUS.md),
+  `tests/benchmark/corpus.json`): committed fixtures, the committed CC0
+  subsets, a generated scale ladder of 1,048,576, 4,194,304, and 7,995,392
+  Gaussians in PLY, SPZ, and SOG, and real exports kept outside the
+  repository, with provisional resource targets.
+  `scripts/benchmark_corpus.py` generates the ladder deterministically from the
+  committed CC0 `yashica-t4-top8192.ply`, checks it against recorded hashes,
+  and measures any tier through `scripts/benchmark_import.py`. Two CTest cases
+  run it in the workspace CTest cells: `benchmark_corpus_manifest` checks the
+  manifest, and `benchmark_corpus_ci` measures the fixture, corpus, and 1M
+  rows against the targets.
 - CI: three `kind: workspace` cells build the composed root tree and run its
   CTest suites on Windows, macOS, and Linux. Until now those suites (unit,
   Python smoke and resolver, and cross-format equivalence tests) ran only in
@@ -47,6 +59,10 @@ semantic versioning for tagged releases.
 
 ### Fixed
 
+- `scripts/benchmark_import.py`: on Linux, peak resident memory is now read
+  from the process's own `VmHWM`. `ru_maxrss` starts from the parent's
+  resident size at fork and survives exec, so a large launching process
+  inflated the reported peak.
 - `gaussian-sog`: an unbundled `meta.json` whose property plane is missing
   now always fails with `GSSOG-E008`. Previously the plane name was resolved
   as a search-path asset path. A same-named file in the current directory or

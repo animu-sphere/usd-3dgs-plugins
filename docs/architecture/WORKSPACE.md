@@ -194,7 +194,8 @@ repository's own CTest suites. Three `kind: workspace` cells
 same digest-pinned runtimes: `ost build` composes the root CMake tree and
 `ost test` runs every suite in it — the gaussianCore and gaussianUsd unit
 tests, each bundle's reader and decoder tests, the Python smoke and
-asset-resolver tests, and the cross-format equivalence tests that exist only
+asset-resolver tests, and the cross-format equivalence and
+[benchmark corpus](../reference/BENCHMARK_CORPUS.md) tests that exist only
 in the composed build. They publish nothing, and `scripts/release.py` skips
 them.
 

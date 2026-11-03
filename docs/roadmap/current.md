@@ -195,7 +195,18 @@ real environments and package paths were actually verified.
   (`gaussianSog_python_uri_resolver`). Its first hosted run passed in all
   three `workspace-ctest-pr-*` cells. Only the Windows-only separator row
   stays ⚠️, by nature.
-- ⬜ Define the large-asset benchmark corpus.
+- 🚧 Large-asset benchmark corpus: the
+  [corpus](../reference/BENCHMARK_CORPUS.md) is defined in four tiers —
+  committed fixtures, the committed CC0 subsets, a generated scale ladder
+  (1M, 4M, and 7,995,392 Gaussians, just under the import ceiling) in all
+  three formats from one CC0 source, and real exports kept outside the
+  repository — with provisional resource targets.
+  `scripts/benchmark_corpus.py` generates the ladder deterministically and
+  checks it against recorded hashes; all nine scale assets decode with zero
+  contract violations. The `benchmark_corpus_ci` CTest case measures the
+  fixture, corpus, and 1M rows in the `workspace-ctest-pr-*` cells. Remaining:
+  record the first hosted rows, measure the 4M and ceiling steps and the real
+  tier locally, and tighten the targets from those rows.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
 ## Proposed milestones
