@@ -77,6 +77,11 @@ class BitWriter:
             self._accumulator >>= 8
             self._bits -= 8
 
+    @property
+    def bit_length(self) -> int:
+        """Bits written so far, including the unflushed partial byte."""
+        return 8 * len(self._bytes) + self._bits
+
     def finish(self) -> bytes:
         if self._bits:
             self._bytes.append(self._accumulator & 0xFF)
@@ -129,12 +134,10 @@ def _write_flat_code(writer: BitWriter, alphabet_size: int) -> None:
     writer.write(0, 2)                          # ... 3 more, 256 in total
 
 
-def webp_lossless(width: int, height: int, texels: list[tuple[int, int, int, int]]) -> bytes:
-    """One 8-bit RGBA lossless WebP image, `texels` in row-major order."""
-    assert len(texels) == width * height, (len(texels), width, height)
+def _write_vp8l_header(writer: BitWriter, width: int, height: int) -> None:
+    """Everything before the first literal: the image header and the five
+    prefix codes (no transform, no color cache, one flat code per channel)."""
     assert 1 <= width <= 16384 and 1 <= height <= 16384
-
-    writer = BitWriter()
     writer.write(0x2F, 8)                       # VP8L signature
     writer.write(width - 1, 14)
     writer.write(height - 1, 14)
@@ -150,16 +153,64 @@ def webp_lossless(width: int, height: int, texels: list[tuple[int, int, int, int
     writer.write(0, 1)                          # ... of one symbol
     writer.write(0, 1)                          # ... spelled in one bit
     writer.write(0, 1)                          # ... symbol 0, never emitted
+
+
+def _riff_webp(payload: bytes) -> bytes:
+    chunk = b"VP8L" + struct.pack("<I", len(payload)) + payload
+    if len(payload) % 2:
+        chunk += b"\x00"                        # RIFF chunks are even-sized
+    return b"RIFF" + struct.pack("<I", 4 + len(chunk)) + b"WEBP" + chunk
+
+
+def webp_lossless(width: int, height: int, texels: list[tuple[int, int, int, int]]) -> bytes:
+    """One 8-bit RGBA lossless WebP image, `texels` in row-major order."""
+    assert len(texels) == width * height, (len(texels), width, height)
+
+    writer = BitWriter()
+    _write_vp8l_header(writer, width, height)
     for red, green, blue, alpha in texels:
         # Literal order in the bitstream: green, red, blue, alpha.
         for channel in (green, red, blue, alpha):
             writer.write(_reverse8(channel), 8)
 
-    payload = writer.finish()
-    chunk = b"VP8L" + struct.pack("<I", len(payload)) + payload
-    if len(payload) % 2:
-        chunk += b"\x00"                        # RIFF chunks are even-sized
-    return b"RIFF" + struct.pack("<I", 4 + len(chunk)) + b"WEBP" + chunk
+    return _riff_webp(writer.finish())
+
+
+_REVERSED_BYTES = bytes(_reverse8(value) for value in range(256))
+
+
+def webp_lossless_planar(width: int, height: int, red: bytes, green: bytes,
+                         blue: bytes, alpha: bytes) -> bytes:
+    """`webp_lossless` for images too large to pack one bit at a time: the
+    same bitstream, built from one byte string per channel.
+
+    Every literal is a whole bit-reversed byte, so the texel stream is the
+    interleaved channels through a translation table, shifted once past the
+    header's bit length. `scripts/benchmark_corpus.py` writes its
+    multi-million-Gaussian planes through this, and its `verify` command
+    checks that both encoders emit identical bytes."""
+    count = width * height
+    assert len(red) == len(green) == len(blue) == len(alpha) == count, (
+        len(red), len(green), len(blue), len(alpha), width, height)
+
+    writer = BitWriter()
+    _write_vp8l_header(writer, width, height)
+    header_bits = writer.bit_length
+    header = int.from_bytes(writer.finish(), "little")
+
+    texels = bytearray(4 * count)
+    # Literal order in the bitstream: green, red, blue, alpha.
+    texels[0::4] = green
+    texels[1::4] = red
+    texels[2::4] = blue
+    texels[3::4] = alpha
+    literals = int.from_bytes(texels.translate(_REVERSED_BYTES), "little")
+    del texels
+
+    total_bits = header_bits + 32 * count
+    payload = (header | (literals << header_bits)).to_bytes(
+        (total_bits + 7) // 8, "little")
+    return _riff_webp(payload)
 
 
 def webp_lossy_header(width: int, height: int) -> bytes:
