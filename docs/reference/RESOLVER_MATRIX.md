@@ -56,7 +56,7 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 | Non-ASCII characters in the path | opens. The USD-free readers open their UTF-8 path through `openstrata::gs::OpenInputFile` (`GaussianFileIO.h`), which on Windows opens the UTF-16 name instead of reinterpreting the bytes in the ANSI code page. PLY and SPZ share the helper. | ✅ | reader `TestNonAsciiPath` (both layouts and the directory loader), `gaussianCore_file_io`, and the PLY and SPZ decoder `TestNonAsciiPath`; observed on Windows (MSVC), macOS, and Linux in the `workspace-ctest-pr-*` CI cells ([WORKSPACE.md §8](../architecture/WORKSPACE.md)) |
 | Package-relative path: an unbundled `meta.json` at the root or in a subdirectory of a `.usdz`, opened directly, by reference, or metadata-only; a `.sog` inside a `.usdz` | opens through `ArAsset`; companions are the sibling entries inside the package | ✅ | `case_package_relative`; reader `TestInjectedPrimaryLoader`; observed on Windows, macOS, and Linux |
 | Packaged `meta.json` whose plane is missing from the package, with a valid same-named file beside the package | `GSSOG-E008`; the file beside the package is never used | ✅ | `case_package_relative` |
-| URI-style identifier served by a custom resolver | read through `ArAsset`; the reader never interprets the identifier | ⬜ | reader `TestInjectedPrimaryLoader` covers the seam with a URI-like name; no real resolver plugin is tested |
+| URI-style identifier served by a custom resolver (`gstest:cloud/meta.json`, `gstest:cloud.sog`), opened directly, by reference from a filesystem layer, or metadata-only | read through `ArAsset`; the reader never interprets the identifier. A bundled `.sog` asks the resolver for the archive alone | ✅ | `test_gaussian_sog_uri_resolver.py` `case_uri_unbundled`, `case_uri_reference`, `case_uri_bundled`, `case_uri_metadata_only`; reader `TestInjectedPrimaryLoader` |
 
 ## Companion planes (unbundled layout)
 
@@ -73,8 +73,10 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 | Loader-reported failure | the loader's own diagnostic reaches the caller unchanged | ✅ | reader `TestResolverSeam` |
 | Loader receives the primary path as anchor and bare plane names, in a fixed order | as stated | ✅ | reader `TestResolverSeam`, `TestInjectedCompanionLoader` |
 | Companion larger than 512 MiB | `GSSOG-E016`, checked from `ArAsset::GetSize()` before allocation | ✅ | `case_oversized_companion` (sparse file); reader `TestOversizedUnbundledCompanion` ([IMPORT_LIMITS.md](IMPORT_LIMITS.md#test-coverage)) |
-| Custom `ArResolver` plugin serving companions | the seam is verified with an injected loader; no real resolver plugin is tested | ⬜ | reader `TestInjectedCompanionLoader` covers the seam only |
-| Resolver that serves a stream without `GetBuffer()` | read through `ArAsset::Read()` | ⬜ | needs a custom resolver |
+| Custom `ArResolver` plugin serving companions | the plugin's `./<plane>`, anchored on the URI, is dispatched by Ar to the URI's own resolver, which resolves and serves each plane | ✅ | `case_uri_unbundled`, `case_uri_reference` (the resolver's log shows every plane requested under the URI's directory) |
+| Companion missing from a custom resolver, with a valid same-named plane one directory up in the same store and in the current directory | `GSSOG-E008`, naming the plane and the URI; neither other file is requested | ✅ | `case_uri_missing_companion` |
+| Resolver that serves a stream without `GetBuffer()` | read through `ArAsset::Read()` | ✅ | `case_uri_unbundled`: every companion is asked for a buffer, gets none, and still decodes |
+| Registering a URI resolver | leaves scheme-less paths with the primary resolver; a filesystem `meta.json` never reaches the URI resolver | ✅ | `case_filesystem_unaffected` |
 
 ## Metadata-only reads
 
@@ -90,14 +92,22 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
   `gaussianSog_python_resolver`. Each case copies the fixture into a fresh
   temporary directory, so the layer registry cannot reuse an earlier case's
   result.
+- `plugins/gaussian-sog/tests/test_gaussian_sog_uri_resolver.py`: the rows
+  that need a resolver plugin of their own. CTest name:
+  `gaussianSog_python_uri_resolver`. CTest builds a test-only `gstest:` URI
+  resolver (`tests/uri_resolver/GsTestUriResolver.cpp`) into its own build
+  directory beside a generated `plugInfo.json` and registers it for this test
+  alone; it is never installed or packaged. It maps `gstest:<path>` to
+  `<GSTEST_URI_RESOLVER_ROOT>/<path>`, serves every asset as a stream only
+  (`GetBuffer()` returns null), and logs each `OpenAsset` and `GetBuffer`
+  call to `GSTEST_URI_RESOLVER_LOG`, which is how the suite asserts what the
+  plugin requested.
 - `plugins/gaussian-sog/tests/test_gaussian_sog_reader.cpp`: the
   resolver-independent seams (`TestResolverSeam`,
   `TestInjectedCompanionLoader`, `TestInjectedPrimaryLoader`). It needs no
   USD.
 
-Both run in the `workspace-ctest-pr-*` CI cells on all three hosted
+All three run in the `workspace-ctest-pr-*` CI cells on all three hosted
 platforms, as well as in the local gate.
 
-Next step for the ⬜ rows: add a minimal test resolver plugin (URI-style
-identifiers, companions served by a custom resolver, and a stream without
-`GetBuffer()`). The ⚠️ row is Windows-only by nature.
+No row is ⬜ any more. The ⚠️ row is Windows-only by nature.

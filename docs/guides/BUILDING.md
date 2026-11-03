@@ -88,7 +88,7 @@ cmake --build --preset default
 ctest --test-dir build/default --output-on-failure
 ```
 
-This composes all three bundles plus the shared libraries and runs all fifteen
+This composes all three bundles plus the shared libraries and runs all sixteen
 tests, including `gaussian_ply_spz_equivalence` and
 `gaussian_ply_sog_equivalence`. Regenerate the equivalence fixtures after
 changing any mapping contract:

@@ -1,0 +1,19 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "gsTestUriResolver",
+            "Root": ".",
+            "LibraryPath": "@GSTEST_URI_RESOLVER_LIBRARY@",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "GsTestUriResolver": {
+                        "bases": ["ArResolver"],
+                        "uriSchemes": ["gstest"]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -186,11 +186,14 @@ real environments and package paths were actually verified.
   Windows ANSI code page. The SOG primary asset is now read through
   `ArAsset`, so a `meta.json` or `.sog` inside a `.usdz` opens, with
   companions anchored inside the package rather than beside it. The
-  `workspace-ctest-pr-*` CI cells now run all fifteen CTest suites on
+  `workspace-ctest-pr-*` CI cells now run the workspace CTest suites on
   Windows, macOS, and Linux as a hosted gate. Their first green run observed
   the non-ASCII tests on Windows and the package-relative resolver cases on
-  all three. Remaining: a test resolver plugin for URI-style identifiers and
-  resolver-served companions.
+  all three. A test-only `gstest:` URI resolver plugin now covers the last
+  ⬜ rows: a URI-style primary identifier, companions served by a custom
+  resolver, and assets served as a stream without `GetBuffer()`
+  (`gaussianSog_python_uri_resolver`). Remaining: observe it in the hosted
+  cells.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
