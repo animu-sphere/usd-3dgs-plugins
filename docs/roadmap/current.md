@@ -204,9 +204,12 @@ real environments and package paths were actually verified.
   `scripts/benchmark_corpus.py` generates the ladder deterministically and
   checks it against recorded hashes; all nine scale assets decode with zero
   contract violations. The `benchmark_corpus_ci` CTest case measures the
-  fixture, corpus, and 1M rows in the `workspace-ctest-pr-*` cells. Remaining:
-  record the first hosted rows, measure the 4M and ceiling steps and the real
-  tier locally, and tighten the targets from those rows.
+  fixture, corpus, and 1M rows in the `workspace-ctest-pr-*` cells; its
+  first hosted run passed every gate on Windows, macOS, and Linux. Remaining:
+  capture the hosted report, which no cell uploads today (the cells upload
+  `.strata/targets/`, the report lands in `build/`), measure the 4M and
+  ceiling steps and the real tier locally, and tighten the targets from
+  those rows.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
 ## Proposed milestones

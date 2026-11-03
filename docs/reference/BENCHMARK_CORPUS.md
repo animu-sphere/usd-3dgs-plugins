@@ -177,6 +177,15 @@ The composed root build registers two CTest cases, which the
   report is written to `tests/benchmark/benchmark-report.json` in the build
   tree.
 
+First hosted run, 2026-11-03 (commit `e4cc662`): `benchmark_corpus_ci`
+passed in all three cells — Linux in 9.4 s, Windows in 17.8 s, macOS in
+20.4 s, including generation. Every row therefore met its count, SH degree,
+metadata-only, `CanRead()`, and peak-memory gates on every platform. The
+per-row numbers are not yet recorded: CTest prints a passing test's output
+only with `--verbose`, and the workspace cells upload `.strata/targets/`,
+while the report lands in `build/`, so the upload finds nothing. Capturing the
+report is the next step before the targets can be tightened.
+
 The 4M and ceiling steps and the real tier are local measurements. The ceiling
 PLY alone is 1.8 GiB, plus its flattened USDC, and the real tier cannot be
 distributed to a runner.
