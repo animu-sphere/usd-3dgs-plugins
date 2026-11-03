@@ -23,9 +23,12 @@
 #   the `sdk` layout profile, carrying an SPDX SBOM and SLSA/in-toto
 #   provenance, and verify `trust: attested` -- which is what the
 #   `--require-sbom --require-provenance` gate the generator renders demands.
-#   Consuming them needs ost >= 0.22.6; the bootstrap below is 0.22.10. The OCI
+#   Consuming them needs ost >= 0.22.6; the bootstrap below is 0.23.19. The OCI
 #   manifest digest is not stable across republishes, and `runtime_artifact`
 #   does not stay put either: re-pin both from the producer's push output.
+#   Rechecked 2026-11-03 for the 0.23.19 bootstrap: the registry still serves
+#   the three leaf tags at the OCI digests pinned below, and 26.08 is still
+#   the newest version in ost's runtime matrix, so no cell is re-pinned.
 #
 #   The plugins' declared OpenUSD range is `>=26.05,<27.0`, so 26.08 is inside
 #   the contract; the local development runtime is on 26.08 as well.
@@ -40,7 +43,7 @@ schema: 1
 
 bootstrap:
   ost:
-    version: "0.22.10"
+    version: "0.23.19"
     repository: animu-sphere/open-strata
 
 runners:

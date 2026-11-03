@@ -6,6 +6,18 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Changed
+
+- The build and verification toolchain moves from OpenStrata **0.22.10 to
+  0.23.19** (`openstrata.ci.yaml` bootstrap and the regenerated
+  `ost-source-ci.yml`; the release lane derives the same pin through
+  `scripts/release.py`). The regenerated workflow builds its OpenUSD
+  requirement arguments with POSIX `set --` instead of a bash array, and adds
+  an `ost library pull` step for digest-pinned external libraries; this
+  workspace declares none, so the step pulls nothing. The three OpenUSD 26.08
+  runtime pins are unchanged: the registry still serves those leaves at the
+  pinned digests, and 26.08 is still the newest runtime ost publishes.
+
 ### Fixed
 
 - `gaussian-sog`: an unbundled `meta.json` whose property plane is missing
