@@ -16,6 +16,13 @@ semantic versioning for tagged releases.
   where a same-named file beside the `.usdz` could stand in for a plane, so
   the plugin anchors them itself. The size bounds are checked from
   `ArAsset::GetSize()` before the bulk read.
+- `gaussian-sog` tests: a test-only `gstest:` URI resolver plugin, built and
+  registered by CTest for one suite and never installed, covers the
+  resolver-matrix rows `ArDefaultResolver` cannot reach. The suite opens a
+  `meta.json` and a `.sog` by URI, directly, by reference, and metadata-only,
+  with every companion resolved and served by that resolver as a stream
+  without `GetBuffer()`, and checks that a plane missing from it stays
+  missing.
 - CI: three `kind: workspace` cells build the composed root tree and run its
   CTest suites on Windows, macOS, and Linux. Until now those suites (unit,
   Python smoke and resolver, and cross-format equivalence tests) ran only in

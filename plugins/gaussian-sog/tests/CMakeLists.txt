@@ -61,3 +61,46 @@ add_test(
         "${CMAKE_CURRENT_SOURCE_DIR}/test_gaussian_sog_resolver.py")
 set_tests_properties(gaussianSog_python_resolver PROPERTIES
     ENVIRONMENT_MODIFICATION "${_smoke_env}")
+
+# The rows of the same matrix that ArDefaultResolver cannot reach: a URI-style
+# primary identifier, companions served by a custom resolver, and an asset that
+# serves a stream without GetBuffer(). A test-only `gstest:` URI resolver
+# plugin serves them. It is built into its own directory beside a generated
+# plugInfo.json, registered for this one test through PXR_PLUGINPATH_NAME,
+# and never installed, so no other test or package sees it.
+set(_uri_resolver_dir "${CMAKE_CURRENT_BINARY_DIR}/gstest-uri-resolver")
+add_library(gsTestUriResolver SHARED uri_resolver/GsTestUriResolver.cpp)
+target_compile_features(gsTestUriResolver PRIVATE cxx_std_17)
+target_include_directories(gsTestUriResolver PRIVATE ${PXR_INCLUDE_DIRS})
+set_target_properties(gsTestUriResolver PROPERTIES
+    PREFIX ""
+    LIBRARY_OUTPUT_DIRECTORY "${_uri_resolver_dir}"
+    RUNTIME_OUTPUT_DIRECTORY "${_uri_resolver_dir}"
+    ARCHIVE_OUTPUT_DIRECTORY "${_uri_resolver_dir}")
+foreach(_config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set_target_properties(gsTestUriResolver PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY_${_config} "${_uri_resolver_dir}"
+        RUNTIME_OUTPUT_DIRECTORY_${_config} "${_uri_resolver_dir}"
+        ARCHIVE_OUTPUT_DIRECTORY_${_config} "${_uri_resolver_dir}")
+endforeach()
+if(MSVC)
+    target_compile_definitions(gsTestUriResolver PRIVATE NOMINMAX)
+    target_compile_options(gsTestUriResolver PRIVATE /utf-8)
+endif()
+openstrata_link_openusd(
+    TARGET gsTestUriResolver
+    COMPONENTS arch tf ar)
+set(GSTEST_URI_RESOLVER_LIBRARY
+    "gsTestUriResolver${CMAKE_SHARED_LIBRARY_SUFFIX}")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/uri_resolver/plugInfo.json.in"
+    "${_uri_resolver_dir}/plugInfo.json"
+    @ONLY)
+
+add_test(
+    NAME gaussianSog_python_uri_resolver
+    COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test_gaussian_sog_uri_resolver.py")
+set_tests_properties(gaussianSog_python_uri_resolver PROPERTIES
+    ENVIRONMENT_MODIFICATION
+        "${_smoke_env};PXR_PLUGINPATH_NAME=path_list_prepend:${_uri_resolver_dir};GSTEST_URI_RESOLVER_ROOT=set:${CMAKE_CURRENT_BINARY_DIR}/gstest-uri-store;GSTEST_URI_RESOLVER_LOG=set:${CMAKE_CURRENT_BINARY_DIR}/gstest-uri-resolver.log")
