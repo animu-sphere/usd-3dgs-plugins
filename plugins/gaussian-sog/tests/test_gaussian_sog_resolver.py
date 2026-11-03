@@ -6,8 +6,9 @@ every plane is a companion asset reached through the active ArResolver, anchored
 on the layer's resolved path. This suite drives the stock ArDefaultResolver
 through each row of docs/reference/RESOLVER_MATRIX.md that it can exercise
 without a custom resolver plugin: how the primary asset is named (absolute,
-cwd-relative, anchored reference, search path), how companions fail, and which
-companion names are refused outright.
+cwd-relative, anchored reference, search path, package-relative inside a
+`.usdz`), how companions fail, and which companion names are refused
+outright.
 
 Each case copies the committed fixture into its own fresh directory, so layer
 registry caching cannot let one case satisfy another.
@@ -248,6 +249,70 @@ def case_unsafe_companion_names():
             "GSSOG-E005")
 
 
+def write_package(package, entries):
+    """A `.usdz` at `package` holding `entries` ({name in archive: source
+    file}), written by Sdf.ZipFileWriter so its layout is what USD's package
+    resolver expects (stored, 64-byte aligned)."""
+    package.parent.mkdir(parents=True, exist_ok=True)
+    writer = Sdf.ZipFileWriter.CreateNew(str(package))
+    for name, source in entries.items():
+        writer.AddFile(str(source), name)
+    writer.Save()
+    return package
+
+
+def case_package_relative(root):
+    """The primary asset inside a `.usdz`: a package-relative identifier is
+    opened through ArAsset, not the filesystem, and an unbundled meta.json's
+    companions are its sibling entries inside the package -- never files
+    beside the package."""
+    planes = {source.name: source for source in SOURCE.iterdir()}
+
+    # Unbundled, at the package root and in a subdirectory.
+    package = write_package(
+        root / "package" / "scene.usdz",
+        {**planes,
+         **{f"cloud/{name}": source for name, source in planes.items()}})
+    for inner in ("meta.json", "cloud/meta.json"):
+        identifier = f"{package}[{inner}]"
+        stage = Usd.Stage.Open(identifier)
+        assert stage, f"failed to open {identifier}"
+        assert gaussian_count(stage, "/Asset/Splat") == EXPECTED_COUNT, inner
+
+    # Referenced from a layer beside the package.
+    layer_path = root / "package" / "shot.usda"
+    write_referencing_layer(layer_path, "./scene.usdz[cloud/meta.json]")
+    stage = Usd.Stage.Open(str(layer_path))
+    assert stage, "package-relative reference failed"
+    assert gaussian_count(stage, "/Root/Splat") == EXPECTED_COUNT
+
+    # Metadata-only reads parse the packaged meta.json alone.
+    layer = Sdf.Layer.OpenAsAnonymous(f"{package}[meta.json]",
+                                      metadataOnly=True)
+    assert layer, "package-relative metadata-only open failed"
+    gs = layer.GetPrimAtPath("/Asset").customData.get("gs", {})
+    assert gs.get("gaussianCount") == EXPECTED_COUNT, gs
+
+    # A plane missing from the package stays missing even when a valid file of
+    # that name sits beside the package, where Ar's own anchoring of a
+    # package-relative anchor would look.
+    partial = {name: source for name, source in planes.items()
+               if name != "quats.webp"}
+    package = write_package(root / "package-missing" / "scene.usdz", partial)
+    shutil.copyfile(SOURCE / "quats.webp",
+                    package.parent / "quats.webp")
+    caught = expect_failure(
+        lambda: Usd.Stage.Open(f"{package}[meta.json]"), "GSSOG-E008")
+    assert "quats.webp" in caught, caught
+
+    # Bundled: a `.sog` archive inside a `.usdz`.
+    package = write_package(root / "package-sog" / "scene.usdz",
+                            {"cloud.sog": FIXTURES / "kit-multi-degree3.sog"})
+    stage = Usd.Stage.Open(f"{package}[cloud.sog]")
+    assert stage, "packaged .sog open failed"
+    assert gaussian_count(stage, "/Asset/Splat") == EXPECTED_COUNT
+
+
 def case_windows_spellings(root):
     """On Windows the same primary asset opens under both separator styles.
     POSIX has one spelling; the backslash row does not apply there."""
@@ -280,6 +345,7 @@ def main():
         case_metadata_only_skips_companions(root)
         case_companion_case(root)
         case_unsafe_companion_names()
+        case_package_relative(root)
         windows = case_windows_spellings(root)
 
     print("gaussian-sog resolver matrix: OK"

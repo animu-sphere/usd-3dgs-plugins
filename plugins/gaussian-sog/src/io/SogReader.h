@@ -98,6 +98,22 @@ using SogCompanionLoader = std::function<bool(
     const std::string& anchorPath, const std::string& planeName,
     std::vector<unsigned char>* bytes, std::string* error)>;
 
+// How the reader reads the primary asset (the `.sog` archive or `meta.json`).
+// `path` is whatever identifies the asset to the loader: a filesystem path
+// for the default loader, a resolved path the file-format plugin hands to
+// `ArResolver::OpenAsset` for the injected one, which is what lets a
+// package-relative (`asset.usdz[meta.json]`) or URI-style asset be read. The
+// loader stores the asset's full size in `size` and its first
+// `min(size, limit)` bytes in `bytes`. The reader calls it first with a small
+// `limit` to probe the layout and the size, and refuses an oversized asset
+// before asking for the bulk read. A failure returns false with a formatted
+// diagnostic in `error`, which is never null. The default loader reads the filesystem through
+// `OpenInputFile`, so the USD-free tests need no resolver.
+using SogPrimaryLoader =
+    std::function<bool(const std::string& path, std::size_t limit,
+                       std::vector<unsigned char>* bytes, std::uint64_t* size,
+                       std::string* error)>;
+
 // Owns every SOG v2 container concern: layout detection, ZIP central-directory
 // walking (vendored miniz), `meta.json` parsing and schema validation,
 // codebook and range checks, lossless-WebP plane decoding (vendored libwebp),
@@ -108,6 +124,11 @@ class SogReader {
   public:
     SogReader() = default;
     explicit SogReader(SogCompanionLoader companionLoader);
+    // Both seams injected: the file-format plugin reads the primary asset and
+    // its companions through the active asset resolver. An empty function
+    // keeps the corresponding filesystem default.
+    SogReader(SogCompanionLoader companionLoader,
+              SogPrimaryLoader primaryLoader);
 
     // Routing decisions (design policy §7.6, SOG_FORMAT.md §6). Neither one
     // validates enough to promise a successful read: a file claimed here and
@@ -135,7 +156,18 @@ class SogReader {
               std::string* error = nullptr) const;
 
   private:
+    // Reads the primary asset through the injected loader, or the filesystem
+    // when none was given, and holds the loader to its `limit` contract.
+    bool LoadPrimary(const std::string& path, std::size_t limit,
+                     std::vector<unsigned char>* bytes, std::uint64_t* size,
+                     std::string* error) const;
+    bool LoadContainer(const std::string& path,
+                       std::vector<unsigned char>* data,
+                       std::uint64_t* fileSize, bool* bundled,
+                       std::string* error) const;
+
     SogCompanionLoader _companionLoader;
+    SogPrimaryLoader _primaryLoader;
 };
 
 } // namespace openstrata::gs::sog

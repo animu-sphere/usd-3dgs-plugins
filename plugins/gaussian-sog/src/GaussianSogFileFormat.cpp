@@ -14,12 +14,16 @@
 #include "pxr/base/tf/registryManager.h"
 #include "pxr/base/tf/type.h"
 #include "pxr/usd/ar/asset.h"
+#include "pxr/usd/ar/packageUtils.h"
 #include "pxr/usd/ar/resolvedPath.h"
 #include "pxr/usd/ar/resolver.h"
 #include "pxr/usd/sdf/layer.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
+#include <exception>
 #include <future>
 #include <memory>
 #include <string>
@@ -40,12 +44,51 @@ namespace gssog = openstrata::gs::sog;
 // construction.
 constexpr const char* kSourceFormat = gssog::kSourceFormatToken;
 
+// The primary asset -- the `.sog` archive or `meta.json` -- is read through
+// the asset resolver rather than the filesystem: USD hands Read() a resolved
+// path, and only `ArResolver::OpenAsset` knows what it names. For a plain file
+// that is the file; for a package-relative path (`scene.usdz[meta.json]`) it
+// is an entry inside the package; for a custom resolver it may be a URI that
+// no filesystem call could open (RESOLVER_MATRIX.md). The reader asks for a
+// small prefix first and refuses an oversized asset from GetSize() before the
+// bulk read, so the size bounds hold for every resolver.
+bool LoadPrimaryThroughResolver(const std::string& resolvedPath,
+                                std::size_t limit,
+                                std::vector<unsigned char>* bytes,
+                                std::uint64_t* size, std::string* error)
+{
+    const auto fail = [error](const std::string& message) {
+        *error = gssog::diag::Format(gssog::diag::kUnreadableFile, message);
+        return false;
+    };
+
+    const std::shared_ptr<ArAsset> asset =
+        ArGetResolver().OpenAsset(ArResolvedPath(resolvedPath));
+    if (!asset) {
+        return fail("The asset could not be opened for reading: " +
+                    resolvedPath);
+    }
+    *size = static_cast<std::uint64_t>(asset->GetSize());
+    const std::size_t want =
+        static_cast<std::size_t>(std::min<std::uint64_t>(*size, limit));
+    try {
+        bytes->resize(want);
+    } catch (const std::exception&) {
+        return fail("A " + std::to_string(want) + "-byte buffer for '" +
+                    resolvedPath + "' could not be allocated.");
+    }
+    if (want != 0 && asset->Read(bytes->data(), want, 0) != want) {
+        return fail("The asset could not be read: " + resolvedPath);
+    }
+    return true;
+}
+
 // The unbundled layout's property planes are named *relative to* `meta.json`,
 // so they are companion assets and are loaded the way USD loads any other
 // companion: through the asset resolver, anchored on the layer's own resolved
 // path. That is what lets a search-path or packaged resolver find the planes of
-// a `meta.json` it resolved itself. The primary asset still arrives as a
-// resolved path and is read directly, exactly as in the PLY and SPZ bundles.
+// a `meta.json` it resolved itself -- including the sibling entries of a
+// `meta.json` inside a `.usdz`.
 bool LoadCompanionThroughResolver(const std::string& anchorPath,
                                   const std::string& planeName,
                                   std::vector<unsigned char>* bytes,
@@ -66,9 +109,29 @@ bool LoadCompanionThroughResolver(const std::string& anchorPath,
     // path holds -- silently importing another asset's plane. SogReader has
     // already confined planeName to a bare file name, so the prefix cannot
     // change which directory it names (RESOLVER_MATRIX.md).
+    //
+    // A package-relative anchor (`scene.usdz[cloud/meta.json]`) is anchored
+    // here rather than by CreateIdentifier: Ar anchors a package-relative
+    // anchor on its *outer package path*, so "./scales.webp" would name a file
+    // beside `scene.usdz`, not the sibling entry inside it -- the same
+    // other-asset import the "./" prefix exists to prevent. The innermost
+    // packaged path's directory is joined with the bare plane name instead,
+    // and package entries always use '/'.
     ArResolver& resolver = ArGetResolver();
-    const std::string identifier =
-        resolver.CreateIdentifier("./" + planeName, ArResolvedPath(anchorPath));
+    std::string identifier;
+    if (ArIsPackageRelativePath(anchorPath)) {
+        const std::pair<std::string, std::string> split =
+            ArSplitPackageRelativePathInner(anchorPath);
+        const std::string::size_type slash = split.second.find_last_of('/');
+        const std::string directory = slash == std::string::npos ?
+                                          std::string() :
+                                          split.second.substr(0, slash + 1);
+        identifier =
+            ArJoinPackageRelativePath(split.first, directory + planeName);
+    } else {
+        identifier = resolver.CreateIdentifier("./" + planeName,
+                                               ArResolvedPath(anchorPath));
+    }
     const ArResolvedPath resolved =
         identifier.empty() ? ArResolvedPath() : resolver.Resolve(identifier);
     if (!resolved) {
@@ -121,12 +184,12 @@ bool LoadCompanionThroughResolver(const std::string& anchorPath,
     return true;
 }
 
-// One decoder configuration for every read: the reader carries the
-// resolver-backed companion loader above.
+// One decoder configuration for every read and routing decision: the reader
+// carries the resolver-backed primary and companion loaders above.
 gssog::GaussianSogDecoder MakeDecoder()
 {
-    return gssog::GaussianSogDecoder(
-        gssog::SogReader(&LoadCompanionThroughResolver));
+    return gssog::GaussianSogDecoder(gssog::SogReader(
+        &LoadCompanionThroughResolver, &LoadPrimaryThroughResolver));
 }
 
 } // namespace
@@ -170,7 +233,7 @@ bool GaussianSogFileFormat::CanRead(const std::string& file) const
     // it must reach Read() and fail with a specific GSSOG diagnostic rather
     // than be disowned to USD's "no plugin found" (§7.6).
     const std::string extension = SdfFileFormat::GetFileExtension(file);
-    const gssog::GaussianSogDecoder decoder;
+    const gssog::GaussianSogDecoder decoder = MakeDecoder();
     if (extension == GaussianSogFileFormatTokens->Extension) {
         return decoder.CanReadBundled(file);
     }

@@ -6,6 +6,21 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Added
+
+- `gaussian-sog`: the primary asset (`.sog` or `meta.json`) is read through
+  `ArResolver::OpenAsset` instead of the filesystem, so a SOG inside a
+  `.usdz` opens by its package-relative path (`scene.usdz[cloud/meta.json]`,
+  `scene.usdz[cloud.sog]`). An unbundled `meta.json`'s planes are its sibling
+  entries inside the package. Ar would anchor them on the package's own path,
+  where a same-named file beside the `.usdz` could stand in for a plane, so
+  the plugin anchors them itself. The size bounds are checked from
+  `ArAsset::GetSize()` before the bulk read.
+- CI: three `kind: workspace` cells build the composed root tree and run its
+  CTest suites on Windows, macOS, and Linux. Until now those suites (unit,
+  Python smoke and resolver, and cross-format equivalence tests) ran only in
+  the local gate.
+
 ### Changed
 
 - The build and verification toolchain moves from OpenStrata **0.22.10 to

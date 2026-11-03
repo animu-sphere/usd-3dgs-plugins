@@ -17,8 +17,12 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 
 - **The primary asset** (`meta.json` or `.sog`) is resolved by USD like any
   layer. `GaussianSogFileFormat::Read()` receives the resolved path and reads
-  it **directly from the filesystem**, as the PLY and SPZ bundles do. It does
-  not go through `ArAsset`.
+  it **through `ArResolver::OpenAsset`** (`LoadPrimaryThroughResolver`), so a
+  package-relative path or a URI-style identifier is read by the resolver
+  that resolved it. The reader probes the first bytes and the size, and
+  refuses an asset above its layout's bound from `ArAsset::GetSize()` before
+  the bulk read. The PLY and SPZ bundles still read their resolved path from
+  the filesystem.
 - **Each companion plane** is loaded by `LoadCompanionThroughResolver`:
   `CreateIdentifier("./<plane>", <resolved meta.json>)`, then `Resolve` and
   `OpenAsset`. The explicit `./` matters. A bare `scales.webp` is a
@@ -26,6 +30,12 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
   `meta.json`, the resolver looks for it in the current directory and then on
   the context search path. That would import a plane from another asset. The
   `./` prefix limits the lookup to the directory `meta.json` resolved to.
+- **Companions of a packaged `meta.json`** (`scene.usdz[cloud/meta.json]`) are
+  anchored by the plugin, not by `CreateIdentifier`. Ar anchors a
+  package-relative anchor on its outer package path, so `./scales.webp` would
+  name a file beside `scene.usdz`. The plugin joins the directory of the
+  innermost packaged path with the plane name instead
+  (`scene.usdz[cloud/scales.webp]`).
 - **Plane names are restricted before any lookup**: `SogReader` accepts only a
   bare file name. It refuses `/`, `\`, `:`, control characters, `.`, `..`,
   names longer than 255 bytes, and Windows device names. A resolver is never
@@ -43,9 +53,10 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 | Reference by absolute path written with `/` | opens on every platform | ✅ | `case_anchored_references` |
 | Search-path identifier through `ArDefaultResolverContext`, opened directly or by reference | opens | ✅ | `case_search_path` |
 | Windows: `\` and `/` spellings of one absolute path | both open | ⚠️ | `case_windows_spellings` (runs on Windows only; POSIX has one spelling) |
-| Non-ASCII characters in the path | opens. Every reader opens its UTF-8 path through `openstrata::gs::OpenInputFile` (`GaussianFileIO.h`), which on Windows opens the UTF-16 name instead of reinterpreting the bytes in the ANSI code page. PLY and SPZ share the helper. | ⚠️ | reader `TestNonAsciiPath` (both layouts and the directory loader), `gaussianCore_file_io`, and the PLY and SPZ decoder `TestNonAsciiPath`; observed on Linux only. The Windows CI cells compile these tests with MSVC but do not run CTest (it belongs to the local gate, [WORKSPACE.md §8](../architecture/WORKSPACE.md)), so a Windows run is still owed |
-| Package-relative path (`asset.usdz[meta.json]`, or a `.sog` inside a `.usdz`) | not supported: the primary asset is read from the filesystem, not through `ArAsset` | ⛔ | not tested |
-| URI-style identifier served by a custom resolver | not supported, for the same reason | ⛔ | not tested |
+| Non-ASCII characters in the path | opens. The USD-free readers open their UTF-8 path through `openstrata::gs::OpenInputFile` (`GaussianFileIO.h`), which on Windows opens the UTF-16 name instead of reinterpreting the bytes in the ANSI code page. PLY and SPZ share the helper. | ⚠️ | reader `TestNonAsciiPath` (both layouts and the directory loader), `gaussianCore_file_io`, and the PLY and SPZ decoder `TestNonAsciiPath`; observed on Linux only. The `workspace-ctest-pr-*` CI cells now run these suites on Windows, macOS, and Linux ([WORKSPACE.md §8](../architecture/WORKSPACE.md)); the row moves to ✅ once a Windows run is observed |
+| Package-relative path: an unbundled `meta.json` at the root or in a subdirectory of a `.usdz`, opened directly, by reference, or metadata-only; a `.sog` inside a `.usdz` | opens through `ArAsset`; companions are the sibling entries inside the package | ⬜ | `case_package_relative`; reader `TestInjectedPrimaryLoader` (observed on Linux). The USD-level case is written but not yet observed; it first runs in the `workspace-ctest-pr-*` cells |
+| Packaged `meta.json` whose plane is missing from the package, with a valid same-named file beside the package | `GSSOG-E008`; the file beside the package is never used | ⬜ | `case_package_relative` (not yet observed, as above) |
+| URI-style identifier served by a custom resolver | read through `ArAsset`; the reader never interprets the identifier | ⬜ | reader `TestInjectedPrimaryLoader` covers the seam with a URI-like name; no real resolver plugin is tested |
 
 ## Companion planes (unbundled layout)
 
@@ -80,9 +91,14 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
   temporary directory, so the layer registry cannot reuse an earlier case's
   result.
 - `plugins/gaussian-sog/tests/test_gaussian_sog_reader.cpp`: the
-  resolver-independent seam (`TestResolverSeam`,
-  `TestInjectedCompanionLoader`). It needs no USD.
+  resolver-independent seams (`TestResolverSeam`,
+  `TestInjectedCompanionLoader`, `TestInjectedPrimaryLoader`). It needs no
+  USD.
 
-Next steps for the ⛔, ⚠️, and ⬜ rows: open the primary asset through
-`ArAsset` (this enables package-relative and URI-style identifiers), run the
-non-ASCII tests' CTest on Windows, and add a minimal test resolver plugin.
+Both run in the `workspace-ctest-pr-*` CI cells on all three hosted
+platforms, as well as in the local gate.
+
+Next steps for the ⚠️ and ⬜ rows: observe the non-ASCII tests in the
+Windows CTest cell, and add a minimal test resolver plugin (URI-style
+identifiers, companions served by a custom resolver, and a stream without
+`GetBuffer()`).
