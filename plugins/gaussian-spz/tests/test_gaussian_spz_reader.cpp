@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -237,6 +238,43 @@ void TestCanRead()
     CHECK(!reader.CanRead(Fixture("does-not-exist.spz")));
 }
 
+// The real-size source bound (IMPORT_LIMITS.md): a gzip-signed file one byte
+// past 1 GiB. resize_file grows it without writing the hole (sparse on Linux
+// and macOS, an unwritten extension on NTFS), and both reads must refuse it
+// from its size before any bulk read.
+void TestOversizedSource()
+{
+    const std::filesystem::path directory =
+        std::filesystem::temp_directory_path() /
+        "gaussian-spz-reader-oversized-source";
+    std::filesystem::create_directories(directory);
+    const std::filesystem::path path = directory / "oversized.spz";
+    {
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        const unsigned char gzip[] = {0x1f, 0x8b, 0x08, 0x00};
+        out.write(reinterpret_cast<const char*>(gzip), sizeof gzip);
+        CHECK(static_cast<bool>(out));
+    }
+    std::error_code grown;
+    std::filesystem::resize_file(path, 1024ull * 1024ull * 1024ull + 1, grown);
+    CHECK(!grown);
+
+    const gsspz::SpzReader reader;
+    gsspz::SpzPackedDocument document;
+    std::string error;
+    CHECK(!reader.Read(path.string(), &document, &error));
+    CHECK(HasCode(error, gsspz::diag::kImportLimitExceeded));
+    CHECK(error.find("-byte input limit") != std::string::npos);
+
+    gsspz::SpzHeader header;
+    error.clear();
+    CHECK(!reader.ReadHeader(path.string(), &header, &error));
+    CHECK(HasCode(error, gsspz::diag::kImportLimitExceeded));
+
+    std::error_code ignored;
+    std::filesystem::remove_all(directory, ignored);
+}
+
 void TestInternalMisuse()
 {
     const gsspz::SpzReader reader;
@@ -291,6 +329,7 @@ int main()
 
     TestHeaderOnlySemantics();
     TestCanRead();
+    TestOversizedSource();
     TestInternalMisuse();
 
     if (failures != 0) {

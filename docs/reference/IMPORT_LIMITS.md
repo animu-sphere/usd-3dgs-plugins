@@ -65,10 +65,15 @@ message naming the budget that fired.
 | SOG plane dimensions | `oversized-plane-dimensions.sog` (header declares 16,384 x 1) | `GSSOG-E016` |
 | SOG decoded RGBA plane size | `oversized-plane-bytes.sog` (header declares 16,383 x 16,383) | `GSSOG-E016` |
 | SPZ extension records | `oversized-extensions-v2.spz` (64 MiB + 1 byte of zeros, ~64 KiB compressed) | `GSPZ-E015` |
+| SOG bundled archive source size | `.sog` grown to 1 GiB + 1 byte at test time (reader `TestOversizedBundledArchive`) | `GSSOG-E016` (full and metadata-only reads) |
+| SPZ source file size | `.spz` grown to 1 GiB + 1 byte at test time (reader `TestOversizedSource`) | `GSPZ-E015` (full and header-only reads) |
+| SOG companion input size, directory loader | `quats.webp` grown to 512 MiB + 1 byte at test time (reader `TestOversizedUnbundledCompanion`) | `GSSOG-E016`; the metadata-only read still succeeds |
+| SOG companion input size, asset resolver | same, opened through `ArDefaultResolver` (`test_gaussian_sog_resolver.py` `case_oversized_companion`) | `GSSOG-E016` |
 
-Not yet covered by an automated input, because the hostile value is the real
-size of a file rather than a declared one: the 1 GiB bundled SOG archive and
-SPZ source bounds, and the 512 MiB bound on a resolver-supplied unbundled SOG
-companion. Each is checked from the size before the bulk read; covering them
-needs a sparse-file or injected-loader test that does not commit or allocate
-the bytes.
+The real-size rows grow a small file with `resize_file` / `truncate`, which
+leaves the tail unwritten (a sparse hole on Linux and macOS, an unwritten
+extension on NTFS). Nothing is committed, and each reader refuses the file
+from its size before the bulk read, so the tests neither write nor allocate
+the bytes. The reader's own re-check of a buffer that an injected companion
+loader has already returned is not exercised: reaching it needs a real
+512 MiB allocation.

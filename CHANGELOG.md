@@ -13,12 +13,18 @@ semantic versioning for tagged releases.
   as a search-path asset path. A same-named file in the current directory or
   on the resolver context's search path could then be imported in the
   missing plane's place.
+- `gaussian-spz`: a source file above the 1 GiB input bound is now refused
+  from its size before the bulk read. Previously the full read loaded the
+  first 1 GiB into memory and only then reported `GSPZ-E015`.
 
 ### Added
 
 - Hostile-input fixtures for every declared-size import budget, and an
   asset-resolver test matrix for unbundled SOG
   ([RESOLVER_MATRIX.md](docs/reference/RESOLVER_MATRIX.md)).
+- Sparse-file tests for the real-size import bounds: the 1 GiB bundled SOG
+  archive and SPZ source, and the 512 MiB SOG companion plane through both
+  the reader's directory loader and the asset resolver.
 
 ## [0.5.1] - 2026-09-16
 
