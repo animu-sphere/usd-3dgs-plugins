@@ -51,3 +51,13 @@ add_test(
         "${CMAKE_CURRENT_SOURCE_DIR}/test_gaussian_sog_plugin.py")
 set_tests_properties(gaussianSog_python_smoke PROPERTIES
     ENVIRONMENT_MODIFICATION "${_smoke_env}")
+
+# The asset-resolver matrix for the unbundled layout
+# (docs/reference/RESOLVER_MATRIX.md): primary-asset spellings, anchored and
+# search-path references, and companion failures through ArDefaultResolver.
+add_test(
+    NAME gaussianSog_python_resolver
+    COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test_gaussian_sog_resolver.py")
+set_tests_properties(gaussianSog_python_resolver PROPERTIES
+    ENVIRONMENT_MODIFICATION "${_smoke_env}")

@@ -253,6 +253,81 @@ void TestInjectedCompanionLoader()
     CHECK(document.metadata.gaussianCount == 3);
 }
 
+// The resolver half of the seam, as RESOLVER_MATRIX.md states it: the loader is
+// handed the primary path as the anchor and a bare plane name -- never a path,
+// never a URI -- it alone decides what that name resolves to, and its own
+// diagnostic reaches the caller unchanged. The metadata-only read never calls
+// it at all.
+void TestResolverSeam()
+{
+    const std::filesystem::path directory =
+        std::filesystem::path(GAUSSIAN_SOG_FIXTURE_DIR) /
+        "unbundled-kit-multi-degree3";
+    const std::string anchor = (directory / "meta.json").string();
+
+    std::vector<std::string> anchors;
+    std::vector<std::string> names;
+    const auto recording = [&anchors, &names,
+                            &directory](const std::string& anchorPath,
+                                        const std::string& planeName,
+                                        std::vector<unsigned char>* bytes,
+                                        std::string* error) {
+        (void)error;
+        anchors.push_back(anchorPath);
+        names.push_back(planeName);
+        std::ifstream in(directory / planeName, std::ios::binary);
+        *bytes = std::vector<unsigned char>(std::istreambuf_iterator<char>(in),
+                                            std::istreambuf_iterator<char>());
+        return static_cast<bool>(in) || in.eof();
+    };
+
+    gssog::SogDocument document;
+    std::string error;
+    CHECK(gssog::SogReader(recording).Read(anchor, &document, &error));
+    const std::vector<std::string> expected = {
+        "means_l.webp", "means_u.webp",       "scales.webp",    "quats.webp",
+        "sh0.webp",     "shN_centroids.webp", "shN_labels.webp"};
+    CHECK(names == expected);
+    for (const std::string& seen : anchors) {
+        CHECK(seen == anchor);
+    }
+
+    // Metadata-only: meta.json alone, not one companion requested.
+    anchors.clear();
+    names.clear();
+    gssog::SogMetadata metadata;
+    CHECK(gssog::SogReader(recording).ReadMetadata(anchor, &metadata, &error));
+    CHECK(metadata.gaussianCount == 3);
+    CHECK(names.empty());
+
+    // A name that is a path or a URI is refused before the loader sees it, so
+    // no resolver is ever asked to interpret one.
+    for (const char* fixture : {"unbundled-backslash-plane-name/meta.json",
+                                "unbundled-uri-plane-name/meta.json"}) {
+        names.clear();
+        error.clear();
+        CHECK(!gssog::SogReader(recording).Read(Fixture(fixture), &document,
+                                                &error));
+        CHECK(HasCode(error, gssog::diag::kMalformedMetadata));
+        CHECK(names.empty());
+        ExpectCode(fixture, gssog::diag::kMalformedMetadata);
+    }
+
+    // The loader's own diagnostic is what the caller sees.
+    const gssog::SogReader refusing(
+        [](const std::string&, const std::string& planeName,
+           std::vector<unsigned char>*, std::string* failure) {
+            *failure =
+                gssog::diag::Format(gssog::diag::kMissingPlane,
+                                    "resolver refused '" + planeName + "'");
+            return false;
+        });
+    error.clear();
+    CHECK(!refusing.Read(anchor, &document, &error));
+    CHECK(error == gssog::diag::Format(gssog::diag::kMissingPlane,
+                                       "resolver refused 'means_l.webp'"));
+}
+
 // --- metadata-only -----------------------------------------------------------
 
 // The metadata path parses meta.json and nothing else, so a document whose
@@ -456,6 +531,7 @@ int main()
     TestDeflatedArchiveMatchesStored();
     TestUnbundledMatchesBundled();
     TestInjectedCompanionLoader();
+    TestResolverSeam();
     TestMetadataOnly();
     TestMalformedContainers();
     TestContainerBudgets();

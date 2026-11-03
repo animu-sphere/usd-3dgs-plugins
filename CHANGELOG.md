@@ -6,6 +6,20 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- `gaussian-sog`: an unbundled `meta.json` whose property plane is missing
+  now always fails with `GSSOG-E008`. Previously the plane name was resolved
+  as a search-path asset path. A same-named file in the current directory or
+  on the resolver context's search path could then be imported in the
+  missing plane's place.
+
+### Added
+
+- Hostile-input fixtures for every declared-size import budget, and an
+  asset-resolver test matrix for unbundled SOG
+  ([RESOLVER_MATRIX.md](docs/reference/RESOLVER_MATRIX.md)).
+
 ## [0.5.1] - 2026-09-16
 
 **Release polish and hostile-input hardening.**

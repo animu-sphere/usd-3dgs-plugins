@@ -176,7 +176,13 @@ real environments and package paths were actually verified.
   see the [coverage table](../reference/IMPORT_LIMITS.md#test-coverage).
   Remaining: the real-file-size bounds (1 GiB SOG archive and SPZ source,
   512 MiB resolver-supplied SOG companion).
-- ⬜ Create the asset-resolver test matrix.
+- 🚧 Asset-resolver test matrix: the
+  [matrix](../reference/RESOLVER_MATRIX.md) is defined and its
+  `ArDefaultResolver` rows are automated. That work found and fixed a missing
+  companion being replaced by a same-named file from the current directory or
+  search path. Remaining: package-relative and URI-style primary identifiers
+  (the primary is read from the filesystem), non-ASCII paths on Windows, and
+  a test resolver plugin.
 - ⬜ Define the large-asset benchmark corpus.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 

@@ -657,6 +657,17 @@ def main() -> None:
     del incomplete["sh0.webp"]
     write_unbundled("unbundled-missing-plane", multi_meta, incomplete)
 
+    # Companion names a resolver must never be handed (RESOLVER_MATRIX.md):
+    # a Windows-style subdirectory path and a URI-like identifier. Both are
+    # refused as malformed metadata before any companion is looked up, so the
+    # planes beside them would not be read and are not written.
+    backslash = json.loads(json.dumps(multi_meta))
+    backslash["scales"]["files"] = ["planes\\scales.webp"]
+    write_unbundled("unbundled-backslash-plane-name", backslash, {})
+    uri = json.loads(json.dumps(multi_meta))
+    uri["scales"]["files"] = ["file:scales.webp"]
+    write_unbundled("unbundled-uri-plane-name", uri, {})
+
 
 if __name__ == "__main__":
     main()
