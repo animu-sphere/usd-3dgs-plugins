@@ -59,6 +59,17 @@ def peak_resident_bytes() -> int | None:
                                ctypes.byref(counters), counters.cb):
                 return int(counters.PeakWorkingSetSize)
         return None
+    if sys.platform.startswith("linux"):
+        # VmHWM is this process image's own high-water mark. ru_maxrss is
+        # not: Linux starts a child's from its parent's resident size at fork
+        # and keeps it across exec, so a large parent would inflate the peak.
+        try:
+            with open("/proc/self/status", encoding="ascii") as status:
+                for line in status:
+                    if line.startswith("VmHWM:"):
+                        return int(line.split()[1]) * 1024
+        except OSError:
+            pass
     try:
         import resource
         peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
