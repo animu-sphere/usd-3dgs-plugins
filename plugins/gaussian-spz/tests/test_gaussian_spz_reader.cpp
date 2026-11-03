@@ -269,6 +269,8 @@ int main()
     TestReadFailure("empty-points-v2.spz", gsspz::diag::kEmptyPointSet);
     TestReadFailure("huge-count-v2.spz", gsspz::diag::kInvalidPointCount);
     TestReadFailure("shared-limit-v2.spz", gsspz::diag::kImportLimitExceeded);
+    TestReadFailure("oversized-extensions-v2.spz",
+                    gsspz::diag::kImportLimitExceeded);
     TestReadFailure("sh-degree-5-v2.spz", gsspz::diag::kInvalidShDegree);
     TestReadFailure("count-exceeds-stream-v2.spz",
                     gsspz::diag::kTruncatedContainer);

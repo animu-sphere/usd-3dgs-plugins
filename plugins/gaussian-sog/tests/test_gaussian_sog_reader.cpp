@@ -58,6 +58,27 @@ void ExpectCode(const std::string& name, const char* code)
     }
 }
 
+// ExpectCode, plus a message fragment that tells apart failures sharing one
+// code -- every container budget reports GSSOG-E016, and a test that only
+// checked the code could pass on the wrong limit.
+void ExpectCodeWith(const std::string& name, const char* code,
+                    const std::string& fragment)
+{
+    gssog::SogDocument document;
+    std::string error;
+    if (gssog::SogReader().Read(Fixture(name), &document, &error)) {
+        std::cerr << name << ": expected failure " << code << ", but the read "
+                  << "succeeded\n";
+        ++failures;
+        return;
+    }
+    if (!HasCode(error, code) || error.find(fragment) == std::string::npos) {
+        std::cerr << name << ": expected " << code << " mentioning \""
+                  << fragment << "\", got: " << error << "\n";
+        ++failures;
+    }
+}
+
 // --- routing ----------------------------------------------------------------
 
 void TestRouting()
@@ -316,6 +337,78 @@ void TestMalformedContainers()
     CHECK(HasCode(error, gssog::diag::kInternalError));
 }
 
+// --- hostile input: the container budgets of IMPORT_LIMITS.md ---------------
+
+// Each fixture is small on disk; what is hostile is the size it declares. The
+// reader must refuse every one before sizing a buffer from that declaration
+// (an ASan build of this test would otherwise trip on the allocation).
+void TestContainerBudgets()
+{
+    ExpectCodeWith("too-many-entries.sog", gssog::diag::kImportLimitExceeded,
+                   "-entry limit");
+    ExpectCodeWith("oversized-entry.sog", gssog::diag::kImportLimitExceeded,
+                   "per-entry extraction limit");
+    ExpectCodeWith("oversized-expansion.sog", gssog::diag::kImportLimitExceeded,
+                   "expanded bytes");
+    ExpectCodeWith("oversized-plane-dimensions.sog",
+                   gssog::diag::kImportLimitExceeded, "-pixel dimension limit");
+    ExpectCodeWith("oversized-plane-bytes.sog",
+                   gssog::diag::kImportLimitExceeded, "-byte decoded limit");
+    ExpectCodeWith("duplicate-entry.sog", gssog::diag::kMalformedArchive,
+                   "duplicate entry");
+    ExpectCodeWith("duplicate-plane-name.sog", gssog::diag::kMalformedMetadata,
+                   "more than once");
+
+    // The archive budgets guard the central directory, which the
+    // metadata-only path walks too: it must not report a count for an
+    // archive a full read refuses.
+    gssog::SogMetadata metadata;
+    std::string error;
+    CHECK(!gssog::SogReader().ReadMetadata(Fixture("too-many-entries.sog"),
+                                           &metadata, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+    error.clear();
+    CHECK(!gssog::SogReader().ReadMetadata(Fixture("oversized-expansion.sog"),
+                                           &metadata, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+}
+
+// An unbundled meta.json one byte past the 4 MiB bound. Written at test time
+// rather than committed, and refused from its size before the parser runs --
+// by the full read and the metadata-only read alike.
+void TestOversizedUnbundledMetadata()
+{
+    const std::filesystem::path directory =
+        std::filesystem::temp_directory_path() /
+        "gaussian-sog-reader-oversized-meta";
+    std::filesystem::create_directories(directory);
+    const std::filesystem::path path = directory / "meta.json";
+    {
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        out << '{';
+        const std::string spaces(64 * 1024, ' ');
+        for (int i = 0; i < 64; ++i) {
+            out << spaces;
+        }
+        out << '}';
+        CHECK(static_cast<bool>(out));
+    }
+
+    gssog::SogDocument document;
+    std::string error;
+    CHECK(!gssog::SogReader().Read(path.string(), &document, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+    CHECK(error.find("meta.json is") != std::string::npos);
+
+    gssog::SogMetadata metadata;
+    error.clear();
+    CHECK(!gssog::SogReader().ReadMetadata(path.string(), &metadata, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+
+    std::error_code ignored;
+    std::filesystem::remove_all(directory, ignored);
+}
+
 void TestJsonTokenLimit()
 {
     std::string json = "[";
@@ -365,6 +458,8 @@ int main()
     TestInjectedCompanionLoader();
     TestMetadataOnly();
     TestMalformedContainers();
+    TestContainerBudgets();
+    TestOversizedUnbundledMetadata();
     TestJsonTokenLimit();
     TestJsonDepthLimit();
 
