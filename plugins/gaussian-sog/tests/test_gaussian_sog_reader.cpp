@@ -11,9 +11,11 @@
 #include "io/GaussianSogDiagnostics.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -484,6 +486,107 @@ void TestOversizedUnbundledMetadata()
     std::filesystem::remove_all(directory, ignored);
 }
 
+// Grows `path` to `size` bytes after `prefix`, without writing the rest:
+// resize_file leaves a sparse hole on Linux and macOS and an unwritten
+// extension on NTFS, so a test can present a multi-gigabyte real file size
+// without committing, writing, or reading those bytes.
+bool MakeOversizedFile(const std::filesystem::path& path,
+                       const std::vector<unsigned char>& prefix,
+                       std::uintmax_t size)
+{
+    {
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        out.write(reinterpret_cast<const char*>(prefix.data()),
+                  static_cast<std::streamsize>(prefix.size()));
+        if (!out) {
+            return false;
+        }
+    }
+    std::error_code error;
+    std::filesystem::resize_file(path, size, error);
+    if (error) {
+        std::cerr << path.string() << ": could not be grown to " << size
+                  << " bytes: " << error.message() << "\n";
+        return false;
+    }
+    return true;
+}
+
+// The real-size bounds (IMPORT_LIMITS.md): a bundled archive one byte past
+// 1 GiB, refused from its size before the bulk read by the full and the
+// metadata-only read alike.
+void TestOversizedBundledArchive()
+{
+    const std::filesystem::path directory =
+        std::filesystem::temp_directory_path() /
+        "gaussian-sog-reader-oversized-archive";
+    std::filesystem::create_directories(directory);
+    const std::filesystem::path path = directory / "oversized.sog";
+    CHECK(MakeOversizedFile(path, {'P', 'K', 0x03, 0x04},
+                            1024ull * 1024ull * 1024ull + 1));
+
+    gssog::SogDocument document;
+    std::string error;
+    CHECK(!gssog::SogReader().Read(path.string(), &document, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+    CHECK(error.find("-byte archive limit") != std::string::npos);
+
+    gssog::SogMetadata metadata;
+    error.clear();
+    CHECK(!gssog::SogReader().ReadMetadata(path.string(), &metadata, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+    CHECK(error.find("-byte archive limit") != std::string::npos);
+
+    std::error_code ignored;
+    std::filesystem::remove_all(directory, ignored);
+}
+
+// An unbundled companion one byte past the 512 MiB plane input bound, reached
+// through the default directory loader. It is refused from its size before
+// its bytes are read, while the metadata-only read, which never opens a
+// plane, still succeeds.
+void TestOversizedUnbundledCompanion()
+{
+    const std::filesystem::path source =
+        std::filesystem::path(GAUSSIAN_SOG_FIXTURE_DIR) /
+        "unbundled-kit-multi-degree3";
+    const std::filesystem::path directory =
+        std::filesystem::temp_directory_path() /
+        "gaussian-sog-reader-oversized-companion";
+    std::error_code ignored;
+    std::filesystem::remove_all(directory, ignored);
+    std::filesystem::create_directories(directory);
+    for (const auto& entry : std::filesystem::directory_iterator(source)) {
+        std::filesystem::copy_file(entry.path(),
+                                   directory / entry.path().filename());
+    }
+
+    const std::filesystem::path plane = directory / "quats.webp";
+    std::vector<unsigned char> prefix;
+    {
+        std::ifstream in(plane, std::ios::binary);
+        prefix.assign(std::istreambuf_iterator<char>(in),
+                      std::istreambuf_iterator<char>());
+    }
+    CHECK(!prefix.empty());
+    CHECK(MakeOversizedFile(plane, prefix, gssog::kMaxPlaneBytes + 1));
+
+    const std::string meta = (directory / "meta.json").string();
+    gssog::SogDocument document;
+    std::string error;
+    CHECK(!gssog::SogReader().Read(meta, &document, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+    CHECK(error.find("'quats.webp'") != std::string::npos);
+    CHECK(error.find("-byte input limit") != std::string::npos);
+
+    gssog::SogMetadata metadata;
+    error.clear();
+    CHECK(gssog::SogReader().ReadMetadata(meta, &metadata, &error));
+    CHECK(metadata.gaussianCount == 3);
+
+    std::filesystem::remove_all(directory, ignored);
+}
+
 void TestJsonTokenLimit()
 {
     std::string json = "[";
@@ -536,6 +639,8 @@ int main()
     TestMalformedContainers();
     TestContainerBudgets();
     TestOversizedUnbundledMetadata();
+    TestOversizedBundledArchive();
+    TestOversizedUnbundledCompanion();
     TestJsonTokenLimit();
     TestJsonDepthLimit();
 

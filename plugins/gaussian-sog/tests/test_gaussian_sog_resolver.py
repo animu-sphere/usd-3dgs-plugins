@@ -197,6 +197,19 @@ def case_missing_companion_is_not_searched(root):
         os.chdir(previous)
 
 
+def case_oversized_companion(root):
+    """A companion one byte past the 512 MiB plane input bound is refused from
+    ArAsset::GetSize() before a buffer is allocated. truncate() grows the file
+    without writing the hole (sparse on Linux and macOS, an unwritten
+    extension on NTFS), so the test neither commits nor reads those bytes."""
+    meta = copy_asset(root / "oversized-companion")
+    with open(meta.parent / "quats.webp", "r+b") as plane:
+        plane.truncate(512 * 1024 * 1024 + 1)
+    caught = expect_failure(lambda: Usd.Stage.Open(str(meta)), "GSSOG-E016")
+    assert "quats.webp" in caught, caught
+    assert "-byte input limit" in caught, caught
+
+
 def case_metadata_only_skips_companions(root):
     """Metadata-only reads must not open a property plane: with every
     companion gone, the metadata still comes from meta.json alone."""
@@ -263,6 +276,7 @@ def main():
         case_search_path(root)
         case_missing_companion(root)
         case_missing_companion_is_not_searched(root)
+        case_oversized_companion(root)
         case_metadata_only_skips_companions(root)
         case_companion_case(root)
         case_unsafe_companion_names()

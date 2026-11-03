@@ -61,7 +61,7 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 | Windows device name (`NUL.webp`) | `GSSOG-E005` on every platform | ✅ | `device-plane-name.sog` |
 | Loader-reported failure | the loader's own diagnostic reaches the caller unchanged | ✅ | reader `TestResolverSeam` |
 | Loader receives the primary path as anchor and bare plane names, in a fixed order | as stated | ✅ | reader `TestResolverSeam`, `TestInjectedCompanionLoader` |
-| Companion larger than 512 MiB | `GSSOG-E016`, checked from `ArAsset::GetSize()` before allocation | ⬜ | not tested ([IMPORT_LIMITS.md](IMPORT_LIMITS.md#test-coverage)) |
+| Companion larger than 512 MiB | `GSSOG-E016`, checked from `ArAsset::GetSize()` before allocation | ✅ | `case_oversized_companion` (sparse file); reader `TestOversizedUnbundledCompanion` ([IMPORT_LIMITS.md](IMPORT_LIMITS.md#test-coverage)) |
 | Custom `ArResolver` plugin serving companions | the seam is verified with an injected loader; no real resolver plugin is tested | ⬜ | reader `TestInjectedCompanionLoader` covers the seam only |
 | Resolver that serves a stream without `GetBuffer()` | read through `ArAsset::Read()` | ⬜ | needs a custom resolver |
 

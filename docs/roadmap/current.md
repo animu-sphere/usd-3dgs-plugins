@@ -170,12 +170,13 @@ real environments and package paths were actually verified.
 
 ## Immediate actions
 
-- 🚧 Broaden hostile-input fixture coverage. Every declared-size budget now
-  has a fixture (ZIP entry count, entry and expanded size, duplicate entries
-  and plane names, plane dimensions and decoded size, SPZ extension records);
-  see the [coverage table](../reference/IMPORT_LIMITS.md#test-coverage).
-  Remaining: the real-file-size bounds (1 GiB SOG archive and SPZ source,
-  512 MiB resolver-supplied SOG companion).
+- ✅ Broaden hostile-input fixture coverage. Every declared-size budget has a
+  fixture, and the real-file-size bounds (1 GiB SOG archive and SPZ source,
+  512 MiB SOG companion through the directory loader and the asset resolver)
+  are covered by sparse files grown at test time; see the
+  [coverage table](../reference/IMPORT_LIMITS.md#test-coverage). That work
+  found and fixed the SPZ full read loading up to 1 GiB before refusing an
+  oversized file.
 - 🚧 Asset-resolver test matrix: the
   [matrix](../reference/RESOLVER_MATRIX.md) is defined and its
   `ArDefaultResolver` rows are automated. That work found and fixed a missing
