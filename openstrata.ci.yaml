@@ -76,6 +76,12 @@ cells:
     bundle: plugins/gaussian-ply
     platform: cy2026
     profile: usd
+    # ost 0.23.x `runtime validate` links and runs a C++ consumer
+    # (`consumer-link`). The Windows runtime bundles no interpreter and its USD
+    # DLLs import python313.dll, so without a host Python on PATH the consumer
+    # dies at 0xC0000135 (DLL not found). The Linux and macOS cells already
+    # declare 3.13; usd-vrm-plugins measured the same fix on its Windows cells.
+    host_python: "3.13"
     up_to: 4
 
   - name: gaussian-ply-pr-macos-arm64
@@ -129,6 +135,12 @@ cells:
     bundle: plugins/gaussian-spz
     platform: cy2026
     profile: usd
+    # ost 0.23.x `runtime validate` links and runs a C++ consumer
+    # (`consumer-link`). The Windows runtime bundles no interpreter and its USD
+    # DLLs import python313.dll, so without a host Python on PATH the consumer
+    # dies at 0xC0000135 (DLL not found). The Linux and macOS cells already
+    # declare 3.13; usd-vrm-plugins measured the same fix on its Windows cells.
+    host_python: "3.13"
     up_to: 4
 
   - name: gaussian-spz-pr-macos-arm64
@@ -184,6 +196,12 @@ cells:
     bundle: plugins/gaussian-sog
     platform: cy2026
     profile: usd
+    # ost 0.23.x `runtime validate` links and runs a C++ consumer
+    # (`consumer-link`). The Windows runtime bundles no interpreter and its USD
+    # DLLs import python313.dll, so without a host Python on PATH the consumer
+    # dies at 0xC0000135 (DLL not found). The Linux and macOS cells already
+    # declare 3.13; usd-vrm-plugins measured the same fix on its Windows cells.
+    host_python: "3.13"
     up_to: 4
 
   - name: gaussian-sog-pr-macos-arm64

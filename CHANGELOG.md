@@ -17,6 +17,11 @@ semantic versioning for tagged releases.
   workspace declares none, so the step pulls nothing. The three OpenUSD 26.08
   runtime pins are unchanged: the registry still serves those leaves at the
   pinned digests, and 26.08 is still the newest runtime ost publishes.
+- The Windows CI cells now declare `host_python: "3.13"`, as the Linux and
+  macOS cells already did, and `release.yml` sets up host Python before
+  validating the runtime. ost 0.23.x `runtime validate` links and runs a C++
+  consumer (`consumer-link`); the Windows runtime bundles no interpreter, so
+  without a host `python313.dll` on PATH that consumer exits `0xC0000135`.
 
 ### Fixed
 

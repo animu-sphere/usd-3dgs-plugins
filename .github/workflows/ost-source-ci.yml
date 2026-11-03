@@ -54,7 +54,7 @@ jobs:
             runner_profile: windows-hosted
             bundle: plugins/gaussian-ply
             runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf"
-            host_python: ""
+            host_python: "3.13"
             host_packages_apt: ""
             host_packages_brew: ""
           - name: gaussian-ply-pr-macos-arm64
@@ -117,7 +117,7 @@ jobs:
             runner_profile: windows-hosted
             bundle: plugins/gaussian-spz
             runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf"
-            host_python: ""
+            host_python: "3.13"
             host_packages_apt: ""
             host_packages_brew: ""
           - name: gaussian-spz-pr-macos-arm64
@@ -180,7 +180,7 @@ jobs:
             runner_profile: windows-hosted
             bundle: plugins/gaussian-sog
             runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf"
-            host_python: ""
+            host_python: "3.13"
             host_packages_apt: ""
             host_packages_brew: ""
           - name: gaussian-sog-pr-macos-arm64
