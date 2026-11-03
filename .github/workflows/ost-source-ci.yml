@@ -433,3 +433,306 @@ jobs:
           path: |
             ${{ matrix.bundle }}/.strata/reports/
             .ost-ci/
+  pr-workspace:
+    if: github.event_name == 'pull_request'
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs_on }}
+    env:
+      OST_CI_CELL: ${{ matrix.name }}
+      OST_CI_LANE: ${{ matrix.lane }}
+      OST_CI_RUNNER_PROFILE: ${{ matrix.runner_profile }}
+      OST_CI_RUNS_ON: ${{ join(matrix.runs_on, ',') }}
+      OST_CI_RUNTIME_ARTIFACT: ${{ matrix.runtime_artifact }}
+      OST_CI_MINIMUM_TRUST: ${{ matrix.minimum_trust }}
+      OST_HOME: ${{ matrix.hosted && format('{0}/.ost-ci-home', github.workspace) || '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: workspace-ctest-pr-windows
+            lane: pull_request
+            runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+            require_openusd: "cy2026/windows/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/windows/x86_64/gl --require-openusd-version 26.08"
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            runs_on: ["windows-2022"]
+            hosted: true
+            runner_profile: windows-hosted
+            verify: test
+            intent_flags: ""
+            up_to: 5
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf"
+            host_python: "3.13"
+            host_packages_apt: ""
+            host_packages_brew: ""
+          - name: workspace-ctest-pr-macos-arm64
+            lane: pull_request
+            runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+            require_openusd: "cy2026/macos/arm64/metal"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/macos/arm64/metal --require-openusd-version 26.08"
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            runs_on: ["macos-15"]
+            hosted: true
+            runner_profile: macos-arm64-hosted
+            verify: test
+            intent_flags: ""
+            up_to: 5
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6"
+            host_python: "3.13"
+            host_packages_apt: ""
+            host_packages_brew: ""
+          - name: workspace-ctest-pr-linux
+            lane: pull_request
+            runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+            require_openusd: "cy2026/linux/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/linux/x86_64/gl --require-openusd-version 26.08"
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            runs_on: ["ubuntu-24.04"]
+            hosted: true
+            runner_profile: linux-hosted
+            verify: test
+            intent_flags: ""
+            up_to: 5
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f"
+            host_python: "3.13"
+            host_packages_apt: "libx11-dev libxt-dev"
+            host_packages_brew: ""
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Hosted runner billing notice
+        if: ${{ matrix.hosted }}
+        shell: bash
+        run: echo "::notice title=OpenStrata hosted-runner usage::This job uses GitHub-hosted infrastructure. Private repositories may incur GitHub Actions usage charges. Review repository billing and Actions usage settings."
+      - name: Bootstrap ost 0.23.19 (pinned release asset, checksum-verified)
+        if: ${{ matrix.hosted }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          case "${RUNNER_OS}-${RUNNER_ARCH}" in
+            Linux-X64)   triple=x86_64-unknown-linux-musl ; ext=tar.xz ;;
+            macOS-ARM64) triple=aarch64-apple-darwin ; ext=tar.xz ;;
+            macOS-X64)   triple=x86_64-apple-darwin ; ext=tar.xz ;;
+            Windows-X64) triple=x86_64-pc-windows-msvc ; ext=zip ;;
+            *) echo "::error title=ost bootstrap::no ost release asset for ${RUNNER_OS}-${RUNNER_ARCH}" ; exit 1 ;;
+          esac
+          pinned=""
+          case "$triple" in
+            *) : ;;
+          esac
+          asset="ost-cli-${triple}.${ext}"
+          base="https://github.com/animu-sphere/open-strata/releases/download/v0.23.19"
+          curl -fsSLo "$asset" "$base/$asset"
+          curl -fsSLo "$asset.sha256" "$base/$asset.sha256"
+          actual="$( (command -v sha256sum > /dev/null && sha256sum "$asset" || shasum -a 256 "$asset") | cut -d' ' -f1 )"
+          published="$(cut -d' ' -f1 "$asset.sha256")"
+          if [ "$actual" != "$published" ]; then
+            echo "::error title=ost bootstrap::$asset hashes to $actual but the release publishes $published" ; exit 1
+          fi
+          if [ -n "$pinned" ] && [ "$actual" != "$pinned" ]; then
+            echo "::error title=ost bootstrap::$asset hashes to $actual but the CI contract pins $pinned" ; exit 1
+          fi
+          mkdir -p .ost-ci/bootstrap-bin
+          if [ "$ext" = "zip" ]; then
+            powershell -NoProfile -Command "Expand-Archive -LiteralPath '$asset' -DestinationPath '.ost-ci/bootstrap-bin' -Force"
+          else
+            tar -xf "$asset" -C .ost-ci/bootstrap-bin
+          fi
+          bin="$(find .ost-ci/bootstrap-bin -type f \( -name ost -o -name ost.exe \) | head -n 1)"
+          if [ -z "$bin" ]; then echo "::error title=ost bootstrap::no ost binary inside $asset" ; exit 1 ; fi
+          chmod +x "$bin" 2> /dev/null || true
+          bin_dir="$(cd "$(dirname "$bin")" && pwd)"
+          bin="$bin_dir/$(basename "$bin")"
+          executable="$bin"
+          exported_path="$bin_dir"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            if ! command -v cygpath > /dev/null; then
+              echo "::error title=ost bootstrap::cygpath is required to export a native Windows PATH" ; exit 1
+            fi
+            executable="$(cygpath -w "$bin")"
+            exported_path="$(cygpath -w "$bin_dir")"
+          fi
+          echo "$exported_path" >> "$GITHUB_PATH"
+          json_executable="$(printf '%s' "$executable" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+          json_exported_path="$(printf '%s' "$exported_path" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+          printf '{"schema":1,"pinned_version":"%s","asset":"%s","sha256":"%s","executable":"%s","exported_path":"%s"}\n' "0.23.19" "$asset" "$actual" "$json_executable" "$json_exported_path" > .ost-ci/bootstrap.json
+      - name: Check ost is available and record its version
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          if [ "${{ matrix.hosted }}" = "true" ] && [ "$RUNNER_OS" = "Windows" ]; then
+            version="$(powershell -NoProfile -Command "& ost.exe --version" | tr -d '\r')"
+          else
+            version="$(ost --version)"
+          fi
+
+          echo "$version"
+          if [ "${{ matrix.hosted }}" = "true" ] && [ "$version" != "ost 0.23.19" ]; then
+            echo "::error title=ost bootstrap::expected 'ost 0.23.19', got '$version'" ; exit 1
+          fi
+          printf '{"schema":1,"ost_version":"%s"}\n' "$version" > .ost-ci/ost-version.json
+      - name: Validate the CI manifest
+        shell: bash
+        run: ost ci validate
+      - name: Restore the artifact registry cache (speed only, never correctness)
+        id: runtime-cache-restore
+        if: ${{ matrix.hosted && vars.OST_CI_DISABLE_CACHE != 'true' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .ost-ci-home/artifacts
+          key: ost-registry-0.23.19-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ matrix.runtime_artifact }}
+      - name: Pull the pinned runtime SDK from its remote reference
+        if: ${{ matrix.runtime_remote != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          set --
+          if [ -n "${{ matrix.require_openusd }}" ]; then
+            set -- "$@" --require-openusd "${{ matrix.require_openusd }}"
+          fi
+          if [ -n "${{ matrix.require_openusd_version }}" ]; then
+            set -- "$@" --require-openusd-version "${{ matrix.require_openusd_version }}"
+          fi
+          if ost artifact show "${{ matrix.runtime_artifact }}" --json > /dev/null 2>&1 \
+             && ost artifact verify "${{ matrix.runtime_artifact }}" ${{ matrix.evidence_flags }} "$@" --json > .ost-ci/runtime-cache-verify.json; then
+            echo "pinned runtime already present and verified (cache hit) -- skipping the remote pull"
+          else
+            if [ "${{ matrix.hosted }}" = "true" ] && [ -n "${OST_HOME:-}" ]; then
+              rm -rf "${OST_HOME}/artifacts"
+            fi
+            ost artifact pull "${{ matrix.runtime_remote }}" --expect-artifact "${{ matrix.runtime_artifact }}" --require-kind runtime "$@" --json | tee .ost-ci/runtime-pull.json
+          fi
+      - name: Verify and materialize the pinned runtime SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          printf '{"schema":1,"runtime_artifact":"%s","require_openusd":"%s","require_openusd_version":"%s","source":"%s"}\n' "${{ matrix.runtime_artifact }}" "${{ matrix.require_openusd }}" "${{ matrix.require_openusd_version }}" "${{ matrix.runtime_remote != '' && 'remote-pull' || 'local-registry' }}" > .ost-ci/runtime-source.json
+          set --
+          if [ -n "${{ matrix.require_openusd }}" ]; then
+            set -- "$@" --require-openusd "${{ matrix.require_openusd }}"
+          fi
+          if [ -n "${{ matrix.require_openusd_version }}" ]; then
+            set -- "$@" --require-openusd-version "${{ matrix.require_openusd_version }}"
+          fi
+          ost artifact verify ${{ matrix.runtime_artifact }} --minimum-trust ${{ matrix.minimum_trust }} ${{ matrix.evidence_flags }} "$@"
+          ost runtime pull ${{ matrix.platform }} --profile ${{ matrix.profile }} --from-artifact ${{ matrix.runtime_artifact }} --force
+      - name: Pull digest-pinned external library artifacts
+        shell: bash
+        run: ost library pull --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json
+      - name: Remove resumable transfer state before caching
+        if: ${{ matrix.hosted && vars.OST_CI_DISABLE_CACHE != 'true' && steps.runtime-cache-restore.outputs.cache-hit != 'true' }}
+        shell: bash
+        run: rm -rf .ost-ci-home/artifacts/.partial-blobs
+      - name: Save the verified artifact registry cache
+        if: ${{ matrix.hosted && vars.OST_CI_DISABLE_CACHE != 'true' && steps.runtime-cache-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .ost-ci-home/artifacts
+          key: ost-registry-0.23.19-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ matrix.runtime_artifact }}
+      - name: Install the host packages this runtime needs to be consumed
+        if: ${{ matrix.host_packages_apt != '' || matrix.host_packages_brew != '' }}
+        shell: bash
+        env:
+          HOST_PACKAGES_APT: ${{ matrix.host_packages_apt }}
+          HOST_PACKAGES_BREW: ${{ matrix.host_packages_brew }}
+        run: |
+          set -euo pipefail
+          case "$RUNNER_OS" in
+            Linux)
+              packages="$HOST_PACKAGES_APT"
+              if [ -z "$packages" ]; then
+                echo "error: this cell declares host_packages but nothing under 'apt'; a Linux runner installs from the 'apt' list" >&2
+                exit 1
+              fi
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends $packages
+              ;;
+            macOS)
+              packages="$HOST_PACKAGES_BREW"
+              if [ -z "$packages" ]; then
+                echo "error: this cell declares host_packages but nothing under 'brew'; a macOS runner installs from the 'brew' list" >&2
+                exit 1
+              fi
+              brew install $packages
+              ;;
+            *)
+              echo "error: host_packages has no installer for $RUNNER_OS; provision the dependency on the runner image instead" >&2
+              exit 1
+              ;;
+          esac
+      - name: Set up host Python for schema tooling
+        if: ${{ matrix.hosted && matrix.host_python != '' }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.host_python }}
+      - name: Record the schema-tooling Python contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          if [ "${{ matrix.hosted }}" = "true" ] && [ -n "${{ matrix.host_python }}" ]; then
+            source=host-setup-python
+          elif [ -n "${{ matrix.host_python }}" ]; then
+            source=operator-provisioned
+          else
+            source=runtime-bundled
+          fi
+          printf '{"schema":1,"host_python":"%s","source":"%s"}\n' "${{ matrix.host_python }}" "$source" > .ost-ci/python-setup.json
+      - name: Validate the materialized runtime (runnable tools)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          ost runtime validate ${{ matrix.platform }} --profile ${{ matrix.profile }} --json | tee .ost-ci/runtime-validate.json
+      - name: Validate the workspace dependency graph
+        shell: bash
+        run: ost plugin test --workspace --graph-only --json
+      - name: Build the workspace from source
+        shell: bash
+        run: ost build --target ${{ matrix.platform }} --profile ${{ matrix.profile }} ${{ matrix.intent_flags }}
+      - name: Run the workspace test suite
+        if: ${{ matrix.verify != 'build' }}
+        shell: bash
+        run: ost test --target ${{ matrix.platform }} --profile ${{ matrix.profile }} ${{ matrix.intent_flags }}
+      - name: Run the workspace verification pyramid
+        if: ${{ matrix.verify == 'pyramid' || matrix.verify == 'package' }}
+        shell: bash
+        run: ost plugin test --workspace --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json
+      - name: Package the workspace and aggregate product (never published from this workflow)
+        if: ${{ matrix.verify == 'package' }}
+        shell: bash
+        run: ost plugin package --workspace --product --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json
+      - name: Upload the build logs and CI evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: report-${{ matrix.name }}
+          path: |
+            .strata/targets/
+            **/.strata/reports/
+            **/dist/plugins/
+            **/dist/tools/
+            dist/products/
+            .ost-ci/

@@ -236,3 +236,64 @@ cells:
     host_packages:
       apt: [libx11-dev, libxt-dev]
     up_to: 5
+
+  # Workspace CTest cells. The bundle cells above run OST's verification
+  # pyramid, which never reaches the repository's own CTest suites: the
+  # gaussianCore and gaussianUsd unit tests, every bundle's reader and decoder
+  # tests, the Python smoke and asset-resolver tests, and the cross-format
+  # equivalence tests that exist only in the composed root build. These cells
+  # build that root tree with `ost build` and run it with `ost test`, so CTest
+  # is a hosted gate on every claimed platform instead of a local-only step --
+  # in particular, the Windows run of the non-ASCII path tests that
+  # RESOLVER_MATRIX.md records as owed. Same digest-pinned runtimes as the
+  # bundle cells. scripts/release.py skips `kind: workspace` cells: they build
+  # nothing a release ships.
+  - name: workspace-ctest-pr-windows
+    kind: workspace
+    lane: pull_request
+    runner: windows-hosted
+    runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+    require_openusd: cy2026/windows/x86_64/gl
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+      expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+    platform: cy2026
+    profile: usd
+    # The Python CTest cases import pxr against USD DLLs that import
+    # python313.dll; see the bundle cells' note.
+    host_python: "3.13"
+    verify: test
+
+  - name: workspace-ctest-pr-macos-arm64
+    kind: workspace
+    lane: pull_request
+    runner: macos-arm64-hosted
+    runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+    require_openusd: cy2026/macos/arm64/metal
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+      expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
+    verify: test
+
+  - name: workspace-ctest-pr-linux
+    kind: workspace
+    lane: pull_request
+    runner: linux-hosted
+    runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+    require_openusd: cy2026/linux/x86_64/gl
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+      expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
+    # MaterialX 1.39.5 (OpenUSD 26.08) hard-requires X11 on Linux; see header.
+    host_packages:
+      apt: [libx11-dev, libxt-dev]
+    verify: test

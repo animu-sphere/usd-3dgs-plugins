@@ -188,6 +188,16 @@ Every structural or format PR preserves these invariants:
 Windows is capped at L4 until the hosted-runner multiline-USDA line-ending
 behavior is resolved. Local Windows L5 currently passes.
 
+The bundle cells run OST's verification pyramid, which never reaches the
+repository's own CTest suites. Three `kind: workspace` cells
+(`workspace-ctest-pr-windows`, `-macos-arm64`, `-linux`) close that gap on the
+same digest-pinned runtimes: `ost build` composes the root CMake tree and
+`ost test` runs every suite in it — the gaussianCore and gaussianUsd unit
+tests, each bundle's reader and decoder tests, the Python smoke and
+asset-resolver tests, and the cross-format equivalence tests that exist only
+in the composed build. They publish nothing, and `scripts/release.py` skips
+them.
+
 The required local gate is:
 
 ```text
