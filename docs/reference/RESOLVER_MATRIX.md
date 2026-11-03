@@ -53,9 +53,9 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 | Reference by absolute path written with `/` | opens on every platform | ✅ | `case_anchored_references` |
 | Search-path identifier through `ArDefaultResolverContext`, opened directly or by reference | opens | ✅ | `case_search_path` |
 | Windows: `\` and `/` spellings of one absolute path | both open | ⚠️ | `case_windows_spellings` (runs on Windows only; POSIX has one spelling) |
-| Non-ASCII characters in the path | opens. The USD-free readers open their UTF-8 path through `openstrata::gs::OpenInputFile` (`GaussianFileIO.h`), which on Windows opens the UTF-16 name instead of reinterpreting the bytes in the ANSI code page. PLY and SPZ share the helper. | ⚠️ | reader `TestNonAsciiPath` (both layouts and the directory loader), `gaussianCore_file_io`, and the PLY and SPZ decoder `TestNonAsciiPath`; observed on Linux only. The `workspace-ctest-pr-*` CI cells now run these suites on Windows, macOS, and Linux ([WORKSPACE.md §8](../architecture/WORKSPACE.md)); the row moves to ✅ once a Windows run is observed |
-| Package-relative path: an unbundled `meta.json` at the root or in a subdirectory of a `.usdz`, opened directly, by reference, or metadata-only; a `.sog` inside a `.usdz` | opens through `ArAsset`; companions are the sibling entries inside the package | ⬜ | `case_package_relative`; reader `TestInjectedPrimaryLoader` (observed on Linux). The USD-level case is written but not yet observed; it first runs in the `workspace-ctest-pr-*` cells |
-| Packaged `meta.json` whose plane is missing from the package, with a valid same-named file beside the package | `GSSOG-E008`; the file beside the package is never used | ⬜ | `case_package_relative` (not yet observed, as above) |
+| Non-ASCII characters in the path | opens. The USD-free readers open their UTF-8 path through `openstrata::gs::OpenInputFile` (`GaussianFileIO.h`), which on Windows opens the UTF-16 name instead of reinterpreting the bytes in the ANSI code page. PLY and SPZ share the helper. | ✅ | reader `TestNonAsciiPath` (both layouts and the directory loader), `gaussianCore_file_io`, and the PLY and SPZ decoder `TestNonAsciiPath`; observed on Windows (MSVC), macOS, and Linux in the `workspace-ctest-pr-*` CI cells ([WORKSPACE.md §8](../architecture/WORKSPACE.md)) |
+| Package-relative path: an unbundled `meta.json` at the root or in a subdirectory of a `.usdz`, opened directly, by reference, or metadata-only; a `.sog` inside a `.usdz` | opens through `ArAsset`; companions are the sibling entries inside the package | ✅ | `case_package_relative`; reader `TestInjectedPrimaryLoader`; observed on Windows, macOS, and Linux |
+| Packaged `meta.json` whose plane is missing from the package, with a valid same-named file beside the package | `GSSOG-E008`; the file beside the package is never used | ✅ | `case_package_relative` |
 | URI-style identifier served by a custom resolver | read through `ArAsset`; the reader never interprets the identifier | ⬜ | reader `TestInjectedPrimaryLoader` covers the seam with a URI-like name; no real resolver plugin is tested |
 
 ## Companion planes (unbundled layout)
@@ -98,7 +98,6 @@ Legend: ✅ verified · ⚠️ verified on one platform family only · ⛔ known
 Both run in the `workspace-ctest-pr-*` CI cells on all three hosted
 platforms, as well as in the local gate.
 
-Next steps for the ⚠️ and ⬜ rows: observe the non-ASCII tests in the
-Windows CTest cell, and add a minimal test resolver plugin (URI-style
+Next step for the ⬜ rows: add a minimal test resolver plugin (URI-style
 identifiers, companions served by a custom resolver, and a stream without
-`GetBuffer()`).
+`GetBuffer()`). The ⚠️ row is Windows-only by nature.
