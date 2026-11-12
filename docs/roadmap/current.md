@@ -1,6 +1,6 @@
 # Current
 
-Updated: 2026-11-03
+Updated: 2026-11-13
 Scope: v0.6.0 preparation
 
 ## Current position
@@ -205,11 +205,15 @@ real environments and package paths were actually verified.
   checks it against recorded hashes; all nine scale assets decode with zero
   contract violations. The `benchmark_corpus_ci` CTest case measures the
   fixture, corpus, and 1M rows in the `workspace-ctest-pr-*` cells; its
-  first hosted run passed every gate on Windows, macOS, and Linux. Remaining:
-  capture the hosted report, which no cell uploads today (the cells upload
-  `.strata/targets/`, the report lands in `build/`), measure the 4M and
-  ceiling steps and the real tier locally, and tighten the targets from
-  those rows.
+  first hosted run passed every gate on Windows, macOS, and Linux. The
+  workspace jobs now include the per-asset JSON in their evidence uploads.
+  A local Windows Release run passed all nine scale rows (including the 4M
+  and ceiling steps) and all nine real rows, including a full Leica Sofort
+  capture converted to SOG and the Graphdeco Garden and Bicycle PLY exports.
+  See the [measured rows](../reference/BENCHMARK_CORPUS.md#local-measurements).
+  Remaining: verify and collect the next hosted reports from all three
+  platforms, then tighten the provisional targets using those reports and
+  the local measurements.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
 ## Proposed milestones

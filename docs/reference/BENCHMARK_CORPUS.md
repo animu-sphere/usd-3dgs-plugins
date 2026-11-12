@@ -22,15 +22,16 @@ process, so every row comes from the seam
 | `fixture` | process startup and the per-call floor | 3 — one per format | committed synthetic fixtures | ✅ |
 | `corpus` | real value distributions at 8,192 Gaussians | 6 — two captures × three formats | committed CC0 subsets | ✅ |
 | `scale` | how import scales to the 8,000,000 ceiling | 9 — three steps × three formats | generated from a committed CC0 subset | 1M step only |
-| `real` | real exports at their native size | 8 | retained locally or downloaded on demand | never |
+| `real` | real captures at their native size | 9 | retained exports, one local conversion, and references available on demand | never |
 
 Every committed and generated asset may run in CI. Real assets never do: some
 are not redistributable, and none is in the repository (design policy §17).
 
 ## The scale tier
 
-No redistributable real asset reaches millions of Gaussians, and committing
-one would put gigabytes into git history. The scale tier is therefore
+None of the redistributable real assets in this corpus reaches millions of
+Gaussians, and committing one at that size would put gigabytes into git
+history. The scale tier is therefore
 generated, deterministically, from the committed CC0
 [`yashica-t4-top8192.ply`](../../plugins/gaussian-ply/tests/corpus/yashica-t4/PROVENANCE.md)
 subset:
@@ -107,27 +108,30 @@ format's quantization step.
 | `real-leica-sofort-ply` | Brush v0.3.0 | 145,912 | CC0-1.0 | retained by the author; source of the committed subset |
 | `real-yashica-t4-spz` | Scaniverse | 55,662 | CC0-1.0 | retained by the author; source of the committed subset |
 | `real-leica-sofort-spz` | Scaniverse | 171,397 | CC0-1.0 | retained by the author; source of the committed subset |
+| `real-leica-sofort-sog` | SplatTransform v3.1.6 | 145,912 | CC0-1.0 | local conversion of the full Brush export |
 | `real-cactus-142k-ply` | Jawset Postshot | 139,410 | unrecorded | personal test data; local only |
 | `real-cactus-2m-ply` | Jawset Postshot | 1,935,120 | unrecorded | personal test data; local only |
 | `real-garden-ply` | Graphdeco reference | 5,834,784 | Gaussian-Splatting License, non-commercial | download on demand |
-| `real-bicycle-ply` | Graphdeco reference | unrecorded | Gaussian-Splatting License, non-commercial | download on demand |
+| `real-bicycle-ply` | Graphdeco reference | 6,131,954 | Gaussian-Splatting License, non-commercial | download on demand |
 
 The four CC0 exports carry the SHA-256 their subsets' provenance records
 already pin. The Graphdeco references are members of the pretrained-models
-archive (`models.zip`, `<scene>/point_cloud/iteration_30000/point_cloud.ply`);
-the manifest records the URL and member path, and records each hash at its
-first verified download. Their license permits non-commercial research and
-evaluation only, so they are never committed, cached in CI, or redistributed.
-The cactus exports have no recorded license and stay local measurements; they
-are never cited as a reproducible reference.
+archive (`models.zip`, `<scene>/point_cloud/iteration_30000/point_cloud.ply`).
+The manifest records the URL, member paths, and SHA-256 hashes of both members
+extracted for the local run. Their license permits non-commercial research
+and evaluation only, so they are never committed, cached in CI, or
+redistributed. The cactus exports have no recorded license and stay local
+measurements.
 
-Known gaps:
+The Leica Sofort SOG was made from the hash-verified `camera_02_30000.ply`
+using SplatTransform v3.1.6 (`04b6d15`):
 
-- No full-size real SOG export is declared. The `scale` tier is the only large
-  SOG input until a CC0 conversion of a retained export, with SplatTransform
-  provenance, is recorded.
-- `real-bicycle-ply` has not been measured, so its Gaussian count is
-  unrecorded; `run` reports what it measures instead of gating the count.
+```sh
+splat-transform --no-tty camera_02_30000.ply leica-sofort-full.sog
+```
+
+The manifest records the measured output's hash. This exercises SplatTransform
+on a full capture; the `scale` tier is still the only multi-million SOG input.
 
 ## Targets
 
@@ -138,7 +142,7 @@ exist for every platform.
 | Target | Bound | Rationale |
 | --- | --- | --- |
 | Gaussian count, SH degree | equal to the manifest | correctness at scale comes before speed |
-| Metadata-only read | ≤ 0.25 s at any size | §12.3 requires a header-only read. Baselines are 5-13 ms, and a full decode of the 1M step takes seconds, so the bound catches a regression to a full read without depending on runner speed. |
+| Metadata-only read | ≤ 0.25 s at any size | §12.3 rules out decoding the Gaussian payload. The bound leaves room for differences in runner speed and for reading the ZIP container in bundled SOG. |
 | `CanRead()` | ≤ 0.25 s | routing must stay header-only (design policy §7.6) |
 | Peak resident memory | ≤ 0.35 GiB + 0.60 GiB per million Gaussians | PLY and SPZ measure 0.41 GiB per million ([baselines](PERFORMANCE_BASELINES.md)). 0.60 leaves room for SOG's decoded planes and for differences between operating systems' peak counters. 0.35 GiB covers the interpreter and OpenUSD. |
 | `Stage.Open`, flatten | recorded, not gated | wall-clock time on shared hosted runners is not a stable gate; compare against rows from the same machine |
@@ -180,15 +184,59 @@ The composed root build registers two CTest cases, which the
 First hosted run, 2026-11-03 (commit `e4cc662`): `benchmark_corpus_ci`
 passed in all three cells — Linux in 9.4 s, Windows in 17.8 s, macOS in
 20.4 s, including generation. Every row therefore met its count, SH degree,
-metadata-only, `CanRead()`, and peak-memory gates on every platform. The
-per-row numbers are not yet recorded: CTest prints a passing test's output
-only with `--verbose`, and the workspace cells upload `.strata/targets/`,
-while the report lands in `build/`, so the upload finds nothing. Capturing the
-report is the next step before the targets can be tightened.
+metadata-only, `CanRead()`, and peak-memory gates on every platform. That run
+did not retain the per-row numbers. The workspace jobs now include
+`build/*/tests/benchmark/benchmark-report.json` in their `report-<cell>`
+artifacts; the next hosted run is needed to verify those uploads and capture
+the per-platform measurements before tightening the targets.
 
-The 4M and ceiling steps and the real tier are local measurements. The ceiling
-PLY alone is 1.8 GiB, plus its flattened USDC, and the real tier cannot be
-distributed to a runner.
+The 4M and ceiling steps and the real tier run locally. The ceiling PLY alone
+is 1.8 GiB, plus its flattened USDC, and the real tier is kept out of hosted CI.
+
+## Local measurements
+
+Measured on 2026-11-13 with Windows 11 Pro 25H2, a Ryzen 9 7950X, OpenUSD
+26.08 (`cy2026/usd`), Python 3.13.14, and a CMake Release build with MSVC
+19.51 (`/O2`). Each row is one run in a fresh process. Times are useful for
+comparing rows on this machine; they are not cross-platform timing gates.
+
+| Scale asset | Gaussians | `CanRead()` | Metadata-only | `Stage.Open` | Flatten to USDC | Peak resident |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `scale-1m-ply` | 1,048,576 | 5.9 ms | 7.5 ms | 2.90 s | 0.14 s | 0.49 GiB |
+| `scale-1m-spz` | 1,048,576 | 5.8 ms | 11.9 ms | 0.49 s | 0.16 s | 0.49 GiB |
+| `scale-1m-sog` | 1,048,576 | 0.3 ms | 16.9 ms | 0.32 s | 0.16 s | 0.49 GiB |
+| `scale-4m-ply` | 4,194,304 | 4.9 ms | 7.8 ms | 12.66 s | 0.51 s | 1.74 GiB |
+| `scale-4m-spz` | 4,194,304 | 5.5 ms | 13.1 ms | 1.91 s | 0.63 s | 1.74 GiB |
+| `scale-4m-sog` | 4,194,304 | 0.2 ms | 31.3 ms | 1.20 s | 0.58 s | 1.74 GiB |
+| `scale-ceiling-ply` | 7,995,392 | 6.2 ms | 7.4 ms | 23.63 s | 0.98 s | 3.26 GiB |
+| `scale-ceiling-spz` | 7,995,392 | 4.5 ms | 12.7 ms | 3.69 s | 1.27 s | 3.26 GiB |
+| `scale-ceiling-sog` | 7,995,392 | 0.2 ms | 54.7 ms | 2.29 s | 1.20 s | 3.26 GiB |
+
+All nine rows passed. At 4M and the ceiling, peak memory was about 0.41 GiB
+per million Gaussians for all three formats. Bundled SOG metadata reads grew
+from 16.9 to 54.7 ms: the reader loads the ZIP into memory before extracting
+`meta.json`, though it does not decode any WebP planes. The generated SOG
+and SPZ `Stage.Open` times reflect the [scale encodings](#what-the-scale-tier-represents).
+
+| Real asset | Source | `CanRead()` | Metadata-only | `Stage.Open` | Flatten to USDC | Peak resident |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `real-yashica-t4-ply` | 13.4 MiB | 0.2 ms | 7.5 ms | 0.17 s | 0.02 s | 0.10 GiB |
+| `real-leica-sofort-ply` | 32.8 MiB | 0.5 ms | 8.2 ms | 0.40 s | 0.02 s | 0.13 GiB |
+| `real-yashica-t4-spz` | 1.1 MiB | 0.3 ms | 12.4 ms | 0.02 s | 0.02 s | 0.09 GiB |
+| `real-leica-sofort-spz` | 3.8 MiB | 0.3 ms | 12.3 ms | 0.07 s | 0.05 s | 0.14 GiB |
+| `real-leica-sofort-sog` | 4.6 MiB | 0.2 ms | 9.8 ms | 0.07 s | 0.03 s | 0.13 GiB |
+| `real-cactus-142k-ply` | 31.4 MiB | 0.2 ms | 7.5 ms | 0.39 s | 0.02 s | 0.13 GiB |
+| `real-cactus-2m-ply` | 435.5 MiB | 0.2 ms | 7.4 ms | 5.42 s | 0.25 s | 0.84 GiB |
+| `real-garden-ply` | 1,380.0 MiB | 0.3 ms | 7.3 ms | 17.28 s | 0.71 s | 2.39 GiB |
+| `real-bicycle-ply` | 1,450.3 MiB | 0.2 ms | 6.4 ms | 18.01 s | 0.75 s | 2.51 GiB |
+
+All nine rows passed. The SOG conversion reduced the Leica Sofort source
+from 32.8 to 4.6 MiB and opened in 0.07 s versus 0.40 s for its source PLY.
+Both peaked at about 0.13 GiB. The Leica Sofort SPZ comes from a separate
+capture and is not another encoding of those Gaussians. Garden and Bicycle
+both measured about 0.41 GiB per million Gaussians, in line with the scale
+PLY rows. The targets remain provisional until the hosted per-row results
+are available on all three platforms.
 
 ## Admitting an asset
 

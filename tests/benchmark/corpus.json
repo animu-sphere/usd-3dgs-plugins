@@ -344,6 +344,24 @@
       }
     },
     {
+      "id": "real-leica-sofort-sog",
+      "tier": "real",
+      "format": "sog",
+      "gaussian_count": 145912,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the full Leica Sofort PLY export)",
+      "source": {
+        "kind": "local",
+        "file": "leica-sofort-full.sog",
+        "sha256": "421dc9f99fbc529bbed3f4c7d68429fb4dce72afccf2b7acd78482c22921b537",
+        "bytes": 4776911,
+        "producer": "SplatTransform v3.1.6 (04b6d15)",
+        "derived_from": "real-leica-sofort-ply",
+        "command": "splat-transform --no-tty camera_02_30000.ply leica-sofort-full.sog",
+        "availability": "full CC0 capture converted to SOG; local only"
+      }
+    },
+    {
       "id": "real-cactus-142k-ply",
       "tier": "real",
       "format": "ply",
@@ -367,7 +385,7 @@
       "license": "unrecorded (personal test data; not redistributable)",
       "source": {
         "kind": "local",
-        "file": "cactus_splat3_30kSteps_2M_splats.ply",
+        "file": "cactus_splat3_25kSteps_2M_splats.ply",
         "sha256": null,
         "producer": "Jawset Postshot",
         "availability": "personal test data of the repository author; local measurement only"
@@ -385,7 +403,8 @@
         "file": "garden-point_cloud.ply",
         "url": "https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip",
         "member": "garden/point_cloud/iteration_30000/point_cloud.ply",
-        "sha256": null,
+        "sha256": "16701d5e0630dfaca74f8794ed7ce2aa23fa922f87dc09a7e37484e8d3f82d5a",
+        "bytes": 1447027964,
         "producer": "Graphdeco reference trainer, Mip-NeRF 360 garden",
         "availability": "download on demand; extract the member and save it under the file name above"
       }
@@ -394,7 +413,7 @@
       "id": "real-bicycle-ply",
       "tier": "real",
       "format": "ply",
-      "gaussian_count": null,
+      "gaussian_count": 6131954,
       "sh_degree": 3,
       "license": "Gaussian-Splatting License (Inria / MPII): non-commercial research and evaluation only; never committed, cached, or redistributed",
       "source": {
@@ -402,9 +421,10 @@
         "file": "bicycle-point_cloud.ply",
         "url": "https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/pretrained/models.zip",
         "member": "bicycle/point_cloud/iteration_30000/point_cloud.ply",
-        "sha256": null,
+        "sha256": "64d357cb25bd85f710f8551a18d830f8497277fbd8c5805adfd72ffe9ca78227",
+        "bytes": 1520726124,
         "producer": "Graphdeco reference trainer, Mip-NeRF 360 bicycle",
-        "availability": "download on demand; not yet measured, so its Gaussian count is unrecorded"
+        "availability": "download on demand; extract the member and save it under the file name above"
       }
     }
   ]
