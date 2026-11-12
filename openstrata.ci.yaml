@@ -1,7 +1,8 @@
 # OpenStrata CI support matrix for usd-3dgs-plugins.
 #
-# This file is the CI contract. Regenerate .github/workflows/ost-*.yml with
-# `ost ci generate github` after changing it. `.github/workflows/release.yml`
+# This file is the CI contract. Regenerate the source workflow with
+# `ost ci generate github --force --out .github/workflows/ost-source-ci.yml`.
+# `.github/workflows/release.yml`
 # is hand-authored and outside the generator's contract, but it is not outside
 # this file's: scripts/release.py derives the release matrix from the cells
 # below, so a pin moved here moves both lanes.
@@ -23,7 +24,7 @@
 #   the `sdk` layout profile, carrying an SPDX SBOM and SLSA/in-toto
 #   provenance, and verify `trust: attested` -- which is what the
 #   `--require-sbom --require-provenance` gate the generator renders demands.
-#   Consuming them needs ost >= 0.22.6; the bootstrap below is 0.23.19. The OCI
+#   Consuming them needs ost >= 0.22.6; the bootstrap below is 0.23.20. The OCI
 #   manifest digest is not stable across republishes, and `runtime_artifact`
 #   does not stay put either: re-pin both from the producer's push output.
 #   Rechecked 2026-11-03 for the 0.23.19 bootstrap: the registry still serves
@@ -43,7 +44,7 @@ schema: 1
 
 bootstrap:
   ost:
-    version: "0.23.19"
+    version: "0.23.20"
     repository: animu-sphere/open-strata
 
 runners:

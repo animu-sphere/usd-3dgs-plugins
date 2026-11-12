@@ -43,7 +43,7 @@ semantic versioning for tagged releases.
 ### Changed
 
 - The build and verification toolchain moves from OpenStrata **0.22.10 to
-  0.23.19** (`openstrata.ci.yaml` bootstrap and the regenerated
+  0.23.20** (`openstrata.ci.yaml` bootstrap and the regenerated
   `ost-source-ci.yml`; the release lane derives the same pin through
   `scripts/release.py`). The regenerated workflow builds its OpenUSD
   requirement arguments with POSIX `set --` instead of a bash array, and adds
@@ -59,6 +59,9 @@ semantic versioning for tagged releases.
 
 ### Fixed
 
+- `gaussian-sog`: a bundled `meta.json` whose declared expanded size exceeds
+  4 MiB is rejected before allocation and inflation in full and metadata-only
+  reads.
 - `scripts/benchmark_import.py`: on Linux, peak resident memory is now read
   from the process's own `VmHWM`. `ru_maxrss` starts from the parent's
   resident size at fork and survives exec, so a large launching process

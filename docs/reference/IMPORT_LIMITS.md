@@ -24,6 +24,9 @@ single import into an unbounded allocation request.
 | SPZ source file size | 1 GiB | SPZ v1-v3 |
 | SPZ extension records | 64 MiB | SPZ v1-v3 |
 
+For bundled SOG, full and metadata-only reads check the declared expanded size
+of `meta.json` before allocating its extraction buffer or inflating the entry.
+
 The readers also use checked multiplication and allocation helpers for model
 arrays, reject zero-count clouds, require every SOG plane to be present and
 large enough for the declared count, reject duplicate SOG plane names and ZIP
@@ -55,7 +58,7 @@ message naming the budget that fired.
 | Budget | Hostile input | Expected |
 | --- | --- | --- |
 | Declared Gaussian count | `gaussian-ply/.../too-many-gaussians.ply`, `gaussian-spz/.../shared-limit-v2.spz`, `gaussian-sog/.../too-many-gaussians/meta.json` | `GSPLY-E019`, `GSPZ-E015`, `GSSOG-E016` |
-| SOG `meta.json` size | 4 MiB + 1 byte unbundled `meta.json`, written at test time | `GSSOG-E016` (full and metadata-only reads) |
+| SOG `meta.json` size | `zip-metadata-over-limit.sog` declares 4 MiB + 1 byte; unbundled `meta.json` of the same size, written at test time | `GSSOG-E016` (full and metadata-only reads) |
 | SOG JSON nesting depth / value tokens | in-memory documents one past each bound | `ParseJson` rejection (`GSSOG-E005` when reached through `meta.json`) |
 | SOG ZIP entries | `too-many-entries.sog` (65 entries) | `GSSOG-E016` |
 | SOG ZIP entry size | `oversized-entry.sog` (one entry declaring 600 MiB) | `GSSOG-E016` |
@@ -69,6 +72,9 @@ message naming the budget that fired.
 | SPZ source file size | `.spz` grown to 1 GiB + 1 byte at test time (reader `TestOversizedSource`) | `GSPZ-E015` (full and header-only reads) |
 | SOG companion input size, directory loader | `quats.webp` grown to 512 MiB + 1 byte at test time (reader `TestOversizedUnbundledCompanion`) | `GSSOG-E016`; the metadata-only read still succeeds |
 | SOG companion input size, asset resolver | same, opened through `ArDefaultResolver` (`test_gaussian_sog_resolver.py` `case_oversized_companion`) | `GSSOG-E016` |
+
+Full and metadata-only reads also accept bundled metadata at exactly 4 MiB and
+archives with exactly 64 entries.
 
 The real-size rows grow a small file with `resize_file` / `truncate`, which
 leaves the tail unwritten (a sparse hole on Linux and macOS, an unwritten

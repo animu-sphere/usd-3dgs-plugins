@@ -664,8 +664,16 @@ def main() -> None:
     # from the hostile value.
     MIB = 1024 * 1024
 
-    # One entry past the 64-entry ZIP budget.
-    padding = {f"pad-{index:02d}.bin": b"" for index in range(65 - 1 - len(one_planes))}
+    # The metadata limit applies to the size after inflation.
+    padded_meta = meta_bytes(one_meta).ljust(4 * MIB, b" ")
+    write_bundle("zip-metadata-at-limit.sog", padded_meta, one_planes, compress=True)
+    write_bundle("zip-metadata-over-limit.sog", one_meta, one_planes,
+                 declared_sizes={"meta.json": 4 * MIB + 1})
+
+    # Exactly at and one entry past the 64-entry ZIP budget.
+    padding = {f"pad-{index:02d}.bin": b"" for index in range(64 - 1 - len(one_planes))}
+    write_bundle("zip-entry-count-at-limit.sog", one_meta, one_planes, extra=padding)
+    padding[f"pad-{len(padding):02d}.bin"] = b""
     write_bundle("too-many-entries.sog", one_meta, one_planes, extra=padding)
 
     # A single entry declaring more than the 512 MiB per-entry bound.
