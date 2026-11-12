@@ -6,9 +6,9 @@ installing a packaged release is in [INSTALL.md](INSTALL.md).
 
 ## OpenStrata path (primary)
 
-Requirements: `ost` 0.23.19 (the version the CI lane bootstraps; the last
-locally verified baseline below is 0.22.10), a real `cy2026` / `usd`
-OpenStrata runtime, OpenUSD `>=26.05,<27.0`, a C++17 compiler. The verified local runtime is OpenUSD 26.08
+Requirements: `ost` 0.23.20 (the CI and local verification baseline), a real
+`cy2026` / `usd` OpenStrata runtime, OpenUSD `>=26.05,<27.0`, and a C++17
+compiler. The verified local runtime is OpenUSD 26.08
 on Windows x86-64 / MSVC 143 / Python 3.13 — the same digest-pinned artifact
 the CI cells pull, so `ost plugin test` reports `runtime source is 'artifact'
 (reproducible)` locally rather than an uncertified local build:
@@ -36,10 +36,13 @@ Windows runs to L4 in hosted CI and to L5 locally; see
 checked-in GitHub Actions workflows after matrix changes:
 
 ```sh
-ost ci generate github --force
+ost ci generate github --force --out .github/workflows/ost-source-ci.yml
 ```
 
 ### Viewing and converting assets
+
+With `ost` 0.23.20, `ost plugin view` loads the plugin from the selected
+target's managed stage when available. Use a runtime that includes `usdview`.
 
 ```powershell
 ost plugin view plugins\gaussian-ply "C:\path\to\scene.ply"

@@ -133,9 +133,9 @@ plugins/<bundle>/dist/plugins/<bundle>/<version>/<target>/
 
 alongside `manifest.json`, `sbom.spdx.json`, and `SHA256SUMS`.
 
-The current package-origin run passes discovery, read, and stage-open checks
-for all three bundles on the Windows 0.22.10 baseline. The source-workspace L5
-checks also pass locally. Hosted release dry-run
+On Windows, OpenStrata 0.23.20 passes source and package-origin verification
+through L5 for all three bundles. Two consecutive packaging runs produce the
+same aggregate archive SHA-256. The v0.5.1 hosted release dry-run
 [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493)
 passed package-origin verification at the declared Windows L4 cap and at L5 on
 macOS arm64 and Linux after the OpenUSD 26.08 re-pin.

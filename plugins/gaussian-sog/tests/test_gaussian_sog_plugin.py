@@ -58,6 +58,7 @@ NEGATIVE_FIXTURES = {
     # Container budgets (IMPORT_LIMITS.md): each is refused from what it
     # declares, before a buffer is sized from it.
     "too-many-entries.sog": "GSSOG-E016",
+    "zip-metadata-over-limit.sog": "GSSOG-E016",
     "oversized-entry.sog": "GSSOG-E016",
     "oversized-expansion.sog": "GSSOG-E016",
     "oversized-plane-dimensions.sog": "GSSOG-E016",

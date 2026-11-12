@@ -578,6 +578,21 @@ void TestMalformedContainers()
 // (an ASan build of this test would otherwise trip on the allocation).
 void TestContainerBudgets()
 {
+    const gssog::SogReader reader;
+    for (const char* name :
+         {"zip-metadata-at-limit.sog", "zip-entry-count-at-limit.sog"}) {
+        gssog::SogDocument document;
+        gssog::SogMetadata metadata;
+        std::string error;
+        CHECK(reader.Read(Fixture(name), &document, &error));
+        CHECK(reader.ReadMetadata(Fixture(name), &metadata, &error));
+        CHECK(document.metadata.gaussianCount == 1);
+        CHECK(metadata.gaussianCount == 1);
+    }
+
+    ExpectCodeWith("zip-metadata-over-limit.sog",
+                   gssog::diag::kImportLimitExceeded,
+                   "meta.json is 4194305 bytes");
     ExpectCodeWith("too-many-entries.sog", gssog::diag::kImportLimitExceeded,
                    "-entry limit");
     ExpectCodeWith("oversized-entry.sog", gssog::diag::kImportLimitExceeded,
@@ -598,6 +613,11 @@ void TestContainerBudgets()
     // archive a full read refuses.
     gssog::SogMetadata metadata;
     std::string error;
+    CHECK(!reader.ReadMetadata(Fixture("zip-metadata-over-limit.sog"),
+                               &metadata, &error));
+    CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));
+    CHECK(error.find("meta.json is 4194305 bytes") != std::string::npos);
+    error.clear();
     CHECK(!gssog::SogReader().ReadMetadata(Fixture("too-many-entries.sog"),
                                            &metadata, &error));
     CHECK(HasCode(error, gssog::diag::kImportLimitExceeded));

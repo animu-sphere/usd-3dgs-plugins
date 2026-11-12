@@ -818,6 +818,9 @@ class ZipArchive {
                             "-byte bound "
                             "this reader will allocate for one entry.");
         }
+        if (name == kMetaEntryName && stat.m_uncomp_size > kMaxMetadataBytes) {
+            return RejectOversizedMetadata(stat.m_uncomp_size, error);
+        }
         if (stat.m_uncomp_size > static_cast<std::uint64_t>(
                                      std::numeric_limits<std::size_t>::max())) {
             return fail(diag::kImportLimitExceeded,
