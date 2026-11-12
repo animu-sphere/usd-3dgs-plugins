@@ -160,8 +160,8 @@ thread and `TransferContent`, as the shipped bundles do
 
 ### 7. CI, packaging, docs
 
-- Add three cells to `openstrata.ci.yaml` (one per hosted runner), then
-  `ost ci generate github --force`. Nothing else in the workflow is
+- Add three cells to `openstrata.ci.yaml` (one per hosted runner), then run
+  `python scripts/generate_source_ci.py`. Nothing in the workflow is
   hand-edited; `scripts/release.py` derives the release matrix from these
   cells. A bundle not yet ready to ship carries `publish: never` on its cells
   (as `gaussian-sog` does) and stays out of the release matrix until the

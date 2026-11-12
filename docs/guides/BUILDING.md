@@ -36,8 +36,11 @@ Windows runs to L4 in hosted CI and to L5 locally; see
 checked-in GitHub Actions workflows after matrix changes:
 
 ```sh
-ost ci generate github --force --out .github/workflows/ost-source-ci.yml
+python scripts/generate_source_ci.py
 ```
+
+The script uses `ost ci generate github` and adds the benchmark JSON to the
+workspace jobs' artifact paths. Pass `--check` to verify the checked-in output.
 
 ### Viewing and converting assets
 

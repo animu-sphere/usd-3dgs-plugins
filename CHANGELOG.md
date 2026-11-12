@@ -34,7 +34,8 @@ semantic versioning for tagged releases.
   and measures any tier through `scripts/benchmark_import.py`. Two CTest cases
   run it in the workspace CTest cells: `benchmark_corpus_manifest` checks the
   manifest, and `benchmark_corpus_ci` measures the fixture, corpus, and 1M
-  rows against the targets.
+  rows against the targets. Each workspace CI cell uploads its per-asset
+  benchmark JSON in the job's `report-*` artifact.
 - CI: three `kind: workspace` cells build the composed root tree and run its
   CTest suites on Windows, macOS, and Linux. Until now those suites (unit,
   Python smoke and resolver, and cross-format equivalence tests) ran only in

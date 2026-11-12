@@ -1,7 +1,7 @@
 # OpenStrata CI support matrix for usd-3dgs-plugins.
 #
 # This file is the CI contract. Regenerate the source workflow with
-# `ost ci generate github --force --out .github/workflows/ost-source-ci.yml`.
+# `python scripts/generate_source_ci.py`.
 # `.github/workflows/release.yml`
 # is hand-authored and outside the generator's contract, but it is not outside
 # this file's: scripts/release.py derives the release matrix from the cells
