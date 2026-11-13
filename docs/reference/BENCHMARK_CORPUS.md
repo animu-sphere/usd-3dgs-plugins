@@ -136,15 +136,16 @@ on a full capture; the `scale` tier is still the only multi-million SOG input.
 ## Targets
 
 `corpus.json` declares the resource targets every measured row is checked
-against. They are **provisional**, and are to be tightened once hosted rows
-exist for every platform.
+against. The limits use the [hosted](#hosted-gate) and
+[local](#local-measurements) measurements as a baseline, with room for
+runner and filesystem variation.
 
 | Target | Bound | Rationale |
 | --- | --- | --- |
 | Gaussian count, SH degree | equal to the manifest | correctness at scale comes before speed |
-| Metadata-only read | ≤ 0.25 s at any size | §12.3 rules out decoding the Gaussian payload. The bound leaves room for differences in runner speed and for reading the ZIP container in bundled SOG. |
-| `CanRead()` | ≤ 0.25 s | routing must stay header-only (design policy §7.6) |
-| Peak resident memory | ≤ 0.35 GiB + 0.60 GiB per million Gaussians | PLY and SPZ measure 0.41 GiB per million ([baselines](PERFORMANCE_BASELINES.md)). 0.60 leaves room for SOG's decoded planes and for differences between operating systems' peak counters. 0.35 GiB covers the interpreter and OpenUSD. |
+| Metadata-only read | ≤ 0.15 s at any size | §12.3 rules out decoding the Gaussian payload. The slowest measured row was the local ceiling SOG at 54.7 ms, including the ZIP read. |
+| `CanRead()` | ≤ 0.10 s | Routing reads a small prefix (design policy §7.6). All hosted rows finished below 1 ms, and all local rows below 7 ms. The limit leaves room for file open latency. |
+| Peak resident memory | ≤ 0.35 GiB + 0.55 GiB per million Gaussians | The largest hosted peak was 0.783 GiB for 1M PLY on macOS, against a 0.927 GiB limit at that count. The local 4M and ceiling rows measured about 0.41 GiB per million. The fixed allowance covers interpreter and OpenUSD overhead and leaves room for platform differences. |
 | `Stage.Open`, flatten | recorded, not gated | wall-clock time on shared hosted runners is not a stable gate; compare against rows from the same machine |
 
 ## Running
@@ -187,8 +188,22 @@ passed in all three cells — Linux in 9.4 s, Windows in 17.8 s, macOS in
 metadata-only, `CanRead()`, and peak-memory gates on every platform. That run
 did not retain the per-row numbers. The workspace jobs now include
 `build/*/tests/benchmark/benchmark-report.json` in their `report-<cell>`
-artifacts; the next hosted run is needed to verify those uploads and capture
-the per-platform measurements before tightening the targets.
+artifacts.
+
+The first run with the reports saved was on 2026-11-13 JST (commit
+`99bbd0b`, OpenUSD 26.08). Each artifact contained the expected 12 rows, and
+all 36 rows passed the original limits. The two timing maxima below cover
+all 12 rows per runner. The 1M columns list PLY, SPZ, and SOG in that order.
+See [source CI run 75](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/43250313447).
+
+| Runner | Max `CanRead()` | Max metadata-only | 1M `Stage.Open` (s) | 1M peak resident (GiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Windows 2022 x86-64 | 0.39 ms | 20.4 ms | 5.162 / 1.315 / 0.883 | 0.473 / 0.473 / 0.473 |
+| macOS 15 arm64 | 0.55 ms | 12.3 ms | 4.192 / 0.679 / 0.376 | 0.783 / 0.633 / 0.585 |
+| Ubuntu 24.04 x86-64 | 0.31 ms | 32.4 ms | 3.213 / 0.939 / 0.606 | 0.532 / 0.516 / 0.587 |
+
+The saved measurements also pass the tightened limits above. The 4M and
+ceiling results come from the local Windows run.
 
 The 4M and ceiling steps and the real tier run locally. The ceiling PLY alone
 is 1.8 GiB, plus its flattened USDC, and the real tier is kept out of hosted CI.
@@ -235,8 +250,7 @@ from 32.8 to 4.6 MiB and opened in 0.07 s versus 0.40 s for its source PLY.
 Both peaked at about 0.13 GiB. The Leica Sofort SPZ comes from a separate
 capture and is not another encoding of those Gaussians. Garden and Bicycle
 both measured about 0.41 GiB per million Gaussians, in line with the scale
-PLY rows. The targets remain provisional until the hosted per-row results
-are available on all three platforms.
+PLY rows.
 
 ## Admitting an asset
 

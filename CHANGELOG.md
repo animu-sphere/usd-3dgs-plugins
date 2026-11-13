@@ -28,7 +28,7 @@ semantic versioning for tagged releases.
   `tests/benchmark/corpus.json`): committed fixtures, the committed CC0
   subsets, a generated scale ladder of 1,048,576, 4,194,304, and 7,995,392
   Gaussians in PLY, SPZ, and SOG, and real exports kept outside the
-  repository, with provisional resource targets.
+  repository, with resource targets based on hosted and local measurements.
   `scripts/benchmark_corpus.py` generates the ladder deterministically from the
   committed CC0 `yashica-t4-top8192.ply`, checks it against recorded hashes,
   and measures any tier through `scripts/benchmark_import.py`. Two CTest cases

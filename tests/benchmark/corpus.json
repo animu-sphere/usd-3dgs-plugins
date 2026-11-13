@@ -2,12 +2,12 @@
   "schema": "usd-3dgs-plugins.benchmark-corpus/v1",
   "description": "The large-asset benchmark corpus. Documented in docs/reference/BENCHMARK_CORPUS.md; generated, verified, and measured by scripts/benchmark_corpus.py.",
   "targets": {
-    "status": "provisional",
-    "metadata_only_seconds_max": 0.25,
-    "can_read_seconds_max": 0.25,
+    "status": "measured",
+    "metadata_only_seconds_max": 0.15,
+    "can_read_seconds_max": 0.10,
     "peak_resident_gib": {
       "base": 0.35,
-      "per_million_gaussians": 0.6
+      "per_million_gaussians": 0.55
     }
   },
   "scale_source": {

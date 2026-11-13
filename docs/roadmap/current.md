@@ -195,25 +195,24 @@ real environments and package paths were actually verified.
   (`gaussianSog_python_uri_resolver`). Its first hosted run passed in all
   three `workspace-ctest-pr-*` cells. Only the Windows-only separator row
   stays ⚠️, by nature.
-- 🚧 Large-asset benchmark corpus: the
+- ✅ Large-asset benchmark corpus: the
   [corpus](../reference/BENCHMARK_CORPUS.md) is defined in four tiers —
   committed fixtures, the committed CC0 subsets, a generated scale ladder
   (1M, 4M, and 7,995,392 Gaussians, just under the import ceiling) in all
   three formats from one CC0 source, and real exports kept outside the
-  repository — with provisional resource targets.
+  repository. The manifest declares the resource targets.
   `scripts/benchmark_corpus.py` generates the ladder deterministically and
   checks it against recorded hashes; all nine scale assets decode with zero
   contract violations. The `benchmark_corpus_ci` CTest case measures the
   fixture, corpus, and 1M rows in the `workspace-ctest-pr-*` cells; its
-  first hosted run passed every gate on Windows, macOS, and Linux. The
-  workspace jobs now include the per-asset JSON in their evidence uploads.
+  [hosted reports](../reference/BENCHMARK_CORPUS.md#hosted-gate) contain all
+  36 passing rows across Windows, macOS, and Linux.
   A local Windows Release run passed all nine scale rows (including the 4M
   and ceiling steps) and all nine real rows, including a full Leica Sofort
   capture converted to SOG and the Graphdeco Garden and Bicycle PLY exports.
   See the [measured rows](../reference/BENCHMARK_CORPUS.md#local-measurements).
-  Remaining: verify and collect the next hosted reports from all three
-  platforms, then tighten the provisional targets using those reports and
-  the local measurements.
+  The saved hosted and local measurements pass the tightened resource
+  targets in the manifest, which CTest applies in each workspace job.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
 ## Proposed milestones
