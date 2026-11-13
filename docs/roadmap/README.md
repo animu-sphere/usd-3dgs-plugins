@@ -32,9 +32,9 @@ Never use an unqualified “M1” for SOG work.
   [release records](../releases/README.md); completed milestone detail is in
   the [delivery history](../reports/delivery-history.md).
 - v0.4.0 formalized the shared decoder-to-USD contract, and v0.5.0 shipped the
-  first format built on it: SOG v2 one-object import. v0.5.1 completed the
-  release polish; the active follow-up is v0.6.0 production import hardening;
-  see [current.md](current.md).
+  first format built on it: SOG v2 one-object import. The v0.6.0 tag passed
+  production import hardening and release verification. See the
+  [release record](../releases/v0.6.0.md) and [current work](current.md).
 - M5 (`gaussian-spz`) shipped in v0.3.0: SPZ decodes into `GaussianCloudData`
   and reuses the shared USD authoring contract; a second USD authoring path is
   not permitted, and making that invariant normative is v0.4.0's purpose.

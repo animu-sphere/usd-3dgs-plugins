@@ -6,6 +6,7 @@ Release records are history and are not rewritten after publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
+| v0.6.0 | 2026-11-13 | [v0.6.0.md](v0.6.0.md) — production import hardening and aggregate package verification |
 | v0.5.1 | 2026-09-16 | [v0.5.1.md](v0.5.1.md) — release polish, package verification, and hostile-input hardening; released |
 | v0.5.0 | 2026-07-25 | [v0.5.0.md](v0.5.0.md) — SOG v2 one-object import, third-format equivalence, and OST 0.20.0 aggregate product packaging; released |
 | v0.4.0 | 2026-07-22 | [v0.4.0.md](v0.4.0.md) — Gaussian Import Foundation: the decoder-to-USD seam formalized, RUB frame (ADR 0001), decoder test kit, and the `gaussian-sog` skeleton; published 2026-07-22 |

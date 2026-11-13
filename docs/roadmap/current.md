@@ -1,7 +1,7 @@
 # Current
 
 Updated: 2026-11-13
-Scope: v0.6.0 preparation
+Scope: follow-up after tagging v0.6.0
 
 ## Current position
 
@@ -21,24 +21,16 @@ Each format-specific reader and decoder produces the shared
 as `ParticleField3DGaussianSplat` in the USD stage.
 
 The shared model, validation contract, diagnostics, USD authoring layer, import
-statistics, and safety limits now cover all three format bundles. The active
-work is production import hardening before selecting another input format.
+statistics, and safety limits now cover all three format bundles. The
+[v0.6.0 release record](../releases/v0.6.0.md) lists the completed checks.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ## Near-term direction
 
-The next step is not an immediate fourth file format. Work is ordered as
-follows:
-
-1. complete resolver and hostile-input coverage;
-2. define and measure large-asset validation targets;
-3. verify package installation, replacement, and removal in the release lane;
-4. select the next input format;
-5. strengthen the integration path to Hydra renderers.
-
-The short-term goal is to make the existing PLY, SPZ, and SOG support reliable
-to install, verify, and use before expanding the format matrix.
+Evaluate the next format against the criteria below and strengthen the
+integration path to Hydra renderers. The [release plan](release-plan.md)
+tracks the performance and large-asset work scheduled for v0.7.0.
 
 ## v0.6.0 — production import hardening
 
@@ -80,8 +72,8 @@ identifiers, and metadata-only reads that must not open property planes.
 ### Package-consumer tests
 
 The release lane runs the [aggregate installation check](../guides/INSTALL.md#verify-the-aggregate-installation)
-after the package-origin verification pyramid. Local Windows verification is
-complete. The hosted release dry run is the remaining verification step.
+after the package-origin verification pyramid. It passed on local Windows
+and in the hosted Windows, macOS, and Linux dry run and tag jobs.
 
 ## Next format candidates
 
@@ -210,24 +202,9 @@ real environments and package paths were actually verified.
   The manifest sets resource targets from those measurements, including
   the run-to-run variation in macOS 1M PLY peak memory. CTest applies the
   targets in each workspace job.
-- 🚧 Run the release dry run on Windows, macOS, and Linux and review the
-  packaged artifacts and logs before tagging v0.6.0.
-
-## Proposed milestones
-
-### v0.6.0 — Production import hardening
-
-- large-input limits;
-- resolver test coverage;
-- package-consumer verification;
-- improved diagnostics and summaries;
-- expanded benchmarks.
-
-### v0.7.0 — Next format
-
-SuperSplat compressed PLY is the first candidate. The final choice requires a
-published or independently implementable specification, redistributable
-fixtures, license clearance, and a viable cross-format equivalence test.
+- ✅ Verify the release dry run and tag jobs on Windows, macOS, and Linux.
+  The [release record](../releases/v0.6.0.md) links the runs and lists the
+  verified artifact checksums.
 
 ## Decision criteria
 

@@ -31,7 +31,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.3.0 | SPZ import | M5, Phase 2 | ✅ tagged & published — [record](../releases/v0.3.0.md) |
 | v0.4.0 | Gaussian Import Foundation | design policy §7.4 | ✅ tagged & published — [record](../releases/v0.4.0.md) |
 | v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged & published — [record](../releases/v0.5.0.md) |
-| v0.6.0 | Production import hardening | — | 🚧 |
+| v0.6.0 | Production import hardening | — | ✅ tagged and verified — [record](../releases/v0.6.0.md) |
 | v0.7.0 | Performance and large-asset readiness | Phase 4 | ⬜ |
 | v0.8.0 | USD packaging and asset composition | — | ⬜ |
 | v0.9.0 | Rendering integration preview — delivered by [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) | — | ⬜ |
@@ -338,8 +338,5 @@ a reviewed third-party dependency and license list.
 
 ## Immediate focus
 
-The current development target is **v0.6.0 — production import hardening**
-after the v0.5.1 tag and publication on 2026-09-16. Work is tracked in
-[current.md](current.md) and focuses on hostile-input coverage, asset-resolver
-verification, package-consumer checks, and diagnostics before selecting the
-next input format.
+The [v0.6.0 release record](../releases/v0.6.0.md) captures the import-hardening
+checks. Follow-up work is tracked in [current.md](current.md).
