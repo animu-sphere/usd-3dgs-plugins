@@ -57,8 +57,8 @@ float InverseLogTransform(float value) noexcept
 
 } // namespace
 
-GaussianSogDecoder::GaussianSogDecoder(SogReader reader)
-    : _reader(std::move(reader))
+GaussianSogDecoder::GaussianSogDecoder(const SogReader& reader)
+    : _reader(reader)
 {}
 
 bool GaussianSogDecoder::CanReadBundled(const std::string& path) const noexcept

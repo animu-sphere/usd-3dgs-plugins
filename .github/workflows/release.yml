@@ -258,6 +258,14 @@ jobs:
             --profile "${{ matrix.profile }}" \
             --up-to "${{ matrix.up_to }}" \
             --json | tee .ost-ci/package-consumer-test.json
+      - name: Verify product installation, replacement, and removal
+        shell: bash
+        run: |
+          set -euo pipefail
+          ost plugin run plugins/gaussian-ply --no-inject \
+            --target "${{ matrix.platform }}" --profile "${{ matrix.profile }}" \
+            -- python tests/package_consumer/test_product.py run .ost-ci/package.json \
+            2>&1 | tee .ost-ci/product-install-test.log
       # Release gate item 4. Repackaging reuses the existing build tree, so
       # this costs seconds rather than a second compile -- and unstable
       # digests would make the published SHA256SUMS meaningless.

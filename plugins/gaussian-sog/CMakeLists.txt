@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 
 # C is enabled alongside C++ for the vendored libwebp and miniz translation units.
 project(GaussianSogPlugin
-    VERSION 0.5.1
+    VERSION 0.6.0
     DESCRIPTION "OpenUSD sog file-format plugin"
     LANGUAGES C CXX)
 

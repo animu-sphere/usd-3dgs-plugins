@@ -35,21 +35,16 @@ the release body.
 ## How the gate runs
 
 Pushing a `vX.Y.Z` tag starts
-[release.yml](../../.github/workflows/release.yml), which enforces items 1, 2,
-4, and 6 automatically:
+[release.yml](../../.github/workflows/release.yml), which enforces items 1–4
+and 6 automatically:
 
 | Gate item | Enforced by |
 | --- | --- |
 | 1. version agreement | `scripts/release.py guard` — tag, `VERSION`, every bundle manifest, and a finalized `## [X.Y.Z]` changelog heading |
 | 2. hosted cells pass | one job per source cell in `openstrata.ci.yaml`, at that cell's `up_to` level |
+| 3. source and installed packages | `ost plugin test` from source and from package at each cell's declared level, plus the [aggregate installation check](../guides/INSTALL.md#verify-the-aggregate-installation) |
 | 4. reproducible digests | the lane packages twice and fails on disagreeing `archive_digest` |
 | 6. draft for review | `gh release create --draft`; publishing stays a human action |
-
-The release lane now enforces the package-origin half of item 3 with
-`ost plugin test --workspace --from-package` at each cell's declared
-verification level. Broader consumer checks such as replacement or
-uninstallation behavior remain follow-up work (see
-[roadmap/current.md](../roadmap/current.md)).
 
 The workflow takes its runtime digests, `ost` version, and per-cell levels from
 `openstrata.ci.yaml` rather than restating them, so re-pinning a runtime moves

@@ -31,7 +31,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.3.0 | SPZ import | M5, Phase 2 | ✅ tagged & published — [record](../releases/v0.3.0.md) |
 | v0.4.0 | Gaussian Import Foundation | design policy §7.4 | ✅ tagged & published — [record](../releases/v0.4.0.md) |
 | v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged & published — [record](../releases/v0.5.0.md) |
-| v0.6.0 | Import tooling and diagnostics | — | ⬜ |
+| v0.6.0 | Production import hardening | — | 🚧 |
 | v0.7.0 | Performance and large-asset readiness | Phase 4 | ⬜ |
 | v0.8.0 | USD packaging and asset composition | — | ⬜ |
 | v0.9.0 | Rendering integration preview — delivered by [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) | — | ⬜ |
@@ -211,23 +211,17 @@ export or recompression, GPU-native decode, generic ZIP/image APIs, glTF/GLB,
 composition model are SOG M2-M4, scheduled only after the one-object decoder is
 stable and measured.
 
-## v0.6.0 — import tooling and diagnostics
+## v0.6.0 — production import hardening
 
-An optional command-line inspection tool that shares the plugin's parsing and
-validation code: format identification, attribute/Gaussian-count/SH-degree/
-bounding-box summaries, a validation-only mode, import timing statistics,
-CI-suitable diagnostic output, and an optional USD conversion command. The
-CLI shape is provisional until this release:
+Apply input limits across PLY, SPZ, and SOG, verify resolver behavior and
+installed packages, and measure representative assets up to the import
+ceiling. Users can inspect, validate, and convert through the OpenUSD tools,
+with stable diagnostic codes and opt-in import summaries documented in the
+[diagnostics reference](../reference/DIAGNOSTICS.md).
 
-```text
-usd3dgs inspect asset.ply
-usd3dgs validate asset.spz
-usd3dgs convert asset.ply output.usda
-```
-
-Done when: users can inspect and validate files without launching a viewer,
-diagnostics are actionable in automated pipelines, and the CLI behavior is
-documented and tested.
+Done when the limits, resolver matrix, benchmark targets, and package-consumer
+checks have run on their documented configurations and the release gate passes.
+A dedicated `usd3dgs` command remains in the [backlog](backlog.md#inspection-tooling).
 
 ## v0.7.0 — performance and large-asset readiness
 
