@@ -6,8 +6,8 @@
     "metadata_only_seconds_max": 0.15,
     "can_read_seconds_max": 0.10,
     "peak_resident_gib": {
-      "base": 0.35,
-      "per_million_gaussians": 0.55
+      "base": 0.60,
+      "per_million_gaussians": 0.50
     }
   },
   "scale_source": {

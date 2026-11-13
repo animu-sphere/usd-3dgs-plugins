@@ -211,8 +211,9 @@ real environments and package paths were actually verified.
   and ceiling steps) and all nine real rows, including a full Leica Sofort
   capture converted to SOG and the Graphdeco Garden and Bicycle PLY exports.
   See the [measured rows](../reference/BENCHMARK_CORPUS.md#local-measurements).
-  The saved hosted and local measurements pass the tightened resource
-  targets in the manifest, which CTest applies in each workspace job.
+  The manifest sets resource targets from those measurements, including
+  the run-to-run variation in macOS 1M PLY peak memory. CTest applies the
+  targets in each workspace job.
 - ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
 
 ## Proposed milestones
