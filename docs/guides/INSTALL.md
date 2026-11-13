@@ -140,6 +140,29 @@ same aggregate archive SHA-256. The v0.5.1 hosted release dry-run
 passed package-origin verification at the declared Windows L4 cap and at L5 on
 macOS arm64 and Linux after the OpenUSD 26.08 re-pin.
 
+### Verify the aggregate installation
+
+From the repository root after building all three bundles:
+
+```sh
+ost plugin package --workspace --product --json > build/product-package.json
+ost plugin run plugins/gaussian-ply --no-inject -- python tests/package_consumer/test_product.py run build/product-package.json
+```
+
+The test installs the aggregate archive with `ost plugin product install` in
+a temporary directory. Fresh Python and C++ consumers open the packaged PLY,
+SPZ, and bundled SOG fixtures. The Python consumer checks that the loaded
+libraries and diagnostic catalogs come from the active prefix. `usdcat`
+flattens each stage and `usdchecker` validates the resulting USD.
+
+OST installs to a new prefix. To switch prefixes, activate the new one in a
+fresh process. To uninstall an isolated installation, close the processes
+using it, remove its directory, and remove its search paths from the next
+session. The test checks prefix precedence with the first install still
+present, then checks that stale search paths discover none of the three plugins
+after both test prefixes are removed. The test is part of the release workflow
+and passed locally on Windows with OpenUSD 26.08 and OpenStrata 0.23.20.
+
 ## Manual package activation
 
 After extracting the target-matching archive:

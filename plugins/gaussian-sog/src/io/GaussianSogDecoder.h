@@ -36,10 +36,9 @@ struct GaussianSogMetadata {
 class GaussianSogDecoder {
   public:
     GaussianSogDecoder() = default;
-    // The reader used for every read below. The file-format plugin injects one
-    // carrying an asset-resolver-backed companion loader; the default reads
-    // unbundled planes from `meta.json`'s own directory.
-    explicit GaussianSogDecoder(SogReader reader);
+    // Copy the reader and its callbacks. Moving the reader by value corrupted
+    // the primary loader in optimized MSVC 19.51 C++20 plugin builds.
+    explicit GaussianSogDecoder(const SogReader& reader);
 
     // Routing (SOG_FORMAT.md §6). The two layouts are claimed by different
     // extensions, so the caller says which gate applies rather than having

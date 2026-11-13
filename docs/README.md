@@ -43,6 +43,8 @@ workspace contract wins; structural changes must update that contract first.
   [reference/RESOLVER_MATRIX.md](reference/RESOLVER_MATRIX.md) describes how
   unbundled SOG companions resolve, which cases are verified, and which are
   known gaps.
+- [reference/DIAGNOSTICS.md](reference/DIAGNOSTICS.md) links the diagnostic-code
+  catalogs and shows how to inspect imports with OpenUSD command-line tools.
 - [reference/BENCHMARK_CORPUS.md](reference/BENCHMARK_CORPUS.md) declares the
   large-asset benchmark corpus — committed, generated up to the import
   ceiling, and real — and the resource targets each measured row is checked

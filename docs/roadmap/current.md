@@ -33,7 +33,7 @@ follows:
 
 1. complete resolver and hostile-input coverage;
 2. define and measure large-asset validation targets;
-3. improve package-consumer replacement and uninstallation checks;
+3. verify package installation, replacement, and removal in the release lane;
 4. select the next input format;
 5. strengthen the integration path to Hydra renderers.
 
@@ -63,14 +63,12 @@ same protection in each format bundle.
 
 ### Diagnostics and observability
 
-Continue the stable diagnostic-code policy while improving:
-
-- import summaries;
-- warning aggregation;
-- source and companion-path reporting;
-- CI cross-checks for machine-readable diagnostic catalogs;
-- an index searchable by diagnostic code;
-- the boundary between common and format-specific diagnostics.
+All three readers expose import summaries with aggregated warning counts.
+The format-specific catalogs are cross-checked against the C++ definitions
+in the Python smoke tests run by the hosted workspace CTest cells. The shared
+layer writer uses the calling bundle's diagnostic codes. See the
+[diagnostics reference](../reference/DIAGNOSTICS.md) for code lookup, source
+and companion paths, and headless validation.
 
 ### Asset-resolver verification
 
@@ -81,11 +79,9 @@ identifiers, and metadata-only reads that must not open property planes.
 
 ### Package-consumer tests
 
-Test generated packages from a clean consumer environment, not only from the
-development tree. The consumer gate should cover plugin discovery, dependent
-shared libraries, resource catalogs, schema availability, `usdcat`,
-`usdchecker`, Python and C++ stage opens, all three formats, and replacement or
-uninstallation behavior.
+The release lane runs the [aggregate installation check](../guides/INSTALL.md#verify-the-aggregate-installation)
+after the package-origin verification pyramid. Local Windows verification is
+complete. The hosted release dry run is the remaining verification step.
 
 ## Next format candidates
 
@@ -214,7 +210,8 @@ real environments and package paths were actually verified.
   The manifest sets resource targets from those measurements, including
   the run-to-run variation in macOS 1M PLY peak memory. CTest applies the
   targets in each workspace job.
-- ⬜ Investigate specifications, fixtures, and licenses for next-format candidates.
+- 🚧 Run the release dry run on Windows, macOS, and Linux and review the
+  packaged artifacts and logs before tagging v0.6.0.
 
 ## Proposed milestones
 

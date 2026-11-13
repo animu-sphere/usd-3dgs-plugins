@@ -6,6 +6,10 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-13
+
+**Production import hardening.**
+
 ### Added
 
 - `gaussian-sog`: the primary asset (`.sog` or `meta.json`) is read through
@@ -40,6 +44,18 @@ semantic versioning for tagged releases.
   CTest suites on Windows, macOS, and Linux. Until now those suites (unit,
   Python smoke and resolver, and cross-format equivalence tests) ran only in
   the local gate.
+- The release workflow verifies installation, prefix replacement, and removal
+  of the aggregate product. It opens the packaged PLY, SPZ, and SOG fixtures
+  from fresh Python and C++ processes, checks discovery and diagnostic catalogs,
+  and validates the USD authored by `usdcat` with `usdchecker`.
+- The [diagnostics reference](docs/reference/DIAGNOSTICS.md) links the
+  stable-code catalogs and documents headless validation and import summaries.
+- Hostile-input fixtures for every declared-size import budget, and an
+  asset-resolver test matrix for unbundled SOG
+  ([RESOLVER_MATRIX.md](docs/reference/RESOLVER_MATRIX.md)).
+- Sparse-file tests for the real-size import bounds: the 1 GiB bundled SOG
+  archive and SPZ source, and the 512 MiB SOG companion plane through both
+  the reader's directory loader and the asset resolver.
 
 ### Changed
 
@@ -60,6 +76,8 @@ semantic versioning for tagged releases.
 
 ### Fixed
 
+- `gaussian-sog`: preserve the resolver callbacks when constructing the
+  decoder, fixing a crash on Windows with optimized MSVC 19.51 C++20 builds.
 - `gaussian-sog`: a bundled `meta.json` whose declared expanded size exceeds
   4 MiB is rejected before allocation and inflation in full and metadata-only
   reads.
@@ -80,15 +98,6 @@ semantic versioning for tagged releases.
   USD's UTF-8 path to a narrow-string `std::ifstream`, which Windows reads in
   the ANSI code page, so such a file was reported as unreadable. Readers now
   open paths through the shared `GaussianFileIO.h` helper.
-
-### Added
-
-- Hostile-input fixtures for every declared-size import budget, and an
-  asset-resolver test matrix for unbundled SOG
-  ([RESOLVER_MATRIX.md](docs/reference/RESOLVER_MATRIX.md)).
-- Sparse-file tests for the real-size import bounds: the 1 GiB bundled SOG
-  archive and SPZ source, and the 512 MiB SOG companion plane through both
-  the reader's directory loader and the asset resolver.
 
 ## [0.5.1] - 2026-09-16
 

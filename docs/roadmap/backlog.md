@@ -60,6 +60,13 @@ remainder stays here:
 - ⬜ Investigate binary big-endian support; claim it only after a deterministic
   fixture passes on all supported platforms.
 
+## Inspection tooling
+
+- ⬜ Consider a dedicated `usd3dgs` command with format identification,
+  machine-readable diagnostics, and inspect, validate, and convert modes.
+  Reuse the readers and import-statistics seam that power the
+  [OpenUSD command-line workflow](../reference/DIAGNOSTICS.md).
+
 ## Performance and loading
 
 The design policy (§12.2) fixes the optimization order: measure first, then
