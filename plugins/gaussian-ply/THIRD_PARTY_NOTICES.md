@@ -1,10 +1,11 @@
 # Third-Party Notices
 
-The `gaussian-ply` plugin includes tinyply 2.3.4 at commit
-`40aa4a0ae9e9c203e11893f78b8bcaf8a50e65f0`.
+The `gaussian-ply` plugin includes tinyPLY 3.0 at commit
+`c9bb690dfe5e9105961e9e28120c48c9ae084bc6`.
 
-tinyply is dedicated to the public domain under the Unlicense. Its upstream
-README and source files are preserved under `third_party/tinyply` in the source
-repository.
+tinyPLY is dedicated to the public domain with a permissive fallback grant.
+The vendored source and upstream notice are in `third_party/tinyply`.
+The [workspace notice](../../THIRD_PARTY_NOTICES.md#tinyply-30) records the
+local parser fixes.
 
 Upstream: <https://github.com/ddiakopoulos/tinyply>

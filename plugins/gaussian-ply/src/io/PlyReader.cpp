@@ -11,8 +11,8 @@
 #include <exception>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <memory>
-#include <optional>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -95,32 +95,29 @@ bool BuildHeader(const std::vector<tinyply::PlyElement>& elements, bool binary,
     return true;
 }
 
-// A single vertex element with only known scalar types has a fixed payload
-// size, including fields such as normals that the decoder does not request.
-std::optional<std::size_t>
-FixedVertexPayloadSize(const std::vector<tinyply::PlyElement>& elements,
-                       const PlyHeader& header)
+// Reject impossible counts before tinyPLY allocates the scalar columns.
+// Each ASCII token needs at least one byte. For a binary list, count only
+// its length field here; tinyPLY checks the contents while reading.
+std::size_t MinimumPayloadSize(const std::vector<tinyply::PlyElement>& elements,
+                               bool binary)
 {
-    if (!header.binary || elements.size() != 1) {
-        return std::nullopt;
-    }
-
-    std::size_t rowBytes = 0;
-    for (const tinyply::PlyProperty& property : elements.front().properties) {
-        const int stride =
-            tinyply::PropertyTable.at(property.propertyType).stride;
-        if (property.isList || stride == 0) {
-            return std::nullopt;
-        }
-        if (!CheckedAddSize(rowBytes, static_cast<std::size_t>(stride),
-                            &rowBytes)) {
-            throw std::length_error("PLY vertex row size overflows.");
-        }
-    }
-
     std::size_t payloadBytes = 0;
-    if (!CheckedMulSize(rowBytes, header.vertexCount, &payloadBytes)) {
-        throw std::length_error("PLY vertex payload size overflows.");
+    for (const auto& element : elements) {
+        std::size_t rowBytes = 0;
+        for (const auto& property : element.properties) {
+            const auto type =
+                property.isList ? property.listType : property.propertyType;
+            const std::size_t stride =
+                binary ? tinyply::PropertyTable.at(type).stride : 1;
+            if (!CheckedAddSize(rowBytes, stride, &rowBytes)) {
+                throw std::length_error("PLY element row size overflows.");
+            }
+        }
+        std::size_t elementBytes = 0;
+        if (!CheckedMulSize(rowBytes, element.size, &elementBytes) ||
+            !CheckedAddSize(payloadBytes, elementBytes, &payloadBytes)) {
+            throw std::length_error("PLY payload size overflows.");
+        }
     }
     return payloadBytes;
 }
@@ -285,24 +282,32 @@ bool PlyReader::Read(const std::string& path,
             return false;
         }
 
-        const auto payloadSize =
-            FixedVertexPayloadSize(elements, result.header);
-        if (payloadSize && !HasPayloadBytes(stream, *payloadSize)) {
+        const auto minimumSize =
+            MinimumPayloadSize(elements, result.header.binary);
+        if (!HasPayloadBytes(stream, minimumSize)) {
             if (error)
                 *error = "PLY payload is truncated or unreadable.";
             return false;
         }
 
-        // In tinyPLY 2.3.4, a nonzero list hint enables upfront buffer
-        // sizing. Scalar allocation already uses a multiplier of one.
-        const std::uint32_t listSizeHint = payloadSize ? 1 : 0;
         std::map<std::string, std::shared_ptr<tinyply::PlyData>> requested;
         for (const std::string& name : requestedProperties) {
-            requested.emplace(name, file.request_properties_from_element(
-                                        "vertex", {name}, listSizeHint));
+            auto data = file.request_properties_from_element("vertex", {name});
+            if (!data) {
+                if (error)
+                    *error =
+                        "tinyPLY returned no data for property '" + name + "'.";
+                return false;
+            }
+            if (data->isList) {
+                if (error)
+                    *error = "Requested PLY property is not a scalar array.";
+                return false;
+            }
+            requested.emplace(name, std::move(data));
         }
         file.read(stream);
-        if (stream.fail() || stream.bad()) {
+        if (stream.fail()) {
             if (error)
                 *error = "PLY payload is truncated or unreadable.";
             return false;
@@ -310,12 +315,6 @@ bool PlyReader::Read(const std::string& path,
 
         for (const auto& entry : requested) {
             const std::shared_ptr<tinyply::PlyData>& data = entry.second;
-            if (!data) {
-                if (error)
-                    *error = "tinyPLY returned no data for property '" +
-                             entry.first + "'.";
-                return false;
-            }
             std::vector<float> values;
             if (!CopyValues(*data, &values, error)) {
                 return false;

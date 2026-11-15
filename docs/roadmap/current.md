@@ -38,10 +38,13 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
   covers the scale ladder and six real PLY exports. All nine flattened USDC
   pairs matched byte for byte. Peak resident memory stayed within the corpus
   budget, with the same 3.26 GiB peak on the ceiling asset.
-- ⬜ Evaluate a tinyPLY 3.0 upgrade in a separate change. The
-  [Windows trial](../reference/BENCHMARK_CORPUS.md#parser-replacement-trial)
-  improved opening times further, with a higher peak on bulk reads. The
-  upgrade needs compatibility and package-consumer verification.
+- ✅ Update the PLY reader to tinyPLY 3.0 with parser fixes and regression
+  coverage for additional elements, mixed list count widths, and truncation.
+  The [Windows verification](../reference/BENCHMARK_CORPUS.md#vendored-tinyply-30-verification)
+  covers all nine PLY benchmark rows, USDC equivalence, and packaged consumers.
+- 🚧 Verify the release candidate in hosted CI and run the release dry run
+  before tagging. The [release gate](../releases/README.md#release-gate)
+  covers package verification and digest reproducibility on all three targets.
 - ✅ Assess [interruption and lazy access](../reference/BENCHMARK_CORPUS.md#ply-interruption-and-lazy-access)
   against the OpenUSD import path. The file-format entry point is synchronous.
   USD payload loading can defer the whole asset. Track release criteria in the

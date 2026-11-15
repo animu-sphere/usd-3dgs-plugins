@@ -305,10 +305,9 @@ float columns. Each row is one fresh decoding process. Times are in seconds.
 
 Column conversion took at most 2% of the measured time. The sizing pass
 traversed every property even though the scalar widths were known from the
-header. For a binary PLY with a single scalar-only `vertex` element,
-`PlyReader` now checks the declared payload against the bytes available and
-uses tinyPLY's allocation hint to skip that pass. Other layouts use the
-general parser path.
+header. The single-pass change in `a486b19` checked the declared payload of
+a single scalar-only binary `vertex` element and used tinyPLY 2.3.4's
+allocation hint to skip that pass. Other layouts used the general parser path.
 
 The following before-and-after pair was collected on 2026-11-15 with the
 Windows Release configuration above and `benchmark_corpus.py run --format
@@ -360,14 +359,35 @@ they use the general path. The bulk path explains the higher peak seen on
 the scale rows, which stayed within the corpus memory budget. See the
 [pinned parser implementation](https://github.com/ddiakopoulos/tinyply/blob/c9bb690dfe5e9105961e9e28120c48c9ae084bc6/source/tinyply.h).
 
-The single-pass change uses 2.3.4. The 3.0 upgrade is a follow-up
-candidate because its allocation and header validation behavior changed.
-Check truncated inputs, peak memory on the supported platforms, and the
-package-consumer path before adopting it. [miniply](https://github.com/vilya/miniply)
-is an alternative for a future comparison. Its current reader stages an
-entire fixed-size element and opens narrow paths on Windows, so a trial
-would need to account for peak memory and preserve UTF-8 paths. See the
-[miniply implementation](https://github.com/vilya/miniply/blob/master/miniply.cpp).
+### Vendored tinyPLY 3.0 verification
+
+The upgrade vendors the same pinned revision as the trial, with local fixes
+listed in the [third-party notice](../../THIRD_PARTY_NOTICES.md#tinyply-30).
+The reader checks the minimum payload size before allocating scalar columns
+and keeps metadata-only reads header-only. The PLY smoke test covers
+additional elements, mixed ASCII list count widths, and truncated payloads.
+
+On 2026-11-15, the Windows Release build passed the same nine PLY benchmark
+rows. These measurements use the same command as the single-pass comparison.
+
+| Asset | `Stage.Open` (s), single-pass 2.3.4 / vendored 3.0 | Peak resident (GiB), single-pass 2.3.4 / vendored 3.0 |
+| --- | ---: | ---: |
+| `scale-1m-ply` | 1.69 / 0.78 | 0.49 / 0.53 |
+| `scale-4m-ply` | 6.76 / 3.21 | 1.74 / 1.91 |
+| `scale-ceiling-ply` | 13.83 / 5.84 | 3.26 / 3.58 |
+| `real-yashica-t4-ply` | 0.12 / 0.04 | 0.10 / 0.10 |
+| `real-leica-sofort-ply` | 0.27 / 0.11 | 0.13 / 0.13 |
+| `real-cactus-142k-ply` | 0.24 / 0.11 | 0.12 / 0.13 |
+| `real-cactus-2m-ply` | 3.18 / 1.38 | 0.84 / 0.92 |
+| `real-garden-ply` | 11.69 / 6.63 | 2.39 / 2.39 |
+| `real-bicycle-ply` | 10.68 / 7.12 | 2.51 / 2.51 |
+
+All nine flattened USDC hashes matched the `3ca762e` baseline, as they did
+with the single-pass change. Every peak stayed within the corpus budget.
+The Windows workspace CTest suite passed all 18 tests.
+With OpenStrata 0.23.20, the PLY source and the three packaged bundles passed
+through L5 locally. The aggregate installation check opened all three formats
+from fresh Python and C++ processes and verified prefix replacement and removal.
 
 ### PLY interruption and lazy access
 

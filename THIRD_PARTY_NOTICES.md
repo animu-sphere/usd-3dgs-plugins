@@ -1,9 +1,9 @@
 # Third-party notices
 
-## tinyPLY 2.3.4
+## tinyPLY 3.0
 
 - Project: <https://github.com/ddiakopoulos/tinyply>
-- Vendored commit: `40aa4a0ae9e9c203e11893f78b8bcaf8a50e65f0`
+- Vendored commit: `c9bb690dfe5e9105961e9e28120c48c9ae084bc6`
 - Files: `third_party/tinyply/tinyply.h`, `tinyply.cpp`, and upstream README
 - License: public-domain dedication with a permissive fallback grant
 
@@ -15,6 +15,10 @@ Upstream notice:
 
 Authored by Dimitri Diakopoulos. The complete upstream notice is retained at
 the top of `third_party/tinyply/tinyply.h` and in the vendored README.
+
+Local fixes in `tinyply.h` preserve the element and property names as separate
+lookup keys, reject invalid element counts and truncated binary skips, and
+clear the ASCII list count before reading it at a new width.
 
 ## miniz 3.0.2
 
