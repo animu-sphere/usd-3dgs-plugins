@@ -29,11 +29,14 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ## v0.8.0 — USD packaging and asset composition
 
-- ⬜ Verify common reference and payload workflows and record resolver behavior
-  for relative paths and packaged sources.
-- ⬜ Document composition examples and settle default-prim, child-prim, and
-  source-file metadata conventions.
-- ⬜ Evaluate instanceability with the authored Gaussian prim hierarchy.
+- ✅ Add CTest coverage for relative references, deferred payloads, and
+  native USDZ packages across PLY, SPZ, and both SOG layouts.
+- ✅ Record the default-prim, child-prim, and source-file metadata conventions
+  and document the workflows in the
+  [composition guide](../guides/COMPOSITION.md).
+- ✅ Verify that repeated instanceable references share a prototype and
+  support distinct root transforms.
+- ⬜ Verify the new coverage in the hosted Windows, macOS, and Linux jobs.
 
 See the [release plan](release-plan.md#v080--usd-packaging-and-asset-composition)
 for the completion criteria.

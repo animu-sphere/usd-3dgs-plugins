@@ -312,6 +312,21 @@ def case_package_relative(root):
     assert stage, "packaged .sog open failed"
     assert gaussian_count(stage, "/Asset/Splat") == EXPECTED_COUNT
 
+    # A USD entry layer can also reference either SOG layout inside its package.
+    for entry in ("meta.json", "cloud.sog"):
+        package_dir = root / f"package-scene-{entry}"
+        layer_path = package_dir / "scene.usda"
+        write_referencing_layer(layer_path, f"./cloud/{entry}")
+        cloud_entries = (planes if entry == "meta.json" else
+                         {entry: FIXTURES / "kit-multi-degree3.sog"})
+        package = write_package(
+            package_dir / "scene.usdz",
+            {"scene.usda": layer_path,
+             **{f"cloud/{name}": source for name, source in cloud_entries.items()}})
+        stage = Usd.Stage.Open(str(package))
+        assert stage and not stage.GetCompositionErrors(), entry
+        assert gaussian_count(stage, "/Root/Splat") == EXPECTED_COUNT, entry
+
 
 def case_windows_spellings(root):
     """On Windows the same primary asset opens under both separator styles.

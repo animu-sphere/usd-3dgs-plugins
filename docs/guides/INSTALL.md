@@ -1,11 +1,9 @@
 # Building and installing USD 3DGS Plugins
 
-The latest tagged and published release is v0.5.1
-([release records](../releases/README.md)). The verified paths are an
-OpenStrata source build, a
-locally generated OpenStrata package, and manual activation of an extracted
-package on Windows. The v0.5.1 product archive contains the `gaussian-ply`,
-`gaussian-spz`, and `gaussian-sog` member bundles.
+The [latest stable release](https://github.com/animu-sphere/usd-3dgs-plugins/releases/latest)
+provides product archives containing the `gaussian-ply`, `gaussian-spz`, and
+`gaussian-sog` member bundles. See the [release records](../releases/README.md)
+for the verification results for each release.
 Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
 before reusing a binary package: OpenUSD plugin binaries must match the target
 platform, compiler ABI, OpenUSD build, and Python ABI.

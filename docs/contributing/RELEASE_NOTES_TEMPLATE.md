@@ -7,6 +7,7 @@ and author OpenUSD's standard `ParticleField3DGaussianSplat` schema.
 - **Capability matrix:** [CAPABILITY_MATRIX.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/reference/CAPABILITY_MATRIX.md)
 - **PLY mapping:** [PLY_MAPPING.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/reference/PLY_MAPPING.md)
 - **Install guide:** [INSTALL.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/guides/INSTALL.md)
+- **Composition guide** [COMPOSITION.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/guides/COMPOSITION.md)
 - **Workspace contract:** [WORKSPACE.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/architecture/WORKSPACE.md)
 
 ## Changes

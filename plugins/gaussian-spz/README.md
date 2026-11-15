@@ -24,7 +24,6 @@ quantization constants are in
 ```
 openstrata.plugin.yaml          bundle contract (identity, runtime range, provides, tests)
 CMakeLists.txt                  builds the plugin library into lib/
-cmake/OpenStrataPlugin.cmake    pinned, self-contained build/install mechanics
 src/GaussianSpzFileFormat.{h,cpp}  thin SdfFileFormat integration (routes to gaussianUsd)
 src/io/SpzReader.{h,cpp}        SPZ container reading (gzip framing, header/size
                                 validation, quantized attribute spans)
@@ -35,6 +34,9 @@ plugin/resources/gaussian-spz/  plugInfo.json + machine-readable diagnostics.jso
 tests/fixtures/                 deterministic valid + invalid container fixtures
 tools/generate_fixtures.py      fixture generator (fixtures are committed)
 ```
+
+Build and install settings use the workspace's
+[OpenStrata CMake helper](../../cmake/OpenStrataPlugin.cmake).
 
 The vendored DEFLATE/CRC32 implementation is `third_party/miniz` (MIT); the
 gzip member framing is parsed by `SpzReader` itself so container diagnostics

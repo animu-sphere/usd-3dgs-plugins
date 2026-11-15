@@ -6,6 +6,32 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-15
+
+**USD packaging and asset composition.**
+
+### Added
+
+- A composition guide covers anchored references, whole-asset payload loading,
+  native USDZ packaging, and the `/Asset/Splat` and import metadata conventions.
+- CTest covers relative references, deferred payloads, and native USDZ
+  round-trips for PLY, SPZ, and both SOG layouts. Repeated instanceable
+  references share a prototype and support independent root transforms.
+- Resolver coverage includes a USD entry layer referencing either SOG layout
+  inside the same package.
+
+### Changed
+
+- Standalone bundle and workspace builds share OpenUSD linking, plugin staging
+  and installation, and the Python CTest environment in `cmake/`.
+
+### Known limitations
+
+- PLY and SPZ source imports require filesystem access. For USDZ delivery,
+  convert Gaussian sources to native USD layers before packaging.
+- Payloads defer the whole cloud. Loading a payload imports all Gaussian
+  arrays for that asset.
+
 ## [0.7.0] - 2026-11-15
 
 **Performance and large-asset readiness.**

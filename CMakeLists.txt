@@ -72,10 +72,9 @@ foreach(_root ${_ost_bundle_roots})
     endforeach()
 endforeach()
 
-# Cross-format tests live here rather than in a bundle because they link more
-# than one bundle's decoder. They exist only in this composed build: `ost
-# plugin build <bundle>` configures a single bundle and never reaches this
-# file, so the guard below keeps the root usable if a bundle is removed.
+# Cross-format tests use multiple decoders or USD plugins. They exist only
+# in this composed build: `ost plugin build <bundle>` configures a single
+# bundle and never reaches this file.
 if(USD3DGS_BUILD_TESTS
    AND TARGET gaussianPlyDecoder
    AND TARGET gaussianSpzDecoder
@@ -84,4 +83,5 @@ if(USD3DGS_BUILD_TESTS
     # The large-asset benchmark corpus opens all three formats through their
     # plugins, so it needs the same full composition.
     add_subdirectory("tests/benchmark")
+    add_subdirectory("tests/composition")
 endif()

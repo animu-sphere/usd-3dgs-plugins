@@ -52,33 +52,11 @@ target_include_directories(gaussianUsd
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
         "$<INSTALL_INTERFACE:include>")
 
-# OpenUSD ships either one monolithic target or per-component targets depending
-# on how it was built. This mirrors the bundle-local openstrata_link_openusd
-# resolution so the library builds against both layouts without depending on a
-# plugin bundle's copy of that helper.
-set(_gaussian_usd_components arch tf gf vt kind sdf usd usdGeom usdVol)
-if(TARGET usd_ms)
-    target_link_libraries(gaussianUsd PUBLIC usd_ms)
-elseif(TARGET pxr::usd_ms)
-    target_link_libraries(gaussianUsd PUBLIC pxr::usd_ms)
-else()
-    set(_gaussian_usd_targets)
-    foreach(_component IN LISTS _gaussian_usd_components)
-        if(TARGET ${_component})
-            list(APPEND _gaussian_usd_targets ${_component})
-        elseif(TARGET pxr::${_component})
-            list(APPEND _gaussian_usd_targets pxr::${_component})
-        endif()
-    endforeach()
-    if(_gaussian_usd_targets)
-        target_link_libraries(gaussianUsd PUBLIC ${_gaussian_usd_targets})
-    elseif(PXR_LIBRARIES)
-        target_link_libraries(gaussianUsd PUBLIC ${PXR_LIBRARIES})
-    else()
-        message(FATAL_ERROR
-            "Could not locate OpenUSD CMake targets or PXR_LIBRARIES for gaussianUsd.")
-    endif()
-endif()
+include("../../cmake/OpenStrataPlugin.cmake")
+openstrata_link_openusd(
+    TARGET gaussianUsd
+    VISIBILITY PUBLIC
+    COMPONENTS arch tf gf vt kind sdf usd usdGeom usdVol)
 # Build-tree only. An installed consumer gets OpenUSD's headers from the pxr
 # targets linked above and from its own find_package(pxr), so the export must
 # not freeze the build machine's runtime path. CMake also refuses to export it

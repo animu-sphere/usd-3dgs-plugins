@@ -78,10 +78,12 @@ ctest --test-dir plugins/gaussian-spz/build/cy2026-windows-x86_64-py313-usd --ou
 ctest --test-dir plugins/gaussian-sog/build/cy2026-windows-x86_64-py313-usd --output-on-failure
 ```
 
-The cross-format equivalence tests are the exception: `tests/equivalence/` links
-more than one bundle's decoder, so it exists only in the plain root composition
-below, never in a per-bundle build. See
-[EQUIVALENCE.md](../reference/EQUIVALENCE.md).
+The root build additionally runs cross-format
+[equivalence](../reference/EQUIVALENCE.md),
+[composition](COMPOSITION.md), and [benchmark corpus](../reference/BENCHMARK_CORPUS.md)
+tests. The standalone build runs each bundle's unit and integration suites.
+Both paths use the shared CMake helpers described in the
+[workspace contract](../architecture/WORKSPACE.md#4-root-responsibilities).
 
 ## Plain CMake path (no ost)
 
@@ -94,10 +96,11 @@ cmake --build --preset default
 ctest --test-dir build/default --output-on-failure
 ```
 
-This composes all three bundles plus the shared libraries and runs all eighteen
-tests, including `gaussian_ply_spz_equivalence`,
-`gaussian_ply_sog_equivalence`, and the two
-[benchmark corpus](../reference/BENCHMARK_CORPUS.md) cases.
+This composes all three bundles plus the shared libraries.
+`gaussian_usd_composition` exercises references, payloads, and USDZ using
+all three bundles and both SOG layouts. Run it on its own with
+`ctest --test-dir build/default -R gaussian_usd_composition --output-on-failure`.
+
 `benchmark_corpus_ci` generates and imports 1,048,576-Gaussian assets in all
 three formats, so it needs about 300 MiB of temporary disk and takes the
 longest; `ctest -LE benchmark` skips it. Regenerate the equivalence fixtures after
