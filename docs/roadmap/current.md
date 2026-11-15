@@ -1,7 +1,7 @@
 # Current
 
 Updated: 2026-11-15
-Scope: v0.7.0 performance and large-asset readiness
+Scope: v0.8.0 USD packaging and asset composition
 
 ## Current position
 
@@ -22,33 +22,21 @@ as `ParticleField3DGaussianSplat` in the USD stage.
 
 The shared model, validation contract, diagnostics, USD authoring layer, import
 statistics, and safety limits now cover all three format bundles. The
-[v0.6.0 release record](../releases/v0.6.0.md) lists the completed checks.
+[v0.7.0 release record](../releases/v0.7.0.md) lists the large-asset benchmarks
+and package checks.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
-## v0.7.0 — performance and large-asset readiness
+## v0.8.0 — USD packaging and asset composition
 
-- ✅ Collect container-read, semantic-decode, and USD-authoring times from
-  the shared import summaries in the [benchmark corpus report](../reference/BENCHMARK_CORPUS.md#phase-timings).
-  In the [Windows baseline](../reference/BENCHMARK_CORPUS.md#v070-phase-baseline),
-  container read accounted for 88–89% of `Stage.Open` on the ceiling PLY
-  asset and on Garden and Bicycle.
-- ✅ Profile and remove the sizing pass for fixed-width binary PLY vertex
-  data. The [Windows before-and-after comparison](../reference/BENCHMARK_CORPUS.md#ply-single-pass-read)
-  covers the scale ladder and six real PLY exports. All nine flattened USDC
-  pairs matched byte for byte. Peak resident memory stayed within the corpus
-  budget, with the same 3.26 GiB peak on the ceiling asset.
-- ✅ Update the PLY reader to tinyPLY 3.0 with parser fixes and regression
-  coverage for additional elements, mixed list count widths, and truncation.
-  The [Windows verification](../reference/BENCHMARK_CORPUS.md#vendored-tinyply-30-verification)
-  covers all nine PLY benchmark rows, USDC equivalence, and packaged consumers.
-- 🚧 Verify the release candidate in hosted CI and run the release dry run
-  before tagging. The [release gate](../releases/README.md#release-gate)
-  covers package verification and digest reproducibility on all three targets.
-- ✅ Assess [interruption and lazy access](../reference/BENCHMARK_CORPUS.md#ply-interruption-and-lazy-access)
-  against the OpenUSD import path. The file-format entry point is synchronous.
-  USD payload loading can defer the whole asset. Track release criteria in the
-  [release plan](release-plan.md#v070--performance-and-large-asset-readiness).
+- ⬜ Verify common reference and payload workflows and record resolver behavior
+  for relative paths and packaged sources.
+- ⬜ Document composition examples and settle default-prim, child-prim, and
+  source-file metadata conventions.
+- ⬜ Evaluate instanceability with the authored Gaussian prim hierarchy.
+
+See the [release plan](release-plan.md#v080--usd-packaging-and-asset-composition)
+for the completion criteria.
 
 ## v0.6.0 — production import hardening
 

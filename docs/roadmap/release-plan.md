@@ -32,7 +32,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.4.0 | Gaussian Import Foundation | design policy §7.4 | ✅ tagged & published — [record](../releases/v0.4.0.md) |
 | v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged & published — [record](../releases/v0.5.0.md) |
 | v0.6.0 | Production import hardening | — | ✅ tagged and verified — [record](../releases/v0.6.0.md) |
-| v0.7.0 | Performance and large-asset readiness | Phase 4 | 🚧 [current work](current.md#v070--performance-and-large-asset-readiness) |
+| v0.7.0 | Performance and large-asset readiness | Phase 4 | ✅ tagged and verified — [record](../releases/v0.7.0.md) |
 | v0.8.0 | USD packaging and asset composition | — | ⬜ |
 | v0.9.0 | Rendering integration preview — delivered by [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) | — | ⬜ |
 | v1.0.0 | Stable import API and file-format support | — | ⬜ |
@@ -225,6 +225,8 @@ A dedicated `usd3dgs` command remains in the [backlog](backlog.md#inspection-too
 
 ## v0.7.0 — performance and large-asset readiness
 
+Tagged and verified 2026-11-15. [Release record](../releases/v0.7.0.md)
+
 Predictable loading behavior for large production assets, building on the
 v0.2.0 baselines: a benchmark harness separating file read, semantic decode,
 USD authoring, and total stage-open time; memory measurements; large
@@ -338,5 +340,5 @@ a reviewed third-party dependency and license list.
 
 ## Immediate focus
 
-The [v0.6.0 release record](../releases/v0.6.0.md) captures the import-hardening
-checks. Follow-up work is tracked in [current.md](current.md).
+The [v0.7.0 release record](../releases/v0.7.0.md) captures the performance
+and large-asset checks. USD composition work is tracked in [current.md](current.md).

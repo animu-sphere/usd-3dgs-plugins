@@ -8,8 +8,7 @@ Windows against OpenUSD 26.05. The first tagged release is
 [v0.1.0](../releases/v0.1.0.md); later sections record post-tag stabilization
 work.
 
-Legend: ✅ completed (sections A-G locally on Windows; sections H-I on hosted
-runners or GitHub, with the local verification each notes)
+Legend: ✅ completed
 
 ## A. M0 — workspace bootstrap
 
@@ -232,3 +231,20 @@ log the roadmap no longer needs to carry.
   locally; hosted dry run, tag, and draft assembled 2026-07-20
   ([run 29741754978](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/29741754978),
   6 cells green), then published.
+
+## J. v0.7.0 — performance and large-asset readiness
+
+- ✅ Recorded container read, semantic decode, and USD authoring separately in
+  the benchmark corpus. The Windows baseline identified container read as
+  88–89% of stage-open time on three large PLY assets.
+  [Phase baseline](../reference/BENCHMARK_CORPUS.md#v070-phase-baseline)
+- ✅ Removed the sizing pass for scalar-only binary PLY with tinyPLY 2.3.4,
+  then adopted tinyPLY 3.0 with parser fixes and regression tests. Nine
+  Windows benchmark assets passed their resource targets and produced
+  byte-identical flattened USDC.
+  [Parser verification](../reference/BENCHMARK_CORPUS.md#vendored-tinyply-30-verification)
+- ✅ Verified that USD payload loading defers whole-asset import and
+  documented synchronous root-layer reads.
+  [Interruption and lazy access](../reference/BENCHMARK_CORPUS.md#ply-interruption-and-lazy-access)
+- ✅ Verified hosted source tests and the product release on Windows, macOS,
+  and Linux. [Release record](../releases/v0.7.0.md)
