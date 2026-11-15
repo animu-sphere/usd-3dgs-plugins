@@ -30,9 +30,11 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 ## v0.9.0 — rendering integration preview
 
 The sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin)
-owns the rendering preview. This repository supports it through renderer
-capability documentation and examples of inspecting imported Gaussian USD
-assets. See the
+owns the rendering preview and its OpenStrata Formation. The first smoke
+check should open a representative Gaussian source file in `testusdview`
+with the released import plugin and verify visible splats with Merlin. This
+repository documents import and stage inspection and links to Merlin's run
+instructions and verified configuration. See the
 [release plan](release-plan.md#v090--rendering-integration-preview-delivered-by-hydra-merlin).
 
 ## v0.6.0 — production import hardening
@@ -133,13 +135,10 @@ and tests covering:
 - compatible OpenUSD versions;
 - the shared schema contract;
 - sample stages and source assets;
-- importer-to-renderer end-to-end smoke tests;
+- importer-to-renderer smoke evidence from Merlin's locked Formation;
 - reciprocal README links;
 - known renderer limitations;
 - the difference between stock `usdview` and a Gaussian-capable delegate.
-
-Do not move renderer implementation into this repository. Keep the boundary
-explicit through integration tests and documentation.
 
 ## Release operations
 

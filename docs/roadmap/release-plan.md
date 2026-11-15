@@ -260,30 +260,34 @@ stable.
 
 ## v0.9.0 — rendering integration preview (delivered by hydra-merlin)
 
-The rendering side of this milestone is owned by the sibling project
-[hydra-merlin](https://github.com/animu-sphere/hydra-merlin), a Hydra
-integration for `ParticleField3DGaussianSplat`. This repository stays
-renderer-neutral: a bundled Hydra renderer remains a
-[non-goal](backlog.md#non-goals), and rendering work must not compromise
-parser correctness or stage portability.
+The sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin)
+owns the rendering preview for `ParticleField3DGaussianSplat`. Merlin hosts an
+OpenStrata Formation that pins a viewer-capable OpenUSD runtime, a published
+3DGS import package, and the published hdMerlin renderer by artifact digest.
+Both packages target the pinned runtime. The import plugins remain
+renderer-neutral and author the standard OpenUSD schema. The
+[Hydra Toon VRM host session](https://github.com/animu-sphere/hydra-toon/tree/main/formations/vrm-host-session)
+provides the reference for packaging the session and its smoke check.
 
 Repository-side scope
 ([backlog](backlog.md#rendering-and-ecosystem-integration)):
 
 - a renderer capability note tracking Hydra implementations of the schema,
   starting with hydra-merlin;
-- documentation keeping import support and rendering support separate claims;
-- examples demonstrating downstream inspection without making a renderer a
-  core dependency.
+- a link to Merlin's locked Formation, run instructions, and verification
+  evidence;
+- import and stage-inspection examples that use the standard OpenUSD schema.
 
 File-format compatibility and rendering compatibility remain separate claims:
 opening a Gaussian asset as a USD stage does not imply that hdStorm or any
 other renderer can display it correctly.
 
-Done when: at least one documented rendering path exists for preview or
-experimentation (hydra-merlin), unsupported renderer behavior is clearly
-communicated, and the integration is explicitly labeled experimental unless
-production quality is reached.
+To complete the preview, run the locked Formation with `testusdview` on a
+representative source asset and verify that the released import plugin loads
+the asset and Merlin draws visible splats. Publish the run instructions and
+evidence with the verified runtime, package versions, platform, backend, and
+known limitations. Label the workflow experimental until it reaches
+production quality.
 
 ## v1.0.0 — stable import API and file-format support
 
