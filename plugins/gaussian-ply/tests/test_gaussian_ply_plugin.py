@@ -6,7 +6,9 @@ import math
 import os
 import pathlib
 import re
+import struct
 import sys
+import tempfile
 
 from pxr import Plug, Sdf, Tf, Usd, UsdGeom
 
@@ -85,6 +87,31 @@ def check_three_gaussians():
     assert len(coefficients) == 3 * 4
     # Interleaved per Gaussian: DC then rest. Gaussian 1 DC is (0.4, 0.5, 0.6).
     assert all(close(a, b) for a, b in zip(coefficients[4], (0.4, 0.5, 0.6)))
+
+
+def check_fixed_binary_payload():
+    fixture = (FIXTURES / "one-gaussian-binary-le.ply").read_bytes()
+    header, terminator, payload = fixture.partition(b"end_header\n")
+    header = header.replace(b"property float x\n",
+                            b"property uchar unused\nproperty double x\n")
+    data = header + terminator + struct.pack("<Bd", 42, 1.0) + payload[4:]
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = pathlib.Path(directory) / "mixed-width-binary.ply"
+        # The fixed row includes the ignored byte and permits trailing bytes.
+        path.write_bytes(data + b"trailing bytes")
+        check_stage(path, 0)
+
+        truncated = path.with_name("truncated-binary.ply")
+        truncated.write_bytes(data[:-1])
+        layer = Sdf.Layer.OpenAsAnonymous(str(truncated), metadataOnly=True)
+        assert layer.GetPrimAtPath("/Asset").customData["gs"]["gaussianCount"] == 1
+        try:
+            stage = Usd.Stage.Open(str(truncated))
+        except Tf.ErrorException as exc:
+            assert "GSPLY-E015" in safe_error_text(exc), exc
+        else:
+            assert stage is None, "accepted a truncated fixed binary row"
 
 
 def check_metadata_only():
@@ -284,6 +311,7 @@ def main():
     check_stage("degree-3-sh.ply", 3)
     check_stage("reordered-properties.ply", 1)
     check_three_gaussians()
+    check_fixed_binary_payload()
     check_metadata_only()
     check_format_args()
     check_negative_fixtures(catalog_codes)

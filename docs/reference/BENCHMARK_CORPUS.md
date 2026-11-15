@@ -288,8 +288,106 @@ near-ceiling scale rows and the two largest real rows, in seconds.
 | `real-bicycle-ply` | 20.34 | 1.81 | 0.60 | 22.82 |
 
 Container read took 88–89% of `Stage.Open` on these three PLY assets.
-Profile tinyPLY's binary property loop and the subsequent column conversion
-separately to find where a targeted reader change would help most.
+
+### PLY single-pass read
+
+A Windows Release decoder build with temporary wall-clock timers measured the
+two calls to tinyPLY 2.3.4's `parse_data` and the subsequent conversion to
+float columns. Each row is one fresh decoding process. Times are in seconds.
+
+| Asset | Sizing pass | Read pass | Column conversion |
+| --- | ---: | ---: | ---: |
+| `scale-1m-ply` | 1.40 | 1.78 | 0.05 |
+| `scale-4m-ply` | 5.69 | 5.58 | 0.18 |
+| `scale-ceiling-ply` | 9.86 | 10.95 | 0.36 |
+| `real-garden-ply` | 9.83 | 8.56 | 0.24 |
+| `real-bicycle-ply` | 8.30 | 11.13 | 0.28 |
+
+Column conversion took at most 2% of the measured time. The sizing pass
+traversed every property even though the scalar widths were known from the
+header. For a binary PLY with a single scalar-only `vertex` element,
+`PlyReader` now checks the declared payload against the bytes available and
+uses tinyPLY's allocation hint to skip that pass. Other layouts use the
+general parser path.
+
+The following before-and-after pair was collected on 2026-11-15 with the
+Windows Release configuration above and `benchmark_corpus.py run --format
+ply --tier scale --tier real --work <scale-dir> --assets <real-dir>
+--require-all --report <report.json>`. The baseline was `3ca762e`. Each side
+uses one fresh process per asset with import summaries enabled. The elapsed
+times are local observations and vary with the file cache and host load.
+
+| Asset | Container read (s), before / after | `Stage.Open` (s), before / after | Peak resident (GiB), before / after |
+| --- | ---: | ---: | ---: |
+| `scale-1m-ply` | 2.68 / 1.36 | 3.01 / 1.69 | 0.49 / 0.49 |
+| `scale-4m-ply` | 11.01 / 5.36 | 12.35 / 6.76 | 1.74 / 1.74 |
+| `scale-ceiling-ply` | 20.41 / 10.93 | 22.98 / 13.83 | 3.26 / 3.26 |
+| `real-yashica-t4-ply` | 0.16 / 0.10 | 0.18 / 0.12 | 0.10 / 0.10 |
+| `real-leica-sofort-ply` | 0.51 / 0.23 | 0.57 / 0.27 | 0.13 / 0.13 |
+| `real-cactus-142k-ply` | 0.43 / 0.19 | 0.49 / 0.24 | 0.12 / 0.12 |
+| `real-cactus-2m-ply` | 6.72 / 2.54 | 7.60 / 3.18 | 0.84 / 0.84 |
+| `real-garden-ply` | 19.36 / 9.62 | 21.55 / 11.69 | 2.39 / 2.39 |
+| `real-bicycle-ply` | 23.80 / 8.61 | 26.48 / 10.68 | 2.51 / 2.51 |
+
+All nine before-and-after pairs produced identical SHA-256 hashes of their
+flattened USDC exports with the source-file comment disabled. The Windows
+workspace CTest suite passed all 18 tests, including the mixed-width binary
+smoke case that checks an ignored scalar, trailing bytes, and a truncated row.
+The OpenStrata source bundle also passed through L5 on Windows.
+
+### Parser replacement trial
+
+A scratch Windows Release build of `3ca762e` with the vendored parser
+exchanged for [tinyPLY 3.0](https://github.com/ddiakopoulos/tinyply/releases/tag/3.0)
+at [`c9bb690`](https://github.com/ddiakopoulos/tinyply/commit/c9bb690dfe5e9105961e9e28120c48c9ae084bc6)
+passed the PLY decoder and smoke tests and all nine PLY benchmark rows.
+Its flattened USDC hashes matched the baseline on all nine assets. The
+adapter used the same property requests as the baseline. Each timing is
+one fresh `benchmark_corpus.py` process per asset, as above.
+
+| Asset | `Stage.Open` (s), single-pass 2.3.4 / 3.0 | Peak resident (GiB), single-pass 2.3.4 / 3.0 |
+| --- | ---: | ---: |
+| `scale-1m-ply` | 1.69 / 0.76 | 0.49 / 0.53 |
+| `scale-4m-ply` | 6.76 / 3.33 | 1.74 / 1.91 |
+| `scale-ceiling-ply` | 13.83 / 5.76 | 3.26 / 3.58 |
+| `real-garden-ply` | 11.69 / 6.75 | 2.39 / 2.39 |
+| `real-bicycle-ply` | 10.68 / 7.10 | 2.51 / 2.51 |
+
+tinyPLY 3.0 sizes scalar columns up front. Its bulk path reads a whole
+fixed-width element into a staging buffer when all properties are requested.
+The scale rows qualify. Garden and Bicycle carry unrequested normals, so
+they use the general path. The bulk path explains the higher peak seen on
+the scale rows, which stayed within the corpus memory budget. See the
+[pinned parser implementation](https://github.com/ddiakopoulos/tinyply/blob/c9bb690dfe5e9105961e9e28120c48c9ae084bc6/source/tinyply.h).
+
+The single-pass change uses 2.3.4. The 3.0 upgrade is a follow-up
+candidate because its allocation and header validation behavior changed.
+Check truncated inputs, peak memory on the supported platforms, and the
+package-consumer path before adopting it. [miniply](https://github.com/vilya/miniply)
+is an alternative for a future comparison. Its current reader stages an
+entire fixed-size element and opens narrow paths on Windows, so a trial
+would need to account for peak memory and preserve UTF-8 paths. See the
+[miniply implementation](https://github.com/vilya/miniply/blob/master/miniply.cpp).
+
+### PLY interruption and lazy access
+
+OpenUSD 26.08 calls `SdfFileFormat::Read` synchronously with a target layer,
+resolved path, and metadata-only flag. The entry point has no cancellation
+token. The PLY importer decodes the cloud, waits for USD authoring, and
+transfers the finished layer on success. A host with an interruptible batch
+workflow can control a separate import process. Cooperative in-process
+cancellation would need a caller-provided signal and bounded checkpoints
+inside the reader and decoder. See [OpenUSD's file-format API](https://openusd.org/release/api/class_sdf_file_format.html).
+
+The header-only read already provides the Gaussian count and SH degree. A
+local OpenUSD 26.08 smoke check also verified that a wrapper layer opened
+with `Usd.Stage.LoadNone` leaves its PLY payload unopened until `Load` is
+called. A PLY opened as the root layer still authors its arrays eagerly.
+Deferring a whole asset through a payload is available for v0.8.0 composition
+work. Lazy access to individual arrays would require an on-demand data store
+and a design for the shared validation and extent calculation. See
+[OpenUSD stage loading](https://openusd.org/release/api/class_usd_stage.html)
+and [the abstract data API](https://openusd.org/release/api/class_sdf_abstract_data.html).
 
 ## Admitting an asset
 

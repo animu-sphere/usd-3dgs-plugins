@@ -33,13 +33,18 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
   In the [Windows baseline](../reference/BENCHMARK_CORPUS.md#v070-phase-baseline),
   container read accounted for 88–89% of `Stage.Open` on the ceiling PLY
   asset and on Garden and Bicycle.
-- ⬜ Profile tinyPLY's binary property loop and column conversion to identify
-  the first optimization. Use the scale ladder and the real exports above.
-- ⬜ Measure the effect of the first optimization on the same assets and build
-  configuration. Check authored-stage equivalence and peak resident memory
-  alongside the elapsed time.
-- ⬜ Assess interruption and lazy access against the measured bottlenecks and
-  the OpenUSD import path. Track release criteria in the
+- ✅ Profile and remove the sizing pass for fixed-width binary PLY vertex
+  data. The [Windows before-and-after comparison](../reference/BENCHMARK_CORPUS.md#ply-single-pass-read)
+  covers the scale ladder and six real PLY exports. All nine flattened USDC
+  pairs matched byte for byte. Peak resident memory stayed within the corpus
+  budget, with the same 3.26 GiB peak on the ceiling asset.
+- ⬜ Evaluate a tinyPLY 3.0 upgrade in a separate change. The
+  [Windows trial](../reference/BENCHMARK_CORPUS.md#parser-replacement-trial)
+  improved opening times further, with a higher peak on bulk reads. The
+  upgrade needs compatibility and package-consumer verification.
+- ✅ Assess [interruption and lazy access](../reference/BENCHMARK_CORPUS.md#ply-interruption-and-lazy-access)
+  against the OpenUSD import path. The file-format entry point is synchronous.
+  USD payload loading can defer the whole asset. Track release criteria in the
   [release plan](release-plan.md#v070--performance-and-large-asset-readiness).
 
 ## v0.6.0 — production import hardening
