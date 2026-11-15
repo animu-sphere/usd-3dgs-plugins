@@ -6,6 +6,7 @@ Release records are history and are not rewritten after publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
+| v0.8.0 | 2026-11-15 | [v0.8.0.md](v0.8.0.md) — USD packaging and asset composition |
 | v0.7.0 | 2026-11-15 | [v0.7.0.md](v0.7.0.md) — performance and large-asset readiness |
 | v0.6.0 | 2026-11-13 | [v0.6.0.md](v0.6.0.md) — production import hardening and aggregate package verification |
 | v0.5.1 | 2026-09-16 | [v0.5.1.md](v0.5.1.md) — release polish, package verification, and hostile-input hardening; released |

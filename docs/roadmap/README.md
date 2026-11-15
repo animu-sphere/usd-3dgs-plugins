@@ -35,9 +35,10 @@ Never use an unqualified “M1” for SOG work.
   first format built on it: SOG v2 one-object import. The v0.6.0 tag passed
   production import hardening and release verification.
   [v0.6.0 release record](../releases/v0.6.0.md)
-- The v0.7.0 tag passed performance and package verification. The next
-  milestone covers USD packaging and asset composition.
-  [v0.7.0 release record](../releases/v0.7.0.md) · [Current work](current.md)
+- v0.7.0 improved large-asset import performance. v0.8.0 verified USD
+  references, payloads, instancing, and packaging.
+  [v0.7.0 release record](../releases/v0.7.0.md) ·
+  [v0.8.0 release record](../releases/v0.8.0.md) · [Current work](current.md)
 - M5 (`gaussian-spz`) shipped in v0.3.0: SPZ decodes into `GaussianCloudData`
   and reuses the shared USD authoring contract; a second USD authoring path is
   not permitted, and making that invariant normative is v0.4.0's purpose.

@@ -1,7 +1,7 @@
 # Current
 
 Updated: 2026-11-15
-Scope: v0.8.0 USD packaging and asset composition
+Scope: v0.9.0 rendering integration preview
 
 ## Current position
 
@@ -22,24 +22,18 @@ as `ParticleField3DGaussianSplat` in the USD stage.
 
 The shared model, validation contract, diagnostics, USD authoring layer, import
 statistics, and safety limits now cover all three format bundles. The
-[v0.7.0 release record](../releases/v0.7.0.md) lists the large-asset benchmarks
-and package checks.
+[v0.8.0 release record](../releases/v0.8.0.md) covers the USD composition
+workflows and the three verified product packages.
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
-## v0.8.0 — USD packaging and asset composition
+## v0.9.0 — rendering integration preview
 
-- ✅ Add CTest coverage for relative references, deferred payloads, and
-  native USDZ packages across PLY, SPZ, and both SOG layouts.
-- ✅ Record the default-prim, child-prim, and source-file metadata conventions
-  and document the workflows in the
-  [composition guide](../guides/COMPOSITION.md).
-- ✅ Verify that repeated instanceable references share a prototype and
-  support distinct root transforms.
-- ⬜ Verify the new coverage in the hosted Windows, macOS, and Linux jobs.
-
-See the [release plan](release-plan.md#v080--usd-packaging-and-asset-composition)
-for the completion criteria.
+The sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin)
+owns the rendering preview. This repository supports it through renderer
+capability documentation and examples of inspecting imported Gaussian USD
+assets. See the
+[release plan](release-plan.md#v090--rendering-integration-preview-delivered-by-hydra-merlin).
 
 ## v0.6.0 — production import hardening
 
