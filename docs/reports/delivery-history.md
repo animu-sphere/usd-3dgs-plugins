@@ -248,3 +248,14 @@ log the roadmap no longer needs to carry.
   [Interruption and lazy access](../reference/BENCHMARK_CORPUS.md#ply-interruption-and-lazy-access)
 - ✅ Verified hosted source tests and the product release on Windows, macOS,
   and Linux. [Release record](../releases/v0.7.0.md)
+
+## K. v0.8.0 — USD packaging and asset composition
+
+- ✅ Verified relative references, payload loading, instanceable references,
+  and native USDZ packages across the three formats and both SOG layouts.
+  [Composition guide](../guides/COMPOSITION.md)
+- ✅ Recorded the default prim, Gaussian child, and source metadata
+  conventions. [Workspace contract](../architecture/WORKSPACE.md#5-authored-stage-contract)
+- ✅ Shared CMake setup between workspace and standalone bundle builds and
+  verified product packages on Windows, macOS, and Linux.
+  [Release record](../releases/v0.8.0.md)

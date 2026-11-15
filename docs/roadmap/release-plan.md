@@ -33,7 +33,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged & published — [record](../releases/v0.5.0.md) |
 | v0.6.0 | Production import hardening | — | ✅ tagged and verified — [record](../releases/v0.6.0.md) |
 | v0.7.0 | Performance and large-asset readiness | Phase 4 | ✅ tagged and verified — [record](../releases/v0.7.0.md) |
-| v0.8.0 | USD packaging and asset composition | — | ⬜ |
+| v0.8.0 | USD packaging and asset composition | — | ✅ published and verified — [record](../releases/v0.8.0.md) |
 | v0.9.0 | Rendering integration preview — delivered by [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) | — | ⬜ |
 | v1.0.0 | Stable import API and file-format support | — | ⬜ |
 
@@ -245,6 +245,8 @@ buffer management, final LOD.
 
 ## v0.8.0 — USD packaging and asset composition
 
+Published and verified 2026-11-15. [Release record](../releases/v0.8.0.md)
+
 Integration with real USD asset pipelines: asset metadata conventions,
 referencing and payload behavior, packaging and composition examples,
 relative asset path and resolver compatibility testing, instanceability
@@ -340,5 +342,5 @@ a reviewed third-party dependency and license list.
 
 ## Immediate focus
 
-The [v0.7.0 release record](../releases/v0.7.0.md) captures the performance
-and large-asset checks. USD composition work is tracked in [current.md](current.md).
+The [v0.8.0 release record](../releases/v0.8.0.md) captures the USD composition
+and package checks. The integration preview is tracked in [current.md](current.md).
