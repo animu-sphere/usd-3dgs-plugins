@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(GaussianPlyPlugin
-    VERSION 0.7.0
+    VERSION 0.8.0
     DESCRIPTION "OpenUSD ply file-format plugin"
     LANGUAGES CXX)
 
@@ -12,7 +12,7 @@ endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenStrataPlugin.cmake")
+include("../../cmake/OpenStrataPlugin.cmake")
 openstrata_default_build_type()
 
 if(NOT DEFINED USD3DGS_BUILD_TESTS)
@@ -93,9 +93,6 @@ openstrata_link_openusd(
     TARGET ${PLUGIN_NAME}
     COMPONENTS arch tf gf vt kind sdf usd usdGeom usdVol)
 
-# The copied helper keeps output/install mechanics identical in standalone and
-# add_subdirectory workspace builds. This file still owns the target, OpenUSD
-# components, resource path, and fixtures as the bundle's readable policy.
 openstrata_configure_plugin(
     TARGET ${PLUGIN_NAME}
     PLUG_INFO_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/gaussian-ply/plugInfo.json.in"

@@ -1,8 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# OpenStrata plugin scaffold helper, copied into generated bundles.
-#
-# Keep this file self-contained: generated projects must build with plain CMake
-# and an OpenUSD SDK, without an OpenStrata source checkout or an `ost` binary.
+# OpenStrata plugin scaffold helper shared by the workspace's CMake projects.
 include_guard(DIRECTORY)
 
 set(OPENSTRATA_PLUGIN_CMAKE_HELPER_VERSION "1.1.0")

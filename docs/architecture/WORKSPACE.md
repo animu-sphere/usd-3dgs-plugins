@@ -126,11 +126,20 @@ The repository root owns composition, not plugin implementation:
 - workspace-wide version and OpenStrata platform/profile selection;
 - `openstrata.ci.yaml` and generated CI;
 - shared licensing, third-party notices, documentation, and release records;
-- future cross-format equivalence tests and aggregate packaging.
+- cross-format tests and aggregate packaging.
 
 Plugin C++ sources, `plugInfo.json`, format fixtures, and private parser setup
 belong to the bundle. Each bundle must remain buildable through `ost` as an
 independent bundle; the root CMake build is an additional supported path.
+
+The repository's `cmake/` directory holds CMake helpers shared by the two build
+paths. Bundles and libraries include the helpers directly from their source
+checkout, so configuring one of them as the top-level project works with the
+same helpers. Target sources, decoder dependencies, OpenUSD components, and
+bundle-specific resource and install declarations live with their targets.
+Python CTest suites use the common runtime environment helper and name the
+bundles they need. OpenStrata owns the generated `CMakeUserPresets.json` and
+target toolchains under `.strata/`.
 
 ## 5. Authored stage contract
 
@@ -141,9 +150,14 @@ Every decoder using the shared Gaussian authoring contract produces:
     /Splat              ParticleField3DGaussianSplat
 ```
 
-The initial layer policy is Y-up and one meter per unit. A source format that
+The layer policy is Y-up and one meter per unit. A source format that
 contains authoritative axis/unit metadata may override the defaults only after
 the mapping contract documents that behavior.
+
+The asset root carries `customData.gs.sourceFormat`, `gaussianCount`, and
+`shDegree`. Native USD exports retain this import summary. The reference or
+payload arc identifies the source layer. See the
+[composition guide](../guides/COMPOSITION.md) for examples.
 
 ## 6. Artifact naming and versioning
 

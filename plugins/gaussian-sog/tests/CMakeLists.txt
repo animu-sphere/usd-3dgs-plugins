@@ -32,18 +32,8 @@ if(NOT Python3_Interpreter_FOUND)
     return()
 endif()
 
-set(_usd_root "")
-if(pxr_DIR AND EXISTS "${pxr_DIR}/bin")
-    set(_usd_root "${pxr_DIR}")
-elseif(pxr_DIR)
-    get_filename_component(_usd_root "${pxr_DIR}/../../.." ABSOLUTE)
-endif()
-
-set(_bundle_dir "${CMAKE_CURRENT_SOURCE_DIR}/..")
-set(_plugin_resources "${_bundle_dir}/plugin/resources/gaussian-sog")
-set(_plugin_lib "${_bundle_dir}/lib")
-set(_smoke_env
-    "PATH=path_list_prepend:${_usd_root}/bin;PATH=path_list_prepend:${_usd_root}/lib;PATH=path_list_prepend:${_plugin_lib};PYTHONPATH=path_list_prepend:${_usd_root}/lib/python;PYTHONPATH=path_list_prepend:${_usd_root}/lib/site-packages;PXR_PLUGINPATH_NAME=path_list_prepend:${_plugin_resources}")
+include("../../../cmake/Usd3dgsPythonTests.cmake")
+usd3dgs_python_test_environment(_smoke_env gaussian-sog)
 
 add_test(
     NAME gaussianSog_python_smoke
@@ -101,6 +91,9 @@ add_test(
     NAME gaussianSog_python_uri_resolver
     COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/test_gaussian_sog_uri_resolver.py")
+set(_uri_env ${_smoke_env}
+    "PXR_PLUGINPATH_NAME=path_list_prepend:${_uri_resolver_dir}"
+    "GSTEST_URI_RESOLVER_ROOT=set:${CMAKE_CURRENT_BINARY_DIR}/gstest-uri-store"
+    "GSTEST_URI_RESOLVER_LOG=set:${CMAKE_CURRENT_BINARY_DIR}/gstest-uri-resolver.log")
 set_tests_properties(gaussianSog_python_uri_resolver PROPERTIES
-    ENVIRONMENT_MODIFICATION
-        "${_smoke_env};PXR_PLUGINPATH_NAME=path_list_prepend:${_uri_resolver_dir};GSTEST_URI_RESOLVER_ROOT=set:${CMAKE_CURRENT_BINARY_DIR}/gstest-uri-store;GSTEST_URI_RESOLVER_LOG=set:${CMAKE_CURRENT_BINARY_DIR}/gstest-uri-resolver.log")
+    ENVIRONMENT_MODIFICATION "${_uri_env}")

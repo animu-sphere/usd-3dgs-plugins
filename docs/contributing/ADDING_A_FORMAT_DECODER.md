@@ -62,8 +62,9 @@ Then align it with the shipped bundles (compare against `plugins/gaussian-spz`):
 set `plugin.version` and the CMake `project(... VERSION ...)` to the repo
 `VERSION` (never hand-edit for a release — `scripts/release.py set-version`
 owns it), declare `requires.libraries: gaussianCore` (and `gaussianUsd` once
-you author), and add `openusd: ">=26.05,<27.0"`. The root `CMakeLists.txt`
-discovers `plugins/*` by glob, so no root edit is needed.
+you author), and add `openusd: ">=26.05,<27.0"`. Use the workspace's
+`cmake/OpenStrataPlugin.cmake` for linking and staging the bundle. The root
+`CMakeLists.txt` discovers `plugins/*` by glob.
 
 `gaussian-sog` was landed in exactly this shape one release before it decoded
 anything — a registered bundle that built, tested, and packaged while rejecting

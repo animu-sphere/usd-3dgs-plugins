@@ -81,13 +81,14 @@ Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
 
 ## Install a binary release
 
-For the shortest package-consumer path, choose the v0.5.1 product archive that
-matches the host platform, the `cy2026` OpenUSD runtime, and Python 3.13:
+Choose the product archive from the
+[latest stable release](https://github.com/animu-sphere/usd-3dgs-plugins/releases/latest)
+that matches the host platform, the `cy2026` OpenUSD runtime, and Python 3.13.
 
 ```text
-usd-3dgs-plugins-0.5.1-cy2026-windows-x86_64-py313-usd-plugin-product.tar.zst
-usd-3dgs-plugins-0.5.1-cy2026-macos-arm64-py313-usd-plugin-product.tar.zst
-usd-3dgs-plugins-0.5.1-cy2026-linux-x86_64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-<version>-cy2026-windows-x86_64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-<version>-cy2026-macos-arm64-py313-usd-plugin-product.tar.zst
+usd-3dgs-plugins-<version>-cy2026-linux-x86_64-py313-usd-plugin-product.tar.zst
 ```
 
 Extract the target archive, then point `PXR_PLUGINPATH_NAME` at the extracted
@@ -160,8 +161,10 @@ in [INSTALL.md](docs/guides/INSTALL.md).
 
 ## Status
 
-**v0.5.1 — release polish and hostile-input hardening — is released.**
-([release record](docs/releases/v0.5.1.md)).
+See the [release records](docs/releases/README.md) for published capabilities
+and verification, and the [roadmap](docs/roadmap/current.md) for current work.
+The [composition guide](docs/guides/COMPOSITION.md) covers references,
+payloads, instancing, and USDZ delivery.
 
 v0.4.0 turned the decoder-to-USD seam PLY and SPZ share into a normative,
 enforced contract: shared semantic validation and overflow-checked size math, a
