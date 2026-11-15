@@ -2,6 +2,8 @@
 #include "io/PlyReader.h"
 
 #include "openstrata/gs/GaussianFileIO.h"
+#include "openstrata/gs/GaussianImportLimits.h"
+#include "openstrata/gs/GaussianSizeMath.h"
 #include "tinyply.h"
 
 #include <cstdint>
@@ -10,8 +12,10 @@
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -42,8 +46,8 @@ PlyScalarType ConvertType(tinyply::Type type) noexcept
     }
 }
 
-bool BuildHeader(const tinyply::PlyFile& file, PlyHeader* header,
-                 std::string* error)
+bool BuildHeader(const std::vector<tinyply::PlyElement>& elements, bool binary,
+                 PlyHeader* header, std::string* error)
 {
     if (!header) {
         if (error)
@@ -51,7 +55,6 @@ bool BuildHeader(const tinyply::PlyFile& file, PlyHeader* header,
         return false;
     }
 
-    const std::vector<tinyply::PlyElement> elements = file.get_elements();
     const tinyply::PlyElement* vertex = nullptr;
     for (const tinyply::PlyElement& element : elements) {
         if (element.name == "vertex") {
@@ -71,7 +74,7 @@ bool BuildHeader(const tinyply::PlyFile& file, PlyHeader* header,
 
     PlyHeader result;
     result.vertexCount = vertex->size;
-    result.binary = file.is_binary_file();
+    result.binary = binary;
     std::set<std::string> names;
     result.vertexProperties.reserve(vertex->properties.size());
     for (const tinyply::PlyProperty& property : vertex->properties) {
@@ -90,6 +93,46 @@ bool BuildHeader(const tinyply::PlyFile& file, PlyHeader* header,
     }
     *header = std::move(result);
     return true;
+}
+
+// A single vertex element with only known scalar types has a fixed payload
+// size, including fields such as normals that the decoder does not request.
+std::optional<std::size_t>
+FixedVertexPayloadSize(const std::vector<tinyply::PlyElement>& elements,
+                       const PlyHeader& header)
+{
+    if (!header.binary || elements.size() != 1) {
+        return std::nullopt;
+    }
+
+    std::size_t rowBytes = 0;
+    for (const tinyply::PlyProperty& property : elements.front().properties) {
+        const int stride =
+            tinyply::PropertyTable.at(property.propertyType).stride;
+        if (property.isList || stride == 0) {
+            return std::nullopt;
+        }
+        if (!CheckedAddSize(rowBytes, static_cast<std::size_t>(stride),
+                            &rowBytes)) {
+            throw std::length_error("PLY vertex row size overflows.");
+        }
+    }
+
+    std::size_t payloadBytes = 0;
+    if (!CheckedMulSize(rowBytes, header.vertexCount, &payloadBytes)) {
+        throw std::length_error("PLY vertex payload size overflows.");
+    }
+    return payloadBytes;
+}
+
+bool HasPayloadBytes(std::ifstream& stream, std::size_t payloadBytes)
+{
+    const auto begin = stream.tellg();
+    stream.seekg(0, std::ios::end);
+    const auto end = stream.tellg();
+    stream.seekg(begin);
+    return stream && begin >= 0 && end >= begin &&
+           static_cast<std::uintmax_t>(end - begin) >= payloadBytes;
 }
 
 // Narrowing a double outside float range is undefined behavior, so map such
@@ -192,7 +235,8 @@ bool PlyReader::ReadHeader(const std::string& path, PlyHeader* header,
                 *error = "Could not parse the PLY header.";
             return false;
         }
-        return BuildHeader(file, header, error);
+        return BuildHeader(file.get_elements(), file.is_binary_file(), header,
+                           error);
     } catch (const std::exception& exception) {
         if (error)
             *error =
@@ -227,14 +271,35 @@ bool PlyReader::Read(const std::string& path,
         }
 
         PlyDocument result;
-        if (!BuildHeader(file, &result.header, error)) {
+        const auto elements = file.get_elements();
+        if (!BuildHeader(elements, file.is_binary_file(), &result.header,
+                         error)) {
             return false;
         }
 
+        // Check the header of the stream that will actually be read before
+        // handing its counts to tinyPLY's allocator.
+        if (!IsGaussianCountWithinLimit(result.header.vertexCount)) {
+            if (error)
+                *error = "PLY vertex count exceeds the shared import limit.";
+            return false;
+        }
+
+        const auto payloadSize =
+            FixedVertexPayloadSize(elements, result.header);
+        if (payloadSize && !HasPayloadBytes(stream, *payloadSize)) {
+            if (error)
+                *error = "PLY payload is truncated or unreadable.";
+            return false;
+        }
+
+        // In tinyPLY 2.3.4, a nonzero list hint enables upfront buffer
+        // sizing. Scalar allocation already uses a multiplier of one.
+        const std::uint32_t listSizeHint = payloadSize ? 1 : 0;
         std::map<std::string, std::shared_ptr<tinyply::PlyData>> requested;
         for (const std::string& name : requestedProperties) {
-            requested.emplace(
-                name, file.request_properties_from_element("vertex", {name}));
+            requested.emplace(name, file.request_properties_from_element(
+                                        "vertex", {name}, listSizeHint));
         }
         file.read(stream);
         if (stream.fail() || stream.bad()) {
