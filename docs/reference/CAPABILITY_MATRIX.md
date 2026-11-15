@@ -14,6 +14,10 @@ This table describes the current tree. Planned capabilities belong in the
 
 ## Input and semantic mapping
 
+The PLY reader uses vendored tinyPLY 3.0. See the
+[third-party notice](../../THIRD_PARTY_NOTICES.md#tinyply-30) for the pinned
+revision and local parser fixes.
+
 | Capability | Status | Evidence / behavior |
 | --- | --- | --- |
 | ASCII PLY | supported | C++ decoder, Python stage-open, and OST golden fixture |

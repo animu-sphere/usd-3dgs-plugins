@@ -64,7 +64,7 @@ def check_stage(name, expected_degree):
         "radiance:sphericalHarmonicsCoefficients").Get()
     assert len(positions) == len(scales) == len(orientations) == len(opacities) == 1
     # Source RDF (1, 2, 3) is authored in the RUB model frame (ADR 0001).
-    assert tuple(positions[0]) == (1.0, -2.0, -3.0)
+    assert tuple(positions[0]) == (1.0, -2.0, -3.0), positions[0]
     assert all(close(a, b) for a, b in zip(scales[0], (1.0, 2.0, 0.5)))
     assert close(orientations[0].GetReal(), 1.0)
     assert close(opacities[0], 0.5)
@@ -89,6 +89,15 @@ def check_three_gaussians():
     assert all(close(a, b) for a, b in zip(coefficients[4], (0.4, 0.5, 0.6)))
 
 
+def check_unreadable_container(path):
+    try:
+        stage = Usd.Stage.Open(str(path))
+    except Tf.ErrorException as exc:
+        assert "GSPLY-E015" in safe_error_text(exc), exc
+    else:
+        assert stage is None, f"accepted unreadable PLY {path.name}"
+
+
 def check_fixed_binary_payload():
     fixture = (FIXTURES / "one-gaussian-binary-le.ply").read_bytes()
     header, terminator, payload = fixture.partition(b"end_header\n")
@@ -106,12 +115,53 @@ def check_fixed_binary_payload():
         truncated.write_bytes(data[:-1])
         layer = Sdf.Layer.OpenAsAnonymous(str(truncated), metadataOnly=True)
         assert layer.GetPrimAtPath("/Asset").customData["gs"]["gaussianCount"] == 1
-        try:
-            stage = Usd.Stage.Open(str(truncated))
-        except Tf.ErrorException as exc:
-            assert "GSPLY-E015" in safe_error_text(exc), exc
-        else:
-            assert stage is None, "accepted a truncated fixed binary row"
+        check_unreadable_container(truncated)
+
+
+def check_additional_elements():
+    fixture = (FIXTURES / "one-gaussian-binary-le.ply").read_bytes()
+    header, terminator, payload = fixture.partition(b"end_header\n")
+    # The pair (verte, xx) must stay distinct from (vertex, x).
+    header = header.replace(
+        b"element vertex 1\n",
+        b"element verte 1\nproperty float xx\nelement vertex 1\n")
+    header += b"element face 1\nproperty list uchar int vertex_indices\n"
+    data = header + terminator + struct.pack("<f", 99) + payload
+    data += struct.pack("<Bii", 2, 0, 0)
+
+    ascii_fixture = (FIXTURES / "one-gaussian-ascii.ply").read_bytes()
+    ascii_header, ascii_end, ascii_payload = ascii_fixture.partition(b"end_header\n")
+    ascii_header = ascii_header.replace(
+        b"element vertex 1\n",
+        b"element extra 1\nproperty list ushort int wide\n"
+        b"property list uchar int narrow\nelement vertex 1\n")
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = pathlib.Path(directory)
+        binary = path / "extra-elements.ply"
+        binary.write_bytes(data)
+        check_stage(binary, 0)
+
+        truncated = path / "truncated-list.ply"
+        truncated.write_bytes(data[:-1])
+        check_unreadable_container(truncated)
+
+        # The narrow list count must not inherit bytes from the wide one.
+        # The final vertex token can end at EOF.
+        ascii_path = path / "mixed-list-counts.ply"
+        ascii_path.write_bytes(
+            ascii_header + ascii_end + b"256 " + b"0 " * 256 + b"1 0\n"
+            + ascii_payload.rstrip())
+        check_stage(ascii_path, 0)
+
+        malformed = path / "missing-element-count.ply"
+        malformed.write_bytes(data.replace(b"element face 1\n", b"element face\n"))
+        check_unreadable_container(malformed)
+
+        oversized = path / "truncated-ascii.ply"
+        oversized.write_bytes(ascii_fixture.replace(b"element vertex 1\n",
+                                                    b"element vertex 8000000\n"))
+        check_unreadable_container(oversized)
 
 
 def check_metadata_only():
@@ -312,6 +362,7 @@ def main():
     check_stage("reordered-properties.ply", 1)
     check_three_gaussians()
     check_fixed_binary_payload()
+    check_additional_elements()
     check_metadata_only()
     check_format_args()
     check_negative_fixtures(catalog_codes)

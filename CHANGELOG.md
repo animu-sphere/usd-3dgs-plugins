@@ -6,6 +6,30 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-15
+
+**Performance and large-asset readiness.**
+
+### Added
+
+- Benchmark reports include container read, semantic decode, and USD
+  authoring times from each plugin's import summary.
+
+### Changed
+
+- `gaussian-ply` uses tinyPLY 3.0 for faster large binary PLY imports.
+  The reader checks the minimum payload size before allocating vertex columns.
+  In the Windows Release benchmark, opening the 7,995,392-Gaussian PLY
+  took 5.84 seconds with 3.58 GiB peak resident memory. The nine tested PLY
+  assets produce the same flattened USDC hashes as the original baseline.
+  [Benchmark results](docs/reference/BENCHMARK_CORPUS.md#vendored-tinyply-30-verification)
+
+### Known limitations
+
+- Opening an asset as a root layer is synchronous and eagerly authors the
+  Gaussian arrays. A USD payload can defer loading the entire asset.
+  [Interruption and lazy access](docs/reference/BENCHMARK_CORPUS.md#ply-interruption-and-lazy-access)
+
 ## [0.6.0] - 2026-11-13
 
 **Production import hardening.**
