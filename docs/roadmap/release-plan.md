@@ -32,7 +32,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.4.0 | Gaussian Import Foundation | design policy §7.4 | ✅ tagged & published — [record](../releases/v0.4.0.md) |
 | v0.5.0 | SOG v2 one-object import | Phase 3, SOG M1 | ✅ tagged & published — [record](../releases/v0.5.0.md) |
 | v0.6.0 | Production import hardening | — | ✅ tagged and verified — [record](../releases/v0.6.0.md) |
-| v0.7.0 | Performance and large-asset readiness | Phase 4 | ⬜ |
+| v0.7.0 | Performance and large-asset readiness | Phase 4 | 🚧 [current work](current.md#v070--performance-and-large-asset-readiness) |
 | v0.8.0 | USD packaging and asset composition | — | ⬜ |
 | v0.9.0 | Rendering integration preview — delivered by [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) | — | ⬜ |
 | v1.0.0 | Stable import API and file-format support | — | ⬜ |

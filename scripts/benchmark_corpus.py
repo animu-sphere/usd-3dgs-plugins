@@ -24,7 +24,8 @@ manifest records; a mismatch is a failure, not a refresh.
 `run` measures the selected assets through `scripts/benchmark_import.py`, one
 asset per process so peak resident memory is attributable, and checks each
 row against the manifest's expectations (Gaussian count, SH degree) and its
-resource targets. `local` and `download` assets are looked up in `--assets`
+resource targets. It captures each plugin's phase timings in the JSON report.
+`local` and `download` assets are looked up in `--assets`
 (or `USD3DGS_BENCHMARK_ASSETS`) and reported as unavailable when absent. Without
 `--work`, generated assets live in a temporary directory removed on exit.
 
@@ -44,6 +45,7 @@ import json
 import math
 import os
 import pathlib
+import shlex
 import struct
 import subprocess
 import sys
@@ -59,7 +61,12 @@ BENCHMARK_IMPORT = REPO / "scripts" / "benchmark_import.py"
 SOG_TOOLS = REPO / "plugins" / "gaussian-sog" / "tools" / "generate_fixtures.py"
 
 TIERS = ("fixture", "corpus", "scale", "real")
-FORMATS = ("ply", "spz", "sog")
+IMPORT_DEBUG_SYMBOLS = {
+    "ply": "GSPLY_IMPORT_STATS",
+    "spz": "GSPZ_IMPORT_STATS",
+    "sog": "GSSOG_IMPORT_STATS",
+}
+FORMATS = tuple(IMPORT_DEBUG_SYMBOLS)
 SOURCE_KINDS = ("committed", "generated", "local", "download")
 
 # The shared declared-count ceiling (docs/reference/IMPORT_LIMITS.md). The
@@ -598,15 +605,48 @@ def locate(asset: dict, work: pathlib.Path | None, assets_dir: pathlib.Path | No
     return path if path.is_file() else None
 
 
-def measure(path: pathlib.Path, timeout: float) -> dict:
+def import_phase_timings(stderr: str, format_name: str) -> dict[str, float]:
+    prefix = f"gaussian-{format_name}: import "
+    summaries = [line.removeprefix(prefix) for line in stderr.splitlines()
+                 if line.startswith(prefix)]
+    if len(summaries) != 1:
+        raise RuntimeError(f"expected one {format_name} import summary on stderr, "
+                           f"found {len(summaries)}:\n{stderr}")
+
+    try:
+        fields = dict(field.split("=", 1) for field in shlex.split(summaries[0]))
+        timings = {
+            "container_read_seconds": float(fields["readSeconds"]),
+            "semantic_decode_seconds": float(fields["decodeSeconds"]),
+            "usd_author_seconds": float(fields["authorSeconds"]),
+        }
+    except (KeyError, ValueError) as error:
+        raise RuntimeError(f"invalid {format_name} import summary: {summaries[0]}") from error
+    if any(not math.isfinite(value) or value < 0 for value in timings.values()):
+        raise RuntimeError(f"invalid {format_name} phase timings: {timings}")
+    return timings
+
+
+def measure(path: pathlib.Path, format_name: str, timeout: float) -> dict:
+    # Route TfDebug away from benchmark_import.py's JSON stdout. Limit the
+    # debug flag to this bundle so other OpenUSD tracing doesn't skew the row.
+    env = {**os.environ, "TF_DEBUG": IMPORT_DEBUG_SYMBOLS[format_name],
+           "TF_DEBUG_OUTPUT_FILE": "stderr"}
     completed = subprocess.run(
         [sys.executable, str(BENCHMARK_IMPORT), str(path), "--json"],
-        capture_output=True, text=True, timeout=timeout)
+        capture_output=True, encoding="utf-8", errors="replace", env=env,
+        timeout=timeout)
     if completed.returncode != 0:
         raise RuntimeError(
             f"benchmark_import.py exited {completed.returncode}:\n"
             f"{completed.stdout}{completed.stderr}")
-    return json.loads(completed.stdout)
+    try:
+        result = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"invalid benchmark JSON:\n{completed.stdout}\n"
+                           f"{completed.stderr}") from error
+    result.update(import_phase_timings(completed.stderr, format_name))
+    return result
 
 
 def evaluate(asset: dict, row: dict, targets: dict) -> list[str]:
@@ -656,9 +696,9 @@ def print_table(rows: list[dict]) -> None:
         # Per-million rates of a small asset only restate process startup.
         per_million = millions >= 0.1
         open_rate = (f"{m['stage_open_seconds'] / millions:.2f}"
-                     if per_million else "—")
+                     if per_million else "-")
         peak_rate = (f"{(peak or 0) / 2**30 / millions:.2f}"
-                     if per_million and peak else "—")
+                     if per_million and peak else "-")
         print(f"| `{row['id']}` | {row['format']} | {m['gaussian_count']:,} "
               f"| {m['source_bytes'] / 2**20:,.1f} MiB "
               f"| {m.get('can_read_seconds', float('nan')) * 1e3:.1f} ms "
@@ -722,7 +762,7 @@ def run(manifest: dict, assets: list[dict], args) -> int:
                 rows.append(row)
                 continue
             try:
-                row["measurement"] = measure(path, args.timeout)
+                row["measurement"] = measure(path, asset["format"], args.timeout)
             except (RuntimeError, subprocess.TimeoutExpired) as error:
                 row["status"] = "error"
                 row["problems"] = [str(error)]
