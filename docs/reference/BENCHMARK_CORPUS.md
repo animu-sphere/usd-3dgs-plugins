@@ -146,7 +146,7 @@ runner and filesystem variation.
 | Metadata-only read | ≤ 0.15 s at any size | §12.3 rules out decoding the Gaussian payload. The slowest measured row was the local ceiling SOG at 54.7 ms, including the ZIP read. |
 | `CanRead()` | ≤ 0.10 s | Routing reads a small prefix (design policy §7.6). All hosted rows finished below 1 ms, and all local rows below 7 ms. The limit leaves room for file open latency. |
 | Peak resident memory | ≤ 0.60 GiB + 0.50 GiB per million Gaussians | The local 4M and ceiling rows measured about 0.41 GiB per million. The 1M PLY peak on macOS ranged from 0.783 to 0.985 GiB across two runs. The fixed allowance leaves room for that variation under a 1.124 GiB limit at 1M. |
-| `Stage.Open`, flatten | recorded, not gated | wall-clock time on shared hosted runners is not a stable gate; compare against rows from the same machine |
+| `Stage.Open`, phase timings, flatten | recorded | compare elapsed times on the same machine and build configuration |
 
 ## Running
 
@@ -168,6 +168,24 @@ reuses any whose hash still matches. `local` and `download` assets are looked
 up by file name in `--assets` (or `USD3DGS_BENCHMARK_ASSETS`), and are
 reported as `unavailable` when absent; `--require-all` makes that a failure.
 Generating every step takes about two minutes and 3.7 GiB of disk.
+
+### Phase timings
+
+The corpus runner enables the bundle's
+[import summary](DIAGNOSTICS.md#inspect-and-validate-from-the-command-line) in each
+benchmark subprocess. The report adds three elapsed times to each row's
+`measurement` object:
+
+- `container_read_seconds` includes container parsing and unpacking, such as
+  PLY column extraction, SPZ inflation, and SOG WebP plane decoding.
+- `semantic_decode_seconds` covers conversion to `GaussianCloudData` and
+  model validation.
+- `usd_author_seconds` covers writing the temporary USD layer, including the
+  worker-thread hop.
+
+`stage_open_seconds` includes those phases along with layer transfer, USD
+stage initialization, and the extra bounds pass used by the import summary.
+Use reports produced with phase timings for before-and-after comparisons.
 
 ## Hosted gate
 
@@ -254,6 +272,24 @@ Both peaked at about 0.13 GiB. The Leica Sofort SPZ comes from a separate
 capture and is not another encoding of those Gaussians. Garden and Bicycle
 both measured about 0.41 GiB per million Gaussians, in line with the scale
 PLY rows.
+
+### v0.7.0 phase baseline
+
+On 2026-11-15, the Windows Release build described above passed all nine scale
+rows and nine real rows with phase timing enabled. The table shows the
+near-ceiling scale rows and the two largest real rows, in seconds.
+
+| Asset | Container read | Semantic decode | USD authoring | `Stage.Open` |
+| --- | ---: | ---: | ---: | ---: |
+| `scale-ceiling-ply` | 19.77 | 1.83 | 0.64 | 22.28 |
+| `scale-ceiling-spz` | 2.35 | 0.83 | 0.72 | 3.95 |
+| `scale-ceiling-sog` | 0.78 | 0.96 | 0.61 | 2.39 |
+| `real-garden-ply` | 14.77 | 1.49 | 0.49 | 16.82 |
+| `real-bicycle-ply` | 20.34 | 1.81 | 0.60 | 22.82 |
+
+Container read took 88–89% of `Stage.Open` on these three PLY assets.
+Profile tinyPLY's binary property loop and the subsequent column conversion
+separately to find where a targeted reader change would help most.
 
 ## Admitting an asset
 

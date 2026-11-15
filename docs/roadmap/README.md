@@ -10,7 +10,7 @@ Legend: 🚧 in progress · ⬜ not started · ⛔ blocked
 | Document | Contents |
 | --- | --- |
 | [release-plan.md](release-plan.md) | The versioned release sequence (v0.1.0 → v1.0.0) with per-release themes and completion criteria. |
-| [current.md](current.md) | Near-term work after the v0.5.0 release. |
+| [current.md](current.md) | Work for the active release milestone. |
 | [backlog.md](backlog.md) | Ordered but unscheduled format and cross-cutting work. |
 
 ## Sequences

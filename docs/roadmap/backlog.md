@@ -82,8 +82,9 @@ allocation size remains unmeasured.
   flatten, peak resident) per asset, and
   [scripts/benchmark_corpus.py](../../scripts/benchmark_corpus.py) runs it
   over the declared [benchmark corpus](../reference/BENCHMARK_CORPUS.md)
-  against its resource targets; the finer file-read / semantic-decode /
-  USD-authoring split remains v0.7.0 work.
+  against its resource targets. The corpus JSON report includes the
+  [phase timings](../reference/BENCHMARK_CORPUS.md#phase-timings) from the import
+  summaries. Use those timings to guide profiling and compare revisions.
 - ⬜ Investigate memory mapping only after the benchmark identifies I/O or copy
   cost as material.
 - ⬜ Investigate chunked decoding, payload composition, and lazy access as SOG

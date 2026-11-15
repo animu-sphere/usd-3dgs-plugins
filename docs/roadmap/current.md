@@ -1,7 +1,7 @@
 # Current
 
-Updated: 2026-11-13
-Scope: follow-up after tagging v0.6.0
+Updated: 2026-11-15
+Scope: v0.7.0 performance and large-asset readiness
 
 ## Current position
 
@@ -26,11 +26,21 @@ statistics, and safety limits now cover all three format bundles. The
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
-## Near-term direction
+## v0.7.0 — performance and large-asset readiness
 
-Evaluate the next format against the criteria below and strengthen the
-integration path to Hydra renderers. The [release plan](release-plan.md)
-tracks the performance and large-asset work scheduled for v0.7.0.
+- ✅ Collect container-read, semantic-decode, and USD-authoring times from
+  the shared import summaries in the [benchmark corpus report](../reference/BENCHMARK_CORPUS.md#phase-timings).
+  In the [Windows baseline](../reference/BENCHMARK_CORPUS.md#v070-phase-baseline),
+  container read accounted for 88–89% of `Stage.Open` on the ceiling PLY
+  asset and on Garden and Bicycle.
+- ⬜ Profile tinyPLY's binary property loop and column conversion to identify
+  the first optimization. Use the scale ladder and the real exports above.
+- ⬜ Measure the effect of the first optimization on the same assets and build
+  configuration. Check authored-stage equivalence and peak resident memory
+  alongside the elapsed time.
+- ⬜ Assess interruption and lazy access against the measured bottlenecks and
+  the OpenUSD import path. Track release criteria in the
+  [release plan](release-plan.md#v070--performance-and-large-asset-readiness).
 
 ## v0.6.0 — production import hardening
 
