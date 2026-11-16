@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(GaussianPlyPlugin
-    VERSION 0.8.0
+    VERSION 0.9.0
     DESCRIPTION "OpenUSD ply file-format plugin"
     LANGUAGES CXX)
 

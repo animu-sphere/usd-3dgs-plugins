@@ -37,6 +37,8 @@ links to the locked Formation, run instructions, and verification scope.
 See the [release plan](release-plan.md#v090--rendering-integration-preview-delivered-by-hydra-merlin)
 for the preview criteria.
 
+The remaining milestone work is the [v0.9.0 release gate](../releases/README.md#release-gate).
+
 ## v0.6.0 — production import hardening
 
 Prioritize import-pipeline robustness over another input format.

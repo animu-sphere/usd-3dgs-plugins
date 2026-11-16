@@ -141,14 +141,12 @@ Open a capture in usdview:
 ost plugin view plugins\gaussian-ply "C:\path\to\scene.ply"
 ```
 
-> **Seeing the splats needs a Gaussian-capable Hydra renderer.** These plugins
-> import; they do not render. Stock `usdview` opens the stage and shows the
-> `/Asset/Splat` hierarchy and its attributes, but draws nothing, because no
-> default Hydra delegate understands `ParticleField3DGaussianSplat`. For a
-> visual preview today, use the OpenUSD `hdParticleField` example delegate —
-> that is what the animation above shows. Production rendering is the job of
-> the sibling project
-> [`hydra-merlin`](https://github.com/animu-sphere/hydra-merlin).
+> **Seeing the splats needs a Gaussian-capable Hydra renderer.** In `usdview`,
+> you can inspect `/Asset/Splat` with the stock delegate. To draw the splats,
+> use a delegate that implements `ParticleField3DGaussianSplat`, such as the
+> OpenUSD `hdParticleField` example shown above. The experimental
+> [Merlin PLY preview](docs/reference/CAPABILITY_MATRIX.md#hydra-rendering)
+> provides a verified Windows setup with digest-pinned packages.
 
 Or convert it to a compact binary USD file:
 
