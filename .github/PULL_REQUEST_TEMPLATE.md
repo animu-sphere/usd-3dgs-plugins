@@ -18,6 +18,7 @@ say why.
 - [ ] I linked related context or explained why there is no issue.
 - [ ] I ran the relevant tests and checks, or described what remains.
 - [ ] I updated documentation or tests when behavior changed.
+- [ ] I reviewed the [documentation affected by this change](https://github.com/animu-sphere/usd-3dgs-plugins/blob/main/CONTRIBUTING.md#documentation-review) and kept each status claim in its source document.
 - [ ] I did not add private or unlicensed assets.
 
 ## Reviewer notes

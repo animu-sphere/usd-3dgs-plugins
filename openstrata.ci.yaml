@@ -121,7 +121,7 @@ cells:
   # gaussian-spz runs the same three digest-pinned cells as gaussian-ply: same
   # runtime, same platform/profile, same per-runner level cap (Windows stays at
   # L4 for the multiline-USDA line-ending finding recorded in
-  # docs/roadmap/current.md). Adding them here moves the PR lane and the
+  # docs/architecture/WORKSPACE.md). Defining them here moves the PR lane and the
   # release lane together, because scripts/release.py derives the release
   # matrix from these source cells.
   - name: gaussian-spz-pr-windows
@@ -177,14 +177,8 @@ cells:
       apt: [libx11-dev, libxt-dev]
     up_to: 5
 
-  # gaussian-sog now reads SOG v2, so its cells are the shipping shape: the same
-  # three digest-pinned runtimes and the same per-runner level cap as the other
-  # bundles (Windows stays at L4 for the multiline-USDA line-ending finding
-  # recorded in docs/roadmap/current.md). The v0.4.0 skeleton's `up_to: 2` and
-  # `publish: never` markers are gone — removing them was the whole release
-  # onboarding for the bundle, which is what the declarative scaling claim
-  # predicted, since scripts/release.py derives the release matrix from these
-  # same source cells.
+  # gaussian-sog uses the same digest-pinned runtimes and per-runner
+  # verification levels as the other shipping bundles.
   - name: gaussian-sog-pr-windows
     lane: pull_request
     runner: windows-hosted

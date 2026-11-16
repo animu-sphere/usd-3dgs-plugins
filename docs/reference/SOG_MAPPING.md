@@ -32,9 +32,9 @@ layouts, converging on one semantic decode:
 
 Legacy SOG v1 (no `version` field, per-channel `mins`/`maxs` instead of
 codebooks) and streamed SOG (`lod-meta.json`, spatial chunks, LOD) are **not**
-read: v1 is rejected with an unsupported-version diagnostic, and streamed SOG is
-deferred to SOG milestones M2-M4. See [SOG_FORMAT.md](SOG_FORMAT.md) for the
-version and layout decisions and the container diagnostics.
+read: v1 is rejected with an unsupported-version diagnostic. See
+[SOG_FORMAT.md](SOG_FORMAT.md) for the version and layout decisions and the
+container diagnostics.
 
 ## 2. meta.json schema and property planes
 

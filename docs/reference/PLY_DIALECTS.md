@@ -23,9 +23,8 @@ encodings are both supported and produce identical stages.
 ## Property aliases
 
 None. Every observed exporter uses the canonical Graphdeco property names,
-so the decoder accepts no aliases; an alias is added only when a real
-exporter's output requires it (tracked in the
-[backlog](../roadmap/backlog.md#ply-compatibility)).
+so the decoder accepts no aliases. An alias requires a real exporter sample
+and a deterministic fixture.
 
 ## Known unsupported cases
 
@@ -41,7 +40,7 @@ it is never guessed at.
 | List-valued required or SH properties | Rejected (`GSPLY-E004`) |
 | Non-finite values, or `double` values outside `float` range | Rejected (`GSPLY-E010` / `GSPLY-E011`); in-range doubles narrow losslessly enough for import |
 | Truncated or inconsistent payloads | Rejected (`GSPLY-E014` / `GSPLY-E015`) |
-| `.splat`, `.ksplat`, `.spz`, SOG | Different container formats, out of PLY scope; SPZ is the v0.3.0 theme in the [release plan](../roadmap/release-plan.md) |
+| `.splat`, `.ksplat`, `.spz`, SOG | Separate formats; see the [capability matrix](CAPABILITY_MATRIX.md) for import support |
 
 ## Re-checking a new exporter
 

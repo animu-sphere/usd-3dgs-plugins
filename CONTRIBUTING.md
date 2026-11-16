@@ -12,11 +12,10 @@ ost plugin build plugins/gaussian-ply     # build
 ost plugin test plugins/gaussian-ply --up-to 5   # the gate PRs must pass
 ```
 
-That is the whole loop: edit, build, test. The same three commands are what
-CI runs on Windows, macOS arm64, and Linux (`openstrata.ci.yaml` is the
-contract). Without `ost`, the plain CMake path in
-[docs/guides/BUILDING.md](docs/guides/BUILDING.md) builds and tests the same
-tree against any OpenUSD 26.05 install.
+CI covers Windows, macOS arm64, and Linux as declared in
+`openstrata.ci.yaml`. Without `ost`, use the plain CMake path in the
+[build guide](docs/guides/BUILDING.md) and consult the
+[supported configurations](docs/reference/SUPPORTED_CONFIGURATIONS.md).
 
 Check C/C++ formatting before opening a change. The repository uses the root
 `.clang-format` policy and skips generated, vendored, and build output:
@@ -50,7 +49,7 @@ ctest --test-dir plugins/gaussian-ply/build/cy2026-windows-x86_64-py313-usd --ou
 
 ## Adding a new format
 
-Adding a decoder (SOG, glTF, another PLY-family variant) follows one
+Adding a decoder follows one
 end-to-end path:
 [docs/contributing/ADDING_A_FORMAT_DECODER.md](docs/contributing/ADDING_A_FORMAT_DECODER.md).
 It generalizes the PLY-specific loop above to the shared
@@ -71,6 +70,31 @@ tiers it builds against are in
 - Release versions are single-sourced: `python scripts/release.py set-version
   X.Y.Z` — never hand-edit the version in individual files
   (`release.py guard` fails the release lane on drift).
+
+## Documentation review
+
+Review these sources when changing the corresponding behavior:
+
+| Change | Review |
+| --- | --- |
+| Reader, decoder, or diagnostics | [Capability matrix](docs/reference/CAPABILITY_MATRIX.md), format specification and mapping, [diagnostics](docs/reference/DIAGNOSTICS.md), and fixtures |
+| Shared model or validation | [Model contract](docs/reference/GAUSSIAN_MODEL_CONTRACT.md), equivalence tests, and an [ADR](docs/adr/) if a decision changes |
+| USD authoring | [Stage contract](docs/architecture/WORKSPACE.md#5-authored-stage-contract), mappings, stage assertions, and migration impact |
+| CI, packaging, or release tooling | [Supported configurations](docs/reference/SUPPORTED_CONFIGURATIONS.md), [install guide](docs/guides/INSTALL.md), and [release gate](docs/releases/README.md#release-gate) |
+| New bundle | [Decoder guide](docs/contributing/ADDING_A_FORMAT_DECODER.md), bundle README, and the root README's short format summary |
+| Milestone scope or status | [Release plan](docs/roadmap/release-plan.md), [current work](docs/roadmap/current.md), and [backlog](docs/roadmap/backlog.md); each item has one home |
+| Integrated runtime or rendering | Link to the Formation owner's verified configuration and evidence |
+
+Run the checks used by the docs workflow:
+
+```sh
+python -m pip install -r scripts/docs-requirements.txt
+python -m unittest discover -s tests/docs -v
+python scripts/check_docs.py
+```
+
+The checker covers first-party links and common forms of roadmap drift.
+Reviewers still verify that support claims match the implementation and tests.
 
 ## Release flow
 

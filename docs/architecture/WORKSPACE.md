@@ -5,19 +5,18 @@ component identities, dependency directions, root responsibilities, artifact
 naming, and migration invariants. A structural change that contradicts this
 document must change this document first.
 
-Status: `gaussian-ply`, `gaussian-spz`, and `gaussian-sog` are implemented.
-Future component identities are reserved here.
+See the [capability matrix](../reference/CAPABILITY_MATRIX.md) for the formats
+and variants these components support.
 
 ## 1. Components
 
-| Identity | Kind | Status | Responsibility |
-| --- | --- | --- | --- |
-| `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | implemented | Detect and decode canonical Gaussian Splatting PLY and author a standard OpenUSD Gaussian layer. |
-| `gaussianCore` | plain CMake/OpenStrata static library | implemented | Format-independent Gaussian POD model, validation, scale/opacity/quaternion math, overflow-checked size math, the authored-extent computation, SH layout utilities, the import-statistics record, diagnostic message formatting, and the test-only model-contract checker and decoder test kit every decoder is held to. |
-| `gaussianUsd` | plain CMake/OpenStrata static library | implemented | Shared `GaussianCloudData` → OpenUSD schema authoring. Extracted from `gaussian-ply` in v0.3.0, at the moment design policy §7.4 reserves for it: the SPZ bundle would otherwise duplicate `GaussianLayerWriter`. Diagnostic codes stay owned by the calling bundle. |
-| `gaussian-spz` | plugin bundle (`usd-fileformat`) | implemented | Decode SPZ v1-v3 through `GaussianCloudData` and the shared authoring contract. |
-| `gaussian-sog` | plugin bundle (`usd-fileformat`) | implemented | Decode SOG v2 — bundled `.sog` and unbundled `meta.json` — through `GaussianCloudData` and the shared authoring contract. Owns the vendored libwebp decoder subset and the archive half of miniz. |
-| `gaussian-gltf` | plugin bundle or integration | undecided | Gaussian glTF/GLB support; identity is provisional until an ADR fixes ownership. |
+| Identity | Kind | Responsibility |
+| --- | --- | --- |
+| `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | Detect and decode Gaussian PLY. |
+| `gaussian-spz` | plugin bundle (`usd-fileformat`) | Read SPZ containers and decode their quantized values. |
+| `gaussian-sog` | plugin bundle (`usd-fileformat`) | Read SOG archives and resolve companion images, then decode their property planes. |
+| `gaussianCore` | plain CMake/OpenStrata static library | Own the Gaussian model, validation, shared math, diagnostics and statistics helpers, and the decoder test kit. |
+| `gaussianUsd` | plain CMake/OpenStrata static library | Author the shared `GaussianCloudData` model into the OpenUSD schema. Diagnostic codes stay owned by the calling bundle. |
 
 `gaussianCore` is not a plugin: it has no `plugInfo.json`, performs no plugin
 registration, and exposes no OpenUSD types in its public API. The audience and
@@ -37,16 +36,10 @@ gaussian-spz -> gaussianCore
 gaussian-spz -> gaussianUsd
 gaussian-spz -> miniz (private, vendored raw-DEFLATE/CRC32; gzip framing is in-repo)
 gaussian-sog -> gaussianCore
+gaussian-sog -> gaussianUsd
+gaussian-sog -> miniz and libwebp (private, vendored ZIP and image decoders)
 gaussianUsd  -> gaussianCore
 gaussianUsd  -> OpenUSD
-```
-
-Reserved future directions:
-
-```text
-gaussian-sog  -> gaussianUsd   (when the v0.5.0 decoder authors a stage)
-gaussian-gltf -> gaussianCore
-any format bundle -> gaussianUsd
 ```
 
 Forbidden:
@@ -167,11 +160,14 @@ Per-bundle artifacts use OpenStrata's target-qualified convention:
 gaussian-ply-<version>-<target>.tar.zst
 gaussian-spz-<version>-<target>.tar.zst
 gaussian-sog-<version>-<target>.tar.zst
-usd-3dgs-plugins-<version>-<target>.tar.zst   # future aggregate
 ```
 
-Until a real need for independent release cadences appears, every bundle and
-plain library mirrors the repository-root `VERSION`. Git tags use `vX.Y.Z`.
+The published aggregate is
+`usd-3dgs-plugins-<version>-<target>-plugin-product.tar.zst`. See the
+[installation guide](../guides/INSTALL.md) for the product layout.
+
+Bundle versions follow the repository-root `VERSION`. The shared plain
+libraries have their own project versions. Git tags use `vX.Y.Z`.
 
 ## 7. Change invariants
 
@@ -225,22 +221,7 @@ ost plugin test plugins/gaussian-ply --from-package --up-to 5
 ost ci validate
 ```
 
-The packaged L5 golden is currently skipped because OST packages declared
-fixtures but not the adjacent `.golden.usda`; this is recorded in the
-[dogfooding report](../reports/ost/01-2026-07-18-v0.18.0-bootstrap.md).
-
-## 9. Delivery status
-
-| Milestone | Boundary | Status |
-| --- | --- | --- |
-| M0 | workspace, bundle, discovery, CI contract | implemented; hosted CI not yet observed |
-| M1 | minimal ASCII/binary LE PLY read | implemented |
-| M2 | Gaussian semantic mapping | implemented |
-| M3 | validation and negative fixtures | implemented |
-| M4 | integration, package, docs, notices | implemented; v0.2.0 tagged and published |
-| M5 | SPZ | implemented and shipped in v0.3.0: container reader, semantic decoder, USD integration, real-asset corpus, performance baselines, and PLY/SPZ equivalence tests |
-| v0.4.0 | Gaussian Import Foundation | the decoder→USD seam formalized: normative model contract, shared validation and size math, RUB frame (ADR 0001), decoder test kit, import-statistics seam, this header boundary, and the `gaussian-sog` skeleton proving a third bundle scales by declaration |
-
-Current work and acceptance gaps are tracked in
-[roadmap/current.md](../roadmap/current.md).
+See [supported configurations](../reference/SUPPORTED_CONFIGURATIONS.md)
+for the tested environments and [release records](../releases/) for
+the gates exercised by a particular tag.
 

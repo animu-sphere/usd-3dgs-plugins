@@ -2,18 +2,15 @@
 
 This is the normative contract for `GaussianCloudData`, the format-independent
 representation every decoder targets
-(`libs/gaussian-core/include/openstrata/gs/GaussianCloudData.h`). Two shipped
-decoders — `gaussian-ply` (v0.1.0) and `gaussian-spz` (v0.3.0) — produce this
-model, and `gaussianUsd` authors either one without knowing which format it
-came from.
+(`libs/gaussian-core/include/openstrata/gs/GaussianCloudData.h`).
+`gaussianUsd` authors the model independently of the source encoding.
 
-This revision's purpose (v0.4.0, design policy §7.4) is that the *next*
-decoder can be written against this document alone: satisfying the contract
-must not require reading PLY or SPZ code. Where this document and a decoder
-disagree, the decoder is wrong.
+Authors of new decoders can use this contract directly. Where this document
+and a decoder disagree, review the behavior against the contract and tests.
 
 The format-specific halves of each mapping live with their formats
-([PLY_MAPPING.md](PLY_MAPPING.md), [SPZ_MAPPING.md](SPZ_MAPPING.md)); this
+([PLY_MAPPING.md](PLY_MAPPING.md), [SPZ_MAPPING.md](SPZ_MAPPING.md),
+[SOG_MAPPING.md](SOG_MAPPING.md)); this
 document owns only what is true for every format.
 
 A decoder that satisfies this contract is guaranteed to author a valid stage.
@@ -265,6 +262,6 @@ with a mock decoder written against this document alone.
 - **No source-format identity.** The source format reaches the stage as a
   string the file-format plugin passes to the writer, not as model state.
 - **No per-Gaussian source indices, no original file offsets, no quantization
-  parameters.** Round-tripping back to the source encoding is out of scope
-  through v1.0.0.
-- **No time samples.** Animated Gaussians are post-1.0 work.
+  parameters.** The model does not preserve the original encoding for
+  round-tripping.
+- **No time samples.** The model describes one static cloud.

@@ -43,9 +43,8 @@ Limit failures use the format-specific stable diagnostic codes `GSPLY-E019`,
 may claim a structurally recognizable file whose `Read()` then rejects a
 declared resource limit.
 
-These are compile-time defaults in v0.6.0 preparation. A future host-facing
-limits API must preserve the same checked arithmetic and must not silently
-turn a rejected input into a partial import.
+These budgets are compile-time defaults. Any host configuration of them must
+preserve the same checked arithmetic and atomic import failure.
 
 ## Test coverage
 

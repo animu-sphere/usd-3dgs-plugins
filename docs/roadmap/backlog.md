@@ -1,169 +1,40 @@
 # Backlog
 
-This is ordered but unscheduled work. The active release milestone is in
-[current.md](current.md); completed work is in the
-[delivery history](../reports/delivery-history.md).
+Open work without a release assignment. The [current work](current.md) page
+owns work assigned to the active milestone. Each item below names the repo
+responsible for the next decision and the evidence needed to revisit it.
 
-Legend: 🚧 in progress · ⬜ not started
+## Other format candidates
 
-## Priority ladder
-
-The [design policy](../design/DESIGN_POLICY.md) fixes the standing order of
-investment after release stabilization:
-
-| Priority | Work | Status |
-| --- | --- | --- |
-| P0 | Benchmark real datasets; establish load-time, memory, and output-size baselines | ✅ shipped in v0.2.0 — [PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md) |
-| P1 | Metadata-only reads | ✅ shipped in v0.2.0 |
-| P2 | Documented PLY dialect compatibility; the SPZ importer | ✅ shipped — dialects ([PLY_DIALECTS.md](../reference/PLY_DIALECTS.md)) in v0.2.0, SPZ importer in v0.3.0 ([release record](../releases/v0.3.0.md)) |
-| P3 | Tighter anisotropic bounds; worker-thread workaround removal | ⬜ USD contract evolution; implementation debt |
-
-## Milestone ladder
-
-Release-plan mapping: M5 shipped as [v0.3.0](release-plan.md);
-[v0.4.0](release-plan.md) Gaussian Import Foundation formalizes the shared
-decoder contract (design policy §7.4); SOG M1 is the [v0.5.0](release-plan.md)
-theme; glTF/GLB and other Phase 3 formats are reconsidered after SOG v2 ships;
-SOG M2-M4 is post-1.0 work.
-
-- ✅ **M5 — `gaussian-spz`.** Shipped in [v0.3.0](release-plan.md); recorded in
-  the [delivery history](../reports/delivery-history.md#i-m5--spz-import-v030)
-  and the [release record](../releases/v0.3.0.md). Decoded into
-  `GaussianCloudData`, reused the PLY USD contract, and added tolerance-aware
-  PLY/SPZ equivalence tests plus real-size performance measurements.
-- ✅ **Gaussian Import Foundation.** Shipped as [v0.4.0](release-plan.md);
-  recorded in the [release record](../releases/v0.4.0.md). Revised the shared
-  model contract, consolidated semantic validation, decided the coordinate-system
-  ADR, added a decoder test kit and an import-statistics seam, clarified the
-  public/internal header boundary, and scaled build/packaging/CI to a third
-  bundle.
-- 🚧 **SOG M1 — one object.** Active as [v0.5.0](release-plan.md); the task
-  breakdown is in [current.md](current.md). The reader, decoder, both layouts,
-  the `GSSOG-****` catalog, the fixtures, and the PLY/SPZ/SOG equivalence
-  triples have landed against pinned ZIP and WebP dependencies; the open item is
-  the provenance-recorded real SOG asset and its §12.1 baselines.
-- ⬜ **glTF/GLB Gaussian ADR.** Reconsidered after SOG v2 ships. Decide plugin
-  ownership, ordinary scene-graph scope, Gaussian extension scope, external
-  resources, and SPZ extension interaction before creating a bundle.
-- ⬜ **glTF/GLB vertical slice.** Implement only the scope approved by the ADR.
-- ⬜ **SOG M2-M4 — composition.** Multi-file packaging, streamed LOD, spatial
-  chunks, payloads, and deferred loading.
-
-## PLY compatibility
-
-The core dialect scope shipped with v0.2.0; the observed results and
-decisions (canonical names only, no aliases) live in
-[PLY_DIALECTS.md](../reference/PLY_DIALECTS.md) and the
-[v0.2.0 release record](../releases/v0.2.0.md). Only the unscheduled
-remainder stays here:
-
-- ⬜ Investigate binary big-endian support; claim it only after a deterministic
-  fixture passes on all supported platforms.
-
-## Inspection tooling
-
-- ⬜ Consider a dedicated `usd3dgs` command with format identification,
-  machine-readable diagnostics, and inspect, validate, and convert modes.
-  Reuse the readers and import-statistics seam that power the
-  [OpenUSD command-line workflow](../reference/DIAGNOSTICS.md).
+| Work | Owner | Revisit or close when | Reference |
+| --- | --- | --- | --- |
+| LCC / LCC2 | `usd-3dgs-plugins` | An independently implementable specification, license, and redistributable fixtures are available. | [Format selection policy](../design/DESIGN_POLICY.md#4-format-selection) |
+| glTF/GLB Gaussian extensions | `usd-3dgs-plugins` | A specific extension and implementation reference justify an ADR that settles scene graph, external resources, SPZ interaction, and ownership with the glTF importer. Implement a slice only after that decision. | [glTF policy](../design/DESIGN_POLICY.md#41-gltf--glb-gaussian-splatting) |
+| Streamed SOG and LOD | `usd-3dgs-plugins` | A separate composition proposal defines resolver and chunk lifecycle, LOD selection, payloads, deferred loading, and measurable demand. | [SOG capabilities](../reference/CAPABILITY_MATRIX.md#sog-input-and-semantic-mapping) · [composition guide](../guides/COMPOSITION.md) |
+| Binary big-endian PLY | `usd-3dgs-plugins` | A representative asset justifies the work; decoder and stage fixtures establish the behavior on the supported targets. | [PLY dialects](../reference/PLY_DIALECTS.md) |
 
 ## Performance and loading
 
-The design policy (§12.2) fixes the optimization order: measure first, then
-metadata-only reads; streaming comes last. The copy-reduction ladder, the
-§12.1 baselines, and metadata-only reads shipped with v0.2.0 and are recorded
-in the [delivery history](../reports/delivery-history.md) and
-[PERFORMANCE_BASELINES.md](../reference/PERFORMANCE_BASELINES.md); temporary
-allocation size remains unmeasured.
+| Work | Owner | Revisit or close when | Reference |
+| --- | --- | --- | --- |
+| Attribute peak temporary allocations | `usd-3dgs-plugins` | A reproducible allocation profile can separate parser and decoder temporaries from the retained USD layer on the same benchmark inputs. | [Benchmark corpus](../reference/BENCHMARK_CORPUS.md) |
+| Investigate memory mapping or reduced-copy reads | `usd-3dgs-plugins` | Per-phase measurements show material I/O or copying cost; compare measurements against the baseline before proposing a change. | [Phase timings](../reference/BENCHMARK_CORPUS.md#phase-timings) |
+| Re-evaluate worker-thread authoring | `usd-3dgs-plugins` | On the next OpenUSD re-pin, add a regression test for direct detached-stage authoring under an outer `SdfChangeBlock`. Remove the hop only if full and metadata-only reads and reload preserve the stage contract across PLY, SPZ, and SOG on supported builds. | [Workaround policy](../design/DESIGN_POLICY.md#75-worker-thread-authoring-workaround) · [OpenUSD configurations](../reference/SUPPORTED_CONFIGURATIONS.md) |
 
-- 🚧 Benchmark harness:
-  [scripts/benchmark_import.py](../../scripts/benchmark_import.py)
-  measures the §12.1 end-to-end set (CanRead, metadata-only, stage open,
-  flatten, peak resident) per asset, and
-  [scripts/benchmark_corpus.py](../../scripts/benchmark_corpus.py) runs it
-  over the declared [benchmark corpus](../reference/BENCHMARK_CORPUS.md)
-  against its resource targets. The corpus JSON report includes the
-  [phase timings](../reference/BENCHMARK_CORPUS.md#phase-timings) from the import
-  summaries. Use those timings to guide profiling and compare revisions.
-- ⬜ Investigate memory mapping only after the benchmark identifies I/O or copy
-  cost as material.
-- ⬜ Investigate chunked decoding, payload composition, and lazy access as SOG
-  requirements, not as speculative complexity, and only after the preceding
-  improvements are measured.
+## USD contract and tooling
 
-## Implementation debt
+| Work | Owner | Revisit or close when | Reference |
+| --- | --- | --- | --- |
+| Authoritative source axes and units | `usd-3dgs-plugins` | A selected format defines valid source metadata and a mapping test demonstrates its effect on the authored stage. | [Stage contract](../architecture/WORKSPACE.md#5-authored-stage-contract) |
+| Tighter anisotropic bounds | `usd-3dgs-plugins` | Measurements show the current conservative bound materially affects framing, culling, or traversal. | [Stage contract](../architecture/WORKSPACE.md#5-authored-stage-contract) |
+| Multiple clouds, camera or training metadata, animated Gaussians | `usd-3dgs-plugins` | A concrete source format and consumer use case justify an authored hierarchy or time-sampling policy with deterministic tests. | [Model contract](../reference/GAUSSIAN_MODEL_CONTRACT.md) |
+| Dedicated `usd3dgs` inspection CLI | `usd-3dgs-plugins` | Define use cases for format identification, machine-readable diagnostics, and import that the existing OpenUSD CLI commands cannot cover. | [Diagnostics](../reference/DIAGNOSTICS.md) |
+| USD-to-PLY export | `usd-3dgs-plugins` | A concrete workflow needs export and a proposal defines the write dialect and loss report. | [Write policy](../design/DESIGN_POLICY.md#13-write-support) |
+| Compressed USD representations | `usd-3dgs-plugins` | A representative workload shows a measurable benefit and the output can preserve stage semantics without changing the canonical model. | [Model contract](../reference/GAUSSIAN_MODEL_CONTRACT.md) |
 
-- ⬜ Revisit the worker-thread `SdfChangeBlock` workaround in
-  `GaussianPlyFileFormat::Read` (design policy §7.5). Track OpenUSD releases
-  after 26.05 and remove the `std::async` hop when detached-stage authoring
-  under an outer change block becomes safe; keep the behavior documented and
-  tested until then.
+## Package verification
 
-## USD contract evolution
-
-- ⬜ Decide how authoritative source axis/unit metadata overrides the PLY policy
-  defaults in formats that define those values.
-- ⬜ Implement a tighter rotated anisotropic Gaussian AABB only if profiling
-  shows the conservative three-sigma bound materially affects viewport
-  framing, culling, Hydra scene-index performance, or large-scene traversal.
-- ⬜ Define multiple-cloud naming, hierarchy, and extent behavior.
-- ⬜ Define camera and training-metadata ownership for source formats that carry
-  them.
-- ⬜ Evaluate time-sampled or animated Gaussian data separately from static
-  file-format import.
-- ⬜ Track OpenUSD Gaussian schema changes across the declared version range and
-  add a second verified OpenUSD point when a runtime becomes available.
-
-## Packaging and release
-
-- ⬜ Add an aggregate `usd-3dgs-plugins-<version>-<target>` artifact when a
-  second bundle exists and OpenStrata has a clear aggregate-product contract.
-  Policy recorded in v0.4.0 (workstream 7): the per-bundle package remains
-  the release unit — the release matrix stays derived from the per-bundle
-  source cells in `openstrata.ci.yaml`, and a bundle joins or leaves the
-  release declaratively (`publish: never`). An aggregate artifact, if ever
-  added, is an additional derived artifact on top of that contract, never a
-  replacement for the per-bundle packages, and stays deferred until
-  OpenStrata defines an aggregate-product manifest the digest-reproducibility
-  gate can cover.
-- ⬜ Publish plugin packages with SBOM and provenance evidence.
-- ⬜ Add clean-machine manual install tests for each supported OS.
-- ⬜ Document and verify dependency-update procedures for tinyPLY and future
-  format libraries.
-
-## Rendering and ecosystem integration
-
-The rendering integration preview ([release plan](release-plan.md) v0.9.0) is
-delivered by the sibling project
-[hydra-merlin](https://github.com/animu-sphere/hydra-merlin); the file-format
-plugins remain renderer-neutral.
-
-- ⬜ Maintain a renderer capability note as Hydra implementations adopt
-  `ParticleField3DGaussianSplat`, starting with hydra-merlin.
-- ⬜ Add image-based conformance only in a renderer-specific repository
-  (hydra-merlin) or optional adapter; the file-format plugins remain
-  renderer-neutral.
-- ⬜ Add examples that demonstrate downstream inspection without making a
-  renderer a core dependency.
-
-## Research
-
-- ⬜ Investigate USD-to-PLY export and define a loss report before promising a
-  write dialect.
-- ⬜ Investigate SPLAT and KSPLAT only after demand, licensing, and semantic
-  overlap are documented.
-- ⬜ Evaluate compressed USD representations without changing the canonical
-  in-memory semantic model.
-
-## Non-goals
-
-- A universal PLY mesh or point-cloud importer.
-- A bundled Hydra renderer.
-- Automatic inference of an undocumented coordinate system.
-- Per-format copies of the USD authoring contract.
-- Floating third-party dependency revisions.
-- Silent repair of malformed Gaussian data that changes semantic meaning.
-- A streaming architecture ahead of measured need.
-- Renderer-specific material or shading policy.
-- Bidirectional conversion before read interoperability is stable.
-
+| Work | Owner | Revisit or close when | Reference |
+| --- | --- | --- | --- |
+| Independent clean-host activation | `usd-3dgs-plugins` | Repeat manual activation from each published target archive on a clean host using the documented OpenUSD and Python ABI, checking discovery and stage open. Hosted package-origin and install tests remain the automated gate. | [Manual activation](../guides/INSTALL.md#manual-package-activation) |
+| Verify a second OpenUSD SDK point | `usd-3dgs-plugins` | A second target in the declared source range is available with a maintained runtime and a consumer need. Record a separate source and package gate for that ABI. | [Supported configurations](../reference/SUPPORTED_CONFIGURATIONS.md) |

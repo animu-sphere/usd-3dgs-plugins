@@ -1,10 +1,10 @@
 # Design and development policy
 
 This document defines the product intent and engineering policy for
-`usd-3dgs-plugins`. It is the source of truth for format priorities, semantic
-conversion, scene authoring, validation, and milestone acceptance criteria.
-Current implementation facts live in [reference/](../reference/); incomplete
-work lives in [roadmap/](../roadmap/).
+`usd-3dgs-plugins`. It governs format selection, semantic conversion, scene
+authoring, and verification. Current behavior lives in
+[reference/](../reference/); release scope and work order live in the
+[roadmap](../roadmap/).
 
 ## 1. Project overview
 
@@ -17,10 +17,10 @@ The repository identity is:
 animu-sphere/usd-3dgs-plugins
 ```
 
-The project starts from OpenStrata's `usd-plugin-workspace` scaffold and adds
-one independently described file-format bundle per source format. Gaussian
-Splatting PLY is the reference implementation. SPZ, glTF/GLB Gaussian
-Splatting, and SOG follow in that order unless evidence changes the priority.
+The OpenStrata workspace describes format bundles independently. Each decoder
+targets the same Gaussian model and USD authoring contract. A dialect or
+container revision may share its format family's bundle when their signatures
+can be distinguished reliably.
 
 ## 2. Purpose
 
@@ -33,16 +33,16 @@ The governing principles are:
 - separate format decoding from USD authoring;
 - share a format-independent Gaussian intermediate representation;
 - author OpenUSD's standard Gaussian particle-field schema;
-- keep early releases read-only;
+- keep import read-only; require a separate design for export (§13);
 - optimize for correctness and testability before streaming performance.
 
 OpenUSD's standard `ParticleField3DGaussianSplat` schema is used whenever
 possible; a project-specific Gaussian schema may be introduced only when a
 required concept cannot be represented by the standard schema.
 
-Rendering is outside the core responsibility of this repository. A file being
-readable in `usdview` does not imply that the active Hydra renderer can
-display Gaussian splats.
+Keep the import path renderer neutral. The
+[API boundary](../architecture/API_BOUNDARY.md) defines ownership of
+integrated runtime compatibility and rendering.
 
 ## 3. Naming
 
@@ -67,102 +67,35 @@ openstrata::gs::spz
 openstrata::gs::sog
 ```
 
-## 4. Format priority
+## 4. Format selection
 
-Work proceeds in phases:
+Select formats by user demand, a public specification or independently
+implementable reference, licensing and asset provenance, semantic fidelity,
+and the ability to verify source and installed packages. Identify detectable
+variants, coordinate and unit conventions, and any information the decoder
+cannot recover. Require deterministic fixtures and equivalence checks at
+tolerances derived from the encoding. Keep the work order in the
+[release plan](../roadmap/release-plan.md).
 
-```text
-Phase 1  stabilize Gaussian PLY
-Phase 2  SPZ
-Phase 3  expand interoperability: glTF/GLB Gaussian extensions, SOG,
-         SPLAT, KSPLAT
-Phase 4  advanced loading (chunked, reduced-copy, lazy, streaming)
-Phase 5  optional export back to external formats
-```
+### 4.1 glTF / GLB Gaussian Splatting
 
-Phase 3 candidates are accepted individually, and only after their dialect,
-ownership, specification status, and compatibility expectations are
-documented. Phase 4 starts only after profiling confirms the need (§12).
-Phase 5 stays out of scope until read interoperability is stable (§13).
+glTF also owns a scene graph, node transforms, buffers, accessors, and external
+resources. An ADR must establish whether to integrate with a USD glTF
+importer or provide a separate bundle, which Gaussian extensions and SPZ
+interactions are in scope, and which standard scene data to author.
 
-### 4.1 PLY
+### 4.2 Streaming and composition
 
-PLY is the reference implementation. It establishes:
+A format that describes chunks, streamed levels of detail, or multiple
+objects requires an explicit USD composition design. Establish resolver
+behavior, asset and chunk lifetime, and the loading model before adding
+a parser for such layouts. Profile the need before adding streaming (§12).
 
-- the meaning of common 3DGS properties;
-- the mapping to OpenUSD's Gaussian schema;
-- the shared intermediate representation;
-- deterministic fixture and expected-value conventions;
-- the complete file-format plugin read path.
+## 5. Import path
 
-Phase 1 stabilization goals are:
-
-- validate representative third-party exports;
-- add metadata-only reads (§12.3);
-- benchmark large scenes (§12.1);
-- improve diagnostics;
-- document supported PLY dialects, including verified Graphdeco reference
-  datasets and SuperSplat-exported PLY behavior.
-
-### 4.2 SPZ
-
-SPZ is next because it is a compressed 3DGS-specific format that decodes into
-nearly the same semantic model as PLY, which makes it the test of whether the
-architecture genuinely supports reusable format-independent Gaussian data.
-Its implementation must reuse the intermediate representation and USD
-authoring layer and must add:
-
-- compressed-format support;
-- PLY-versus-SPZ semantic-equivalence tests;
-- tolerance-aware comparisons for quantization error;
-- comparative size and load-time benchmarks against PLY on production-sized
-  assets.
-
-Duplication of `GaussianLayerWriter` during this work triggers the
-`gaussianUsd` extraction described in §7.4.
-
-### 4.3 glTF / GLB Gaussian Splatting
-
-glTF has a wider responsibility than a Gaussian decoder because it also owns a
-scene graph, node transforms, buffers, accessors, and external resources. An
-ADR is required before implementation and must decide:
-
-- whether this is an independent file-format plugin or an integration with an
-  existing USD glTF importer;
-- whether only Gaussian extensions are supported;
-- whether SPZ-compressed extensions are included;
-- how much of the ordinary glTF scene graph is authored into USD.
-
-### 4.4 SOG
-
-SOG is strategically important for delivery, spatial chunks, LOD, and
-streaming, but it also requires a USD composition design. Work proceeds in
-four explicit steps:
-
-```text
-M1: read one SOG data object
-M2: support bundle or multi-file layouts
-M3: support streamed SOG and LOD
-M4: map chunks to payloads, deferred loading, and spatial composition
-```
-
-## 5. Initial target: Gaussian PLY
-
-The first product target is opening a Gaussian Splatting PLY directly as an
-OpenUSD layer:
-
-```cpp
-SdfLayer::FindOrOpen("scene.ply");
-```
-
-The resulting scene graph is:
-
-```text
-/Asset
-    /Splat
-```
-
-`/Asset` is the default prim. `/Asset/Splat` stores the Gaussian arrays.
+Verify the complete path for a new format: a representative source asset
+opens through `SdfLayer::FindOrOpen`, decodes into `GaussianCloudData`, and
+authors the expected stage through the shared writer.
 
 ## 6. Scene graph policy
 
@@ -172,22 +105,19 @@ The resulting scene graph is:
 
 - `defaultPrim` identity;
 - asset-level transforms and metadata;
-- future variants and coordinate-system corrections;
-- future representations and asset-level bounds.
+- asset-level bounds, variants, and source-frame corrections where defined
+  by the authored contract.
 
 ### `/Asset/Splat`
 
-`/Asset/Splat` represents every Gaussian in the source PLY as one
-`ParticleField3DGaussianSplat` prim. The initial implementation does not add
-unnecessary intermediate scopes, and additional scopes or hierarchy require a
-concrete use case such as multiple Gaussian clouds, LOD variants, animation,
-source grouping, or renderer-specific material bindings. Future formats may
-add sibling prims such as `/Asset/Cameras` or `/Asset/Metadata` when the
-source format defines them.
+`/Asset/Splat` represents a Gaussian cloud as a single
+`ParticleField3DGaussianSplat` prim. Additional hierarchy requires a concrete
+use case and an update to the
+[authored stage contract](../architecture/WORKSPACE.md#5-authored-stage-contract).
 
 ### Layer metadata
 
-The initial convention is:
+In the absence of authoritative source metadata, the defaults are:
 
 ```usda
 (
@@ -248,9 +178,8 @@ The decoder interprets a PLY document as 3DGS data and owns:
 - non-finite-value checks;
 - diagnostics.
 
-Property naming policy is centralized here. The v0.1 implementation accepts
-the canonical Graphdeco names; future aliases must be explicit, documented,
-and tested here rather than spread through the file-format class.
+Keep property naming rules in the semantic decoder. Any accepted aliases
+must be explicit, documented, and covered by tests.
 
 ### 7.3 Gaussian intermediate representation
 
@@ -271,8 +200,8 @@ struct GaussianCloudData {
 ```
 
 `gaussianCore` owns this model and its format-independent validation/math. It
-does not expose OpenUSD types. The writer remains a separate layer; §7.4
-defines when it moves into the shared `gaussianUsd` library.
+does not expose OpenUSD types. Keep OpenUSD authoring in the shared writer
+(§7.4).
 
 ### 7.4 USD Gaussian layer writer
 
@@ -286,36 +215,23 @@ The writer owns:
 
 All format bundles must produce the same authored contract through this layer.
 
-The writer is extracted into a shared `gaussianUsd` library
-(`libs/gaussian-usd`) at a precise moment: when a second importer would
-otherwise duplicate `GaussianLayerWriter`. It is not extracted before then.
-The target structure after the second importer is:
-
-```text
-libs/
-    gaussian-core/       # USD-independent model, math, and validation
-    gaussian-usd/        # GaussianCloudData -> OpenUSD schema
-
-plugins/
-    gaussian-ply/
-    gaussian-spz/
-```
+Keep the writer in `libs/gaussian-usd`. New decoders supply model values,
+source metadata, and bundle-owned diagnostic codes to this library.
 
 ### 7.5 Worker-thread authoring workaround
 
 `Read()` authors the generated stage on a worker thread
-(`GaussianPlyFileFormat.cpp`). Sdf reload executes the file-format `Read()`
+in the file-format entry points. Sdf reload executes `Read()`
 under an outer `SdfChangeBlock`, and authoring a detached temporary stage on
 the calling thread would observe that block. The change block is thread-local
 state, so a worker thread authors the temporary stage unobserved; the
 authored layer is then transferred into the caller's layer in one
 `TransferContent` step, without a USDA serialization and reparse round-trip.
 
-The `std::async` hop is a correctness workaround, not a performance
-optimization, and it must remain documented and tested. The avoided behavior
-is reproduced on OpenUSD 26.05, the verified runtime. Every OpenUSD upgrade
-must re-evaluate whether direct detached-stage authoring has become safe so
-the workaround can be removed; the roadmap tracks this follow-up.
+Treat the worker hop as a correctness workaround. Keep the reload path
+covered by tests and re-evaluate detached authoring when upgrading OpenUSD.
+The [backlog](../roadmap/backlog.md#performance-and-loading) records the
+removal criteria.
 
 ### 7.6 `CanRead()` contract
 
@@ -351,14 +267,8 @@ by loosening it until something loads.
 
 ## 8. PLY scope
 
-The required v0.1 encodings are:
-
-```text
-1. binary little-endian
-2. ASCII
-```
-
-Binary big-endian is not part of the v0.1 support contract.
+See [PLY dialects](../reference/PLY_DIALECTS.md) for accepted encodings and
+exporter behavior.
 
 The canonical property set is:
 
@@ -432,7 +342,7 @@ A valid non-Gaussian PLY is rejected with a specific diagnostic:
 The file is a valid PLY file, but it is not a supported Gaussian Splatting PLY dialect.
 ```
 
-The v0.1 plugin is not a general mesh or point-cloud importer.
+Gaussian PLY detection must decline ordinary meshes and point clouds.
 
 ## 11. Strictness and error handling
 
@@ -456,29 +366,10 @@ The load may continue with a warning when:
 
 ## 12. Loading model and performance
 
-The implementation fully materializes the source. The conceptual path is:
-
-```text
-source file
-    -> parser-owned property columns
-    -> GaussianCloudData
-    -> VtArray
-    -> worker-authored SdfLayer
-    -> TransferContent
-```
-
-Each representation is released as the next one is built: the parser's native
-buffers are dropped column by column during float conversion, decoded columns
-are freed as they move into `GaussianCloudData`, and the layer writer consumes
-the cloud while authoring copy-on-write `VtArray` attributes. Peak memory is
-therefore bounded by roughly one full-data representation plus the authored
-layer, not by the sum of every stage. The one remaining overlap is the SH rest
-pass, which briefly holds the remaining rest columns alongside the interleaved
-rest array.
-
-The implementation does not provide streaming, memory mapping, chunked
-decoding, partial layer reads, lazy properties, GPU upload, USD caching, or
-payload-level deferred loading.
+Release temporary representations as the next stage of the pipeline takes
+ownership. Measure both importer allocations and the resulting USD layer
+when deciding whether an optimization reduces peak memory. Distinguish
+whole-asset payload loading in USD from partial decoding within an asset.
 
 ### 12.1 Measure before redesigning
 
@@ -499,11 +390,10 @@ external asset (§17).
 
 ### 12.2 Preferred optimization order
 
-1. Support metadata-only reads (§12.3).
-2. Consider chunked or streaming import only after the copy reductions already
-   in place — direct-to-`float` decoding, incremental release of parser and
-   intermediate arrays, and direct layer authoring without a USDA round-trip —
-   are measured on the §12.1 corpus.
+1. Keep metadata-only reads independent of full decoding (§12.3).
+2. Measure copying and allocation costs on the §12.1 corpus. Prefer reducing
+   redundant copies and temporary storage before adding chunked or streaming
+   import.
 
 ### 12.3 Metadata-only reads
 
@@ -514,52 +404,25 @@ SH degree, source format, default prim, up axis, and meters per unit. For
 PLY, the count and SH degree are derivable from the vertex declaration and
 the `f_rest_*` property declarations without loading vertex data.
 
-This is a high-priority improvement because it benefits asset inspection,
-layer discovery, and tooling workflows. The current implementation ignores
-`metadataOnly` and always performs a full read; the capability matrix records
-this gap.
-
 ## 13. Write support
 
-v0.1 is read-only:
-
-```text
-PLY -> USD layer
-```
+The file-format plugins are read-only.
 
 `USD Gaussian -> PLY` is a separate design problem because no single Gaussian
 PLY write dialect is authoritative. `WriteToFile` returns unsupported with a
 clear diagnostic. `WriteToString` may expose the imported layer as USDA for
 inspection and testing; it is not PLY export.
 
-Export stays out of scope until read interoperability is stable. Any future
-exporter must define its lossless-versus-lossy behavior, supported SH degree,
+An export proposal must define its lossless-versus-lossy behavior, supported SH degree,
 coordinate and unit policy, opacity and scale encoding, unsupported-metadata
 handling, and deterministic-output expectations before implementation.
 
 ## 14. Workspace structure
 
-The binding structure is documented in
-[architecture/WORKSPACE.md](../architecture/WORKSPACE.md). Its essential form
-is:
-
-```text
-usd-3dgs-plugins/
-├── openstrata.toml
-├── openstrata.ci.yaml
-├── CMakeLists.txt
-├── plugins/
-│   ├── gaussian-ply/
-│   └── gaussian-spz/          # future
-├── libs/
-│   └── gaussian-core/
-└── third_party/
-    └── tinyply/
-```
-
-`gaussianCore` is a plain CMake/OpenStrata library, never a plugin bundle. Its
-public surface is limited to the Gaussian model, validation, SH utilities, and
-math used by multiple decoders.
+The [workspace contract](../architecture/WORKSPACE.md) owns the source
+layout, dependencies, and packaging boundaries. Keep format code in its
+bundle, USD-independent shared code in `gaussianCore`, and shared OpenUSD
+authoring in `gaussianUsd`.
 
 ## 15. tinyPLY dependency policy
 
@@ -621,96 +484,7 @@ Binary fixtures should be generated by a committed script. Real trained assets
 may supplement the corpus only after license and provenance review; they must
 never be the sole source of coverage.
 
-The initial corpus covers one-Gaussian ASCII and binary little-endian files,
-degree-1 SH layout, non-Gaussian mesh input, missing opacity, and truncated
-binary input.
-
-## 18. Milestones
-
-| Milestone | Deliverable |
-| --- | --- |
-| M0 — workspace bootstrap | OpenStrata workspace, `gaussian-ply` bundle, discovery, build, and CI contract |
-| M1 — minimal PLY read | tinyPLY, ASCII/binary LE, vertex position, `/Asset/Splat`, layer open |
-| M2 — semantic mapping | scale, rotation, opacity, DC, and SH mapped to standard USD Gaussian attributes |
-| M3 — validation | Gaussian detection, malformed/missing/count/non-finite diagnostics |
-| M4 — integration quality | API inspection, OST L0–L5, CI matrix, package, mapping docs, notices |
-| M5 — SPZ | SPZ decoder through the same model/writer, equivalence tests, measured performance |
-
-Milestone status is historical evidence and therefore belongs in
-[delivery-history.md](../reports/delivery-history.md), not in this policy.
-
-## 19. v0.1 definition of done
-
-v0.1 is ready to release when all of the following are evidenced:
-
-- the repository is an OpenStrata plugin workspace;
-- `gaussian-ply` builds and registers the `.ply` format;
-- canonical Gaussian PLY opens as an `SdfLayer`;
-- ASCII and binary little-endian inputs work;
-- positions, semantic scales, normalized rotations, opacity, and SH are correct;
-- `/Asset/Splat` and `/Asset` default prim follow the scene contract;
-- non-Gaussian and malformed PLY inputs fail clearly;
-- the plugin is read-only;
-- unit, integration, workspace, and package-origin tests pass at their declared levels;
-- tinyPLY licensing and an immutable revision are recorded;
-- fixtures are deterministic and redistributable;
-- a versioned package can be produced;
-- the declared CI matrix has completed on every supported host.
-
-## 20. Explicit v0.1 exclusions
-
-- SPZ, SOG, glTF/GLB, SPLAT, and KSPLAT;
-- USD-to-PLY export;
-- a Hydra renderer or a guarantee of visible splats in stock `usdview`;
-- GPU upload, compressed USD arrays, memory mapping, and lazy loading;
-- animated Gaussians or multiple Gaussian clouds;
-- camera and training-metadata import;
-- user-configurable property mappings;
-- arbitrary point-cloud or polygon-mesh PLY;
-- automatic coordinate-system inference.
-
-## 21. Implementation order
-
-The initial vertical slice is intentionally ordered as:
-
-```text
-workspace and bundle scaffold
-    -> discoverable empty plugin
-    -> /Asset/Splat stage contract
-    -> tinyPLY and positions
-    -> scale, rotation, opacity
-    -> spherical harmonics
-    -> dialect detection and diagnostics
-    -> deterministic fixtures and CI
-    -> versioned package
-```
-
-The first proof is always the complete narrow path:
-
-```text
-PLY
-    -> SdfFileFormat
-    -> GaussianCloudData
-    -> OpenUSD Gaussian prim
-    -> SdfLayer::FindOrOpen succeeds
-```
-
-## 22. Final policy summary
-
-```text
-Repository:      animu-sphere/usd-3dgs-plugins
-Framework:       OpenStrata usd-plugin-workspace
-Initial bundle:  gaussian-ply
-Parser:          tinyPLY, immutable vendored revision
-Scene graph:     /Asset/Splat
-Architecture:    reader -> semantic decoder -> GaussianCloudData -> USD writer
-Roadmap:         PLY -> SPZ -> interoperability candidates (glTF/GLB, SOG,
-                 SPLAT, KSPLAT) -> advanced loading -> optional export
-v0.1:            read-only, fully loaded, ASCII + binary little-endian,
-                 position + scale + rotation + opacity + SH
-```
-
-## 23. Definition of success
+## 18. Definition of success
 
 The project is successful when:
 

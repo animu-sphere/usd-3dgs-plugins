@@ -2,220 +2,46 @@
 
 [![CI](https://github.com/animu-sphere/usd-3dgs-plugins/actions/workflows/ost-source-ci.yml/badge.svg)](https://github.com/animu-sphere/usd-3dgs-plugins/actions/workflows/ost-source-ci.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/animu-sphere/usd-3dgs-plugins)](LICENSE)
-[![OpenUSD 26.08](https://img.shields.io/badge/OpenUSD-26.08-3b82f6)](docs/reference/SUPPORTED_CONFIGURATIONS.md)
 
-OpenUSD file-format plugins that import
-[3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
-assets as standard USD stages: open a trained `.ply`, a Niantic `.spz`, or a
-PlayCanvas `.sog` capture directly in `usdview` or any USD pipeline as OpenUSD
-26.05's `ParticleField3DGaussianSplat` schema.
+OpenUSD file-format plugins for read-only import of Gaussian PLY, SPZ, and SOG.
+They open trained splat assets as USD layers with
+`ParticleField3DGaussianSplat` at `/Asset/Splat`. See the
+[capability matrix](docs/reference/CAPABILITY_MATRIX.md) for supported variants
+and limitations.
 
 <p align="center">
-  <img src="docs/assets/usd3dgs_with_hdparticlefield.gif" alt="Imported Gaussian PLY in usdview" width="700" />
-  <br>
-  <p align="center"><i>A Gaussian PLY imported by this plugin and displayed in usdview by a Hydra
-  renderer that supports the OpenUSD particle-field Gaussian schema.</i></p>
+  <img src="docs/assets/usd3dgs_with_hdparticlefield.gif" alt="Imported Gaussian PLY displayed in usdview" width="700" />
 </p>
-
-## usdview screenshots
-
-These previews show the three supported input formats displayed through the
-OpenUSD `hdParticleField` example delegate:
-
-| PLY | SOG | SPZ |
-| --- | --- | --- |
-| <img src="docs/assets/usdview_hdParticleField_PLY.png" alt="PLY in usdview" width="300" /> | <img src="docs/assets/usdview_hdParticleField_SOG.png" alt="SOG in usdview" width="300" /> | <img src="docs/assets/usdview_hdParticleField_SPZ.png" alt="SPZ in usdview" width="300" /> |
-
-**What it does**
-
-- Read-only import of Graphdeco-style Gaussian PLY (ASCII and binary
-  little-endian, SH degrees 0-3) into `/Asset/Splat` with positions, scales,
-  orientations, opacities, and spherical-harmonic radiance.
-- Read-only import of Niantic SPZ (container versions 1-3, SH degrees 0-3),
-  dequantized and converted into the same `/Asset/Splat` stage.
-- Read-only import of PlayCanvas SOG v2 (SH degrees 0-3) in both layouts — the
-  bundled `.sog` ZIP archive and an unbundled `meta.json` with its companion
-  lossless-WebP property planes — decoded from codebooks and image planes into
-  the same stage. All three formats author the identical hierarchy, schema, and
-  metadata through one shared writer.
-- Header-only metadata reads (~5 ms at any size), PLY import arguments
-  (`shDegree`, `opacityThreshold`, `scaleMultiplier`), and stable
-  `GSPLY-****` / `GSPZ-****` / `GSSOG-****` diagnostics with machine-readable
-  catalogs.
-- Import only — rendering is owned by the sibling project
-  [`hydra-merlin`](https://github.com/animu-sphere/hydra-merlin).
-
-**What it reads**
-
-`gaussian-ply` — Graphdeco-style `.ply`:
-
-| Exporter | Status |
-| --- | --- |
-| Graphdeco reference (INRIA) | ✅ verified (Mip-NeRF 360 `garden`, 5.8M Gaussians) |
-| Brush | ✅ verified (committed CC0 corpus) |
-| Jawset Postshot | ✅ verified (up to 1.9M Gaussians) |
-| SuperSplat uncompressed export | ☑ layout-compatible, fixture-covered |
-| SuperSplat *compressed* `.ply`, `.splat`, `.ksplat` | ❌ rejected explicitly ([details](docs/reference/PLY_DIALECTS.md)) |
-
-`gaussian-spz` — Niantic `.spz`:
-
-| Container | Status |
-| --- | --- |
-| SPZ versions 1-3 (gzip) | ✅ decoded, fixture-covered, and verified against a committed CC0 real-asset corpus |
-| SPZ version 4 (ZSTD) | ❌ rejected with a specific unsupported-version diagnostic |
-
-`gaussian-sog` — PlayCanvas `.sog` / `meta.json`:
-
-| Container | Status |
-| --- | --- |
-| SOG v2, bundled `.sog` (ZIP) | ✅ decoded, fixture-covered, and verified against a committed CC0 real-asset corpus |
-| SOG v2, unbundled `meta.json` + `.webp` planes | ✅ decoded through the asset resolver, fixture-covered |
-| SOG v1 (per-channel `mins`/`maxs`, no `version`) | ❌ rejected with a specific unsupported-version diagnostic |
-| Streamed SOG (`lod-meta.json`, LOD chunks) | ❌ not read; a later SOG milestone |
-| Lossy WebP property planes | ❌ rejected rather than decoded approximately |
-
-Full tables: [dialect compatibility](docs/reference/PLY_DIALECTS.md) ·
-[capability matrix](docs/reference/CAPABILITY_MATRIX.md) ·
-[performance baselines](docs/reference/PERFORMANCE_BASELINES.md) ·
-[benchmark corpus](docs/reference/BENCHMARK_CORPUS.md).
-
-## Install a binary release
-
-Choose the product archive from the
-[latest stable release](https://github.com/animu-sphere/usd-3dgs-plugins/releases/latest)
-that matches the host platform, the `cy2026` OpenUSD runtime, and Python 3.13.
-
-```text
-usd-3dgs-plugins-<version>-cy2026-windows-x86_64-py313-usd-plugin-product.tar.zst
-usd-3dgs-plugins-<version>-cy2026-macos-arm64-py313-usd-plugin-product.tar.zst
-usd-3dgs-plugins-<version>-cy2026-linux-x86_64-py313-usd-plugin-product.tar.zst
-```
-
-Extract the target archive, then point `PXR_PLUGINPATH_NAME` at the extracted
-`plugin/resources/gaussian-ply`, `gaussian-spz`, and `gaussian-sog` directories.
-Use `;` between paths on Windows and `:` on macOS/Linux; keep the extracted
-`lib` directory on the platform library path. Open one file from each format
-with `usdcat` to check plugin discovery:
-
-```powershell
-$package = "C:\path\to\extracted"
-$env:PXR_PLUGINPATH_NAME = "$package\plugin\resources\gaussian-ply;$package\plugin\resources\gaussian-spz;$package\plugin\resources\gaussian-sog"
-$env:Path = "$package\lib;$env:Path"
-usdcat --flatten --out scene-ply.usda scene.ply
-usdcat --flatten --out scene-spz.usda scene.spz
-usdcat --flatten --out scene-sog.usda scene.sog
-```
-
-The exact extraction layout can vary between the aggregate product and a
-standalone member package; use the corresponding member root for each resource
-directory. The detailed activation steps, checksum guidance, and the
-unbundled SOG example are in [INSTALL.md](docs/guides/INSTALL.md). Stock
-`usdview` can open the stage and inspect `/Asset/Splat`, but visible splats
-still require a Gaussian-capable Hydra delegate.
 
 ## Quick start
 
-Requirements: OpenUSD `>=26.05,<27.0` and a C++17 compiler. Build and test
-with plain CMake against an OpenUSD installation in that range:
+Download the archive for your host from the
+[latest release](https://github.com/animu-sphere/usd-3dgs-plugins/releases/latest).
+Check the [supported configurations](docs/reference/SUPPORTED_CONFIGURATIONS.md)
+and follow the
+[binary install guide](docs/guides/INSTALL.md#install-a-binary-release) to
+verify and activate it. Then open a Gaussian PLY as a USD layer:
 
 ```sh
-cmake --preset default -DCMAKE_PREFIX_PATH=/path/to/openusd
-cmake --build --preset default
-ctest --test-dir build/default --output-on-failure
+usdcat --flatten --out scene.usda scene.ply
 ```
 
-The repo is dual-mode: with
-[OpenStrata](https://github.com/animu-sphere/open-strata) `ost` 0.23.20 the
-same tree gets the full verification ladder, packaging, and viewer tooling —
-see [BUILDING.md](docs/guides/BUILDING.md):
+Stock `usdview` can inspect the stage. To see splats, use a compatible Hydra
+delegate such as OpenUSD's `hdParticleField` example, shown above. See the
+[experimental Merlin PLY preview](docs/reference/CAPABILITY_MATRIX.md#hydra-rendering)
+for a verified setup.
 
-```sh
-ost runtime pull cy2026 --profile usd
-ost plugin build plugins/gaussian-ply
-ost plugin test plugins/gaussian-ply --up-to 5
-```
-
-Open a capture in usdview:
-
-```powershell
-ost plugin view plugins\gaussian-ply "C:\path\to\scene.ply"
-```
-
-> **Seeing the splats needs a Gaussian-capable Hydra renderer.** In `usdview`,
-> you can inspect `/Asset/Splat` with the stock delegate. To draw the splats,
-> use a delegate that implements `ParticleField3DGaussianSplat`, such as the
-> OpenUSD `hdParticleField` example shown above. The experimental
-> [Merlin PLY preview](docs/reference/CAPABILITY_MATRIX.md#hydra-rendering)
-> provides a verified Windows setup with digest-pinned packages.
-
-Or convert it to a compact binary USD file:
-
-```powershell
-ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out scene.usd scene.ply
-```
-
-Installing a packaged release into an existing OpenUSD environment is covered
-in [INSTALL.md](docs/guides/INSTALL.md).
-
-## Status
-
-See the [release records](docs/releases/README.md) for published capabilities
-and verification, and the [roadmap](docs/roadmap/current.md) for current work.
-The [composition guide](docs/guides/COMPOSITION.md) covers references,
-payloads, instancing, and USDZ delivery.
-
-v0.4.0 turned the decoder-to-USD seam PLY and SPZ share into a normative,
-enforced contract: shared semantic validation and overflow-checked size math, a
-stage-free [decoder test kit](docs/reference/GAUSSIAN_MODEL_CONTRACT.md), an
-import-statistics seam, and a documented
-[header/API boundary](docs/architecture/API_BOUNDARY.md). It also corrected
-authored orientation to **RUB / Y-up**
-([ADR 0001](docs/adr/0001-model-frame-is-rub.md)) to match the `upAxis` every
-stage already declared; that is a pre-1.0 change to v0.1.0-v0.3.0 output, so
-re-import to update.
-
-v0.5.0 is the first format added *on top of* that contract: `gaussian-sog`
-reads SOG v2 in both layouts, targets the shared model with no format-specific
-USD authoring, and joins the cross-format equivalence triples. Releases are
-tag-driven and digest-reproducible
-([release records](docs/releases/README.md)).
-
-## Architecture
-
-```text
-.ply       -> PlyReader (tinyPLY adapter)     -> GaussianPlyDecoder --+
-.spz       -> SpzReader (miniz DEFLATE/gzip)  -> GaussianSpzDecoder --+
-.sog    \                                                            |
-         -> SogReader (miniz ZIP + libwebp    -> GaussianSogDecoder --+
-meta.json/     lossless property planes)                             |
-                                                                     v
-                        GaussianCloudData (gaussianCore; no USD types)
-                        -> GaussianLayerWriter (libs/gaussian-usd)
-                        -> UsdVolParticleField3DGaussianSplat
-```
-
-The workspace separates format-independent Gaussian modelling
-(`libs/gaussian-core`) and shared USD authoring (`libs/gaussian-usd`) from
-format-specific import (`plugins/gaussian-ply`, `plugins/gaussian-spz`,
-`plugins/gaussian-sog`), each independently buildable and testable. It is
-built, tested, packaged, and released with OpenStrata's `ost` CLI
-(measured usage: [dogfooding reports](docs/reports/ost/)) and remains
-dual-mode with plain CMake. The sibling project
-[`usd-vrm-plugins`](https://github.com/animu-sphere/usd-vrm-plugins) shares
-this layout and process. Policy: [DESIGN_POLICY.md](docs/design/DESIGN_POLICY.md).
+To build from source, follow the [build guide](docs/guides/BUILDING.md).
+For references, payloads, instancing, and USDZ delivery, see the
+[composition guide](docs/guides/COMPOSITION.md).
 
 ## Contributing and documentation
 
-The minimal development path is in [CONTRIBUTING.md](CONTRIBUTING.md); the
-documentation index is [docs/README.md](docs/README.md). The normative mapping
-contracts are [PLY_MAPPING.md](docs/reference/PLY_MAPPING.md),
-[SPZ_MAPPING.md](docs/reference/SPZ_MAPPING.md), and
-[SOG_MAPPING.md](docs/reference/SOG_MAPPING.md).
+- [Documentation index](docs/)
+- [Contributing](CONTRIBUTING.md)
+- [Roadmap](docs/roadmap/) and [release history](docs/releases/)
 
 ## License
 
-Project code is Apache-2.0. SPZ and SOG are implemented from their publishers'
-open specifications and MIT-licensed reference toolchains rather than vendored;
-only container mechanics use libraries. Third-party retained notices and fixed
-source revisions (tinyPLY, miniz, libwebp) are documented in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+[Apache License 2.0](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md)
+for the licenses of vendored dependencies.

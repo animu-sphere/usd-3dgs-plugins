@@ -23,7 +23,9 @@ revision and local parser fixes.
 | ASCII PLY | supported | C++ decoder, Python stage-open, and OST golden fixture |
 | Binary little-endian PLY | supported | generated binary fixture and decoder/stage assertions |
 | Binary big-endian PLY | unverified | no fixture or support claim |
-| Gaussian dialect detection | supported | Gaussian signature check; ordinary mesh fixture rejected |
+| Gaussian dialect detection | supported | Gaussian signature check; ordinary mesh fixture rejected. See [PLY dialects](PLY_DIALECTS.md) for exporter evidence. |
+| SuperSplat compressed PLY | unsupported | Rejected as an unsupported dialect (`GSPLY-E001`) |
+| `.splat` and `.ksplat` | unsupported | No registered importer for either format |
 | Position | supported | `x/y/z` copied as local-space position |
 | Scale | supported | stable finite `exp(scale_*)` conversion |
 | Rotation | supported | scalar-first quaternion normalization; zero becomes identity with warning |
@@ -37,7 +39,7 @@ revision and local parser fixes.
 | Unknown extra properties | supported | ignored with one aggregated warning; common `nx/ny/nz` placeholders are silent |
 | Property aliases | unsupported | canonical Graphdeco names only; decision recorded in [PLY_DIALECTS.md](PLY_DIALECTS.md) |
 | Arbitrary point-cloud/mesh PLY | unsupported | rejected as non-Gaussian |
-| Metadata-only read | supported | `Read(metadataOnly=true)` authors the stage contract from the header only (~5 ms at any size) |
+| Metadata-only read | supported | `Read(metadataOnly=true)` authors the stage contract from the header only |
 | File-format arguments | supported | `shDegree`, `opacityThreshold`, `scaleMultiplier` with validated ranges and tests |
 | Stable diagnostics | supported | `GSPLY-E***`/`GSPLY-W***` codes with a machine-readable catalog shipped in the plugin resources |
 
@@ -67,7 +69,7 @@ revision and local parser fixes.
 | SOG v2 bundled `.sog` (ZIP) | supported | container reader walks the archive's central directory (vendored miniz); reader and decoder fixtures for stored *and* DEFLATE-compressed entries |
 | SOG v2 unbundled `meta.json` | supported | companion WebP planes load through the asset resolver, always anchored on the layer's own resolved path; a fixture directory proves both layouts author the same stage; per-case resolver behavior and known gaps in [RESOLVER_MATRIX.md](RESOLVER_MATRIX.md) |
 | SOG v1 (no `version`, per-channel `mins`/`maxs`) | unsupported | rejected with the specific unsupported-version diagnostic `GSSOG-E003`, not as corruption |
-| Streamed SOG (`lod-meta.json`, chunks, LOD) | unsupported | not read; SOG M2-M4 ([release plan](../roadmap/release-plan.md)) |
+| Streamed SOG (`lod-meta.json`, chunks, LOD) | unsupported | no chunk or LOD import; see the [composition backlog](../roadmap/backlog.md#other-format-candidates) |
 | Lossless WebP property planes | supported | decoded through the vendored libwebp v1.6.0 decoder subset |
 | Lossy WebP property planes | unsupported | rejected as `GSSOG-E009` rather than decoded approximately, because lossy positions would be silently wrong |
 | Position (16-bit split precision, log domain) | supported | `means_l`/`means_u` codes remapped through the per-axis log range and the inverse-log transform; known-value fixtures |
@@ -105,33 +107,21 @@ revision and local parser fixes.
 
 ## Lifecycle
 
-| Capability | Status |
-| --- | --- |
-| Standalone OST bundle build | supported |
-| Plain root CMake composition | supported; Release build and all thirteen tests (core unit + decoder kit, gaussianUsd, PLY decoder + smoke, SPZ reader + decoder + smoke, SOG reader + decoder + smoke, PLY/SPZ and PLY/SOG equivalence) locally green |
-| Workspace plain-library dependency | supported and validated by `ost plugin test --workspace` |
-| Source L0-L5 verification | supported; locally green |
-| Target-specific package | supported; locally generated and tested |
-| Package-origin L0-L4 | supported; locally green |
-| Package-origin L5 | supported since OST 0.20.0; passes for all three bundles on local Windows with OST 0.23.20. The v0.5.1 hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493) passed package-origin L5 on macOS/Linux and the declared Windows L4 cap |
-| Windows/macOS/Linux generated CI | supported and validated by hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493): Windows L4, macOS arm64 L5, and Linux L5 |
-| Hydra Gaussian rendering | experimental Windows PLY preview with hdMerlin, described below |
+See [supported configurations](SUPPORTED_CONFIGURATIONS.md) for the supported
+build and package targets, the [installation guide](../guides/INSTALL.md)
+for consumer checks, and the [release records](../releases/) for verified
+combinations and results.
 
 ## Hydra rendering
 
 All three importers author `ParticleField3DGaussianSplat`. Stage inspection
-works with the stock `usdview` delegate. Visible splats require a delegate that
-implements the schema.
+works independently of the active Hydra delegate. Visible splats require a
+delegate that implements that schema; the stock hdStorm path is not a splat
+rendering target for this project.
 
-The experimental [Merlin Gaussian PLY host session](https://github.com/animu-sphere/hydra-merlin/tree/ad4bc6a44b3e6c01c536366b1971a62d9d88f659/formations/gaussian-host-session)
-pins the matching `gaussian-ply` v0.8.0 and hdMerlin v0.16.6 packages and the
-OpenUSD 26.08 OpenStrata `cy2026` / `lookdev` runtime. The locked `testusdview`
-smoke test passed after pulling all three artifacts anonymously from GHCR
-into an empty store. It checked the PLY root layer, `/Asset/Splat`, three
-Gaussian points, the active Merlin delegate, and the visible red, green,
-and blue splats. [Run instructions and verification](https://github.com/animu-sphere/hydra-merlin/blob/ad4bc6a44b3e6c01c536366b1971a62d9d88f659/formations/gaussian-host-session/README.md#verification)
-
-The verification covers the bundled synthetic Graphdeco PLY fixture on Windows
-x86_64 with Python 3.13, an RTX A5000, and Merlin's Vulkan 1.4 renderer with
-Tier 0 CPU presentation. The [v0.8.0 release binaries](../releases/v0.8.0.md)
-target the `usd` profile. Use the pinned `lookdev` packages for the preview.
+The experimental [Merlin Gaussian PLY host session](https://github.com/animu-sphere/hydra-merlin/blob/ad4bc6a44b3e6c01c536366b1971a62d9d88f659/formations/gaussian-host-session/README.md#verification)
+verifies a synthetic Graphdeco PLY using digest-pinned public packages on
+Windows x86_64. Use its pinned `lookdev` Formation to reproduce the preview.
+The record covers the exact host, runtime and delegate; it does not establish
+SPZ or SOG rendering support. The `usd` aggregate product is covered by the
+separate [plugin release record](../releases/v0.9.0.md).
