@@ -11,10 +11,10 @@
 # re-pinned runtime cannot ship a release built against the old one.
 #
 # Pushing a tag `vX.Y.Z` (which must equal VERSION, match every bundle
-# manifest, and have a finalized CHANGELOG section) builds gaussian-ply on the
-# same three digest-pinned cells as the PR lane, runs each cell's declared
+# manifest, and have a finalized CHANGELOG section) builds the import bundles
+# on the same three digest-pinned targets as the PR lane, runs the declared
 # verification level, proves packaging is digest-reproducible, then assembles a
-# DRAFT release: per-target lean bundles, manifest and SBOM sidecars, a source
+# DRAFT release: per-target aggregate plugin products, a source
 # archive, SHA256SUMS, and notes rendered from CHANGELOG.md through
 # docs/contributing/RELEASE_NOTES_TEMPLATE.md. Publishing the draft is a human
 # decision (docs/releases/README.md).
@@ -54,15 +54,27 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Only a tag build needs ancestry to check records of earlier tags.
+          fetch-depth: ${{ github.ref_type == 'tag' && '0' || '1' }}
       - name: Set up Python for the release tooling
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.13"
       - name: Install the release tooling dependencies
         shell: bash
-        run: python -m pip install --disable-pip-version-check pyyaml==6.0.2
-      # The machine-checkable half of the release gate, run before any hosted
-      # runner is billed. A dispatch has no tag, which selects the dry run.
+        run: python -m pip install --disable-pip-version-check pyyaml==6.0.2 -r scripts/docs-requirements.txt
+      - name: Check documentation and release records
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            python scripts/check_docs.py --release-tag "$GITHUB_REF_NAME"
+          else
+            python scripts/check_docs.py
+          fi
+      # Check the version before starting the build matrix. A branch dispatch
+      # has no tag, which selects the dry run.
       - name: Check the release gate
         id: gate
         shell: bash

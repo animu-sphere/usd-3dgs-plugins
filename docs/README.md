@@ -1,73 +1,52 @@
 # USD 3DGS Plugins documentation
 
-Documentation is organized by responsibility. This follows the same taxonomy
-as `usd-vrm-plugins`, so current contracts, procedures, plans, and historical
-evidence do not drift into one another.
+Use the document that owns the question you are answering. Summaries should
+link to the source; implementation and tests are the evidence for current
+behavior. If either changes, review the affected documentation in the same PR.
 
-When a summary disagrees with the implementation, the implementation wins and
-the summary is a documentation bug. When a summary disagrees with
-[architecture/WORKSPACE.md](architecture/WORKSPACE.md) about structure, the
-workspace contract wins; structural changes must update that contract first.
-
-| Category | Answers | Start here |
+| Type | Owns | Start here |
 | --- | --- | --- |
-| [architecture/](architecture/) | How the workspace is structured and which dependency directions are legal. | [WORKSPACE.md](architecture/WORKSPACE.md) |
-| [guides/](guides/) | How to build, install, and use the plugins. | [BUILDING.md](guides/BUILDING.md), [INSTALL.md](guides/INSTALL.md), [COMPOSITION.md](guides/COMPOSITION.md) |
-| [reference/](reference/) | What is supported and how source data maps to USD. | [CAPABILITY_MATRIX.md](reference/CAPABILITY_MATRIX.md) |
-| [roadmap/](roadmap/) | What remains incomplete and what comes next. | [README.md](roadmap/README.md) |
-| [releases/](releases/) | Immutable records for tagged releases. | [README.md](releases/README.md) |
-| [design/](design/) | Why the project is built this way. | [DESIGN_POLICY.md](design/DESIGN_POLICY.md) |
-| [adr/](adr/) | Numbered, immutable architecture decision records. | [0001-model-frame-is-rub.md](adr/0001-model-frame-is-rub.md) |
-| [reports/](reports/) | Evidence from real runs, including OST dogfooding. | [README.md](reports/README.md) |
-| [contributing/](contributing/) | Contributor and release procedures. | [RELEASE_NOTES_TEMPLATE.md](contributing/RELEASE_NOTES_TEMPLATE.md) |
+| Entry | Project purpose and first use | [README](../README.md) |
+| Index | Navigation and document ownership | This page |
+| Normative | Design principles and accepted decisions | [Design policy](design/DESIGN_POLICY.md), [ADRs](adr/) |
+| Architecture | Workspace structure, dependency directions, and header audiences | [Workspace](architecture/WORKSPACE.md), [API boundary](architecture/API_BOUNDARY.md) |
+| Reference | Current behavior and semantic or stage contracts | [Capability matrix](reference/CAPABILITY_MATRIX.md), [model contract](reference/GAUSSIAN_MODEL_CONTRACT.md) |
+| Guide | Reproducible procedures and their required environment | [User guides](guides/), [contributor guides](contributing/) |
+| Plan | Release criteria and open work | [Roadmap](roadmap/) |
+| Record | Published releases, measured results, and completed work | [Release records](releases/), [reports](reports/), [changelog](../CHANGELOG.md) |
 
-## Canonical documents
+## Where status belongs
 
-- [design/DESIGN_POLICY.md](design/DESIGN_POLICY.md) defines product intent,
-  semantic conversion, scene authoring, validation, performance policy, and
-  milestone gates.
-- [architecture/WORKSPACE.md](architecture/WORKSPACE.md) is the binding
-  structural contract for bundles, libraries, dependency directions, and
-  artifacts.
-- [reference/CAPABILITY_MATRIX.md](reference/CAPABILITY_MATRIX.md) describes
-  what the current tree implements, not what it intends to implement later.
-- [reference/GAUSSIAN_MODEL_CONTRACT.md](reference/GAUSSIAN_MODEL_CONTRACT.md)
-  is the normative, format-independent contract every decoder targets.
-- [reference/PLY_MAPPING.md](reference/PLY_MAPPING.md) is the normative source
-  property-to-USD mapping for `gaussian-ply`;
-  [reference/SPZ_MAPPING.md](reference/SPZ_MAPPING.md) and
-  [reference/SOG_MAPPING.md](reference/SOG_MAPPING.md) are its counterparts for
-  `gaussian-spz` and `gaussian-sog`.
-- [reference/IMPORT_LIMITS.md](reference/IMPORT_LIMITS.md) lists the resource
-  budgets every reader enforces, and
-  [reference/RESOLVER_MATRIX.md](reference/RESOLVER_MATRIX.md) describes how
-  unbundled SOG companions resolve, which cases are verified, and which are
-  known gaps.
-- [reference/DIAGNOSTICS.md](reference/DIAGNOSTICS.md) links the diagnostic-code
-  catalogs and shows how to inspect imports with OpenUSD command-line tools.
-- [reference/BENCHMARK_CORPUS.md](reference/BENCHMARK_CORPUS.md) declares the
-  large-asset benchmark corpus — committed, generated up to the import
-  ceiling, and real — and the resource targets each measured row is checked
-  against.
-- [architecture/API_BOUNDARY.md](architecture/API_BOUNDARY.md) classifies
-  every installed header by audience and stability tier — "installed" is not
-  "public and stable" before v1.0.0.
-- [contributing/ADDING_A_FORMAT_DECODER.md](contributing/ADDING_A_FORMAT_DECODER.md)
-  is the end-to-end path for a new format, targeting the shared contract with
-  no PLY or SPZ code.
-- [adr/0001-model-frame-is-rub.md](adr/0001-model-frame-is-rub.md) fixes the
-  canonical RUB reference frame of `GaussianCloudData` and derives the
-  RDF↔RUB conversion every affected decoder applies.
+| Question | Source of truth |
+| --- | --- |
+| What does the tree support now? | [Capability matrix](reference/CAPABILITY_MATRIX.md). See the linked reference and tests for exact behavior. |
+| What does the next release aim to ship? | [Release plan](roadmap/release-plan.md). |
+| What work is assigned to the next release? | [Current work](roadmap/current.md), with issues or PRs for task-level status. |
+| What remains unscheduled? | [Backlog](roadmap/backlog.md), with an owner and a reason or trigger to revisit each item. |
+| What shipped and what passed for a tag? | Its [release record](releases/). The changelog describes user-visible changes. |
+| What performance was measured? | [Performance baselines](reference/PERFORMANCE_BASELINES.md) and [benchmark corpus results](reference/BENCHMARK_CORPUS.md). |
+| What did an integrated host or renderer verify? | The Formation owner's evidence. The [API boundary](architecture/API_BOUNDARY.md) describes repository ownership and the [renderer note](reference/CAPABILITY_MATRIX.md#hydra-rendering) links to the verified example. |
+
+## Maintenance
+
+- Agree on changes to normative rules during review; record a new ADR when a
+  decision changes.
+- Update references with the implementation and tests that support the claim.
+  Keep plans and version promises out of reference descriptions.
+- Keep procedures reproducible and name the relevant runtime and platform in
+  the guide. See [Contributing](../CONTRIBUTING.md#documentation-review).
+- Move finished work out of the roadmap. Keep release records and measured
+  results as evidence for their original version; use an erratum for a
+  factual correction.
+- Route evidence from other repositories to its owner and link to a pinned
+  record when available.
 
 ## Component documentation
 
-Component-specific usage stays with the component:
-
 | Component | Documentation |
 | --- | --- |
-| `gaussian-ply` | [plugin README](../plugins/gaussian-ply/README.md) |
-| `gaussian-spz` | [plugin README](../plugins/gaussian-spz/README.md) |
-| `gaussian-sog` | [plugin README](../plugins/gaussian-sog/README.md) |
-| `gaussianCore` | [library README](../libs/gaussian-core/README.md) |
-| `gaussianUsd` | [library README](../libs/gaussian-usd/README.md) |
-
+| `gaussian-ply` | [Plugin README](../plugins/gaussian-ply/README.md) |
+| `gaussian-spz` | [Plugin README](../plugins/gaussian-spz/README.md) |
+| `gaussian-sog` | [Plugin README](../plugins/gaussian-sog/README.md) |
+| `gaussianCore` | [Library README](../libs/gaussian-core/README.md) |
+| `gaussianUsd` | [Library README](../libs/gaussian-usd/README.md) |

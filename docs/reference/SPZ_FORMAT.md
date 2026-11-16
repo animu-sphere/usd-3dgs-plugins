@@ -1,17 +1,9 @@
 # SPZ format scope and decisions
 
-This records the specification source, licence review, and scope decisions the
-v0.3.0 [release plan](../roadmap/release-plan.md#v030--spz-import) requires
-*before* SPZ decoding is implemented. The format-independent model the decoder
-targets is [GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md); the
-SPZ-specific semantic mapping is [SPZ_MAPPING.md](SPZ_MAPPING.md), mirroring
-[PLY_MAPPING.md](PLY_MAPPING.md).
-
-Status: decisions accepted 2026-07-20; container reader implemented
-2026-07-20 (`plugins/gaussian-spz/src/io/SpzReader.*`); semantic decoder and
-USD integration implemented 2026-07-20
-(`plugins/gaussian-spz/src/io/GaussianSpzDecoder.*`, mapping in
-[SPZ_MAPPING.md](SPZ_MAPPING.md)).
+This records the format specification and container decisions for the SPZ
+importer. See the [v0.3.0 release record](../releases/v0.3.0.md) for initial
+delivery, the [capability matrix](CAPABILITY_MATRIX.md) for current support,
+and [SPZ_MAPPING.md](SPZ_MAPPING.md) for the semantic mapping.
 
 ## 1. Specification source
 
@@ -20,8 +12,7 @@ SPZ is published by Niantic Labs at
 contains both a reference implementation and a prose format description in its
 `README`, so the binary layout is **documented, not inferred**. This satisfies
 the standing rule that undocumented binary layouts are never guessed
-([design policy](../design/DESIGN_POLICY.md) §4: Phase 3 formats are accepted
-only once documented).
+([format selection policy](../design/DESIGN_POLICY.md#4-format-selection)).
 
 The specification is the normative source for this bundle. Where the reference
 implementation and the prose disagree, the discrepancy is recorded here and
@@ -49,9 +40,9 @@ Consequence for the architecture: SPZ parsing and dequantization live in
 reader / decoder / diagnostics split. USD prim construction stays in
 `libs/gaussian-usd`, which was extracted for exactly this reason.
 
-## 3. Decision — support versions 1-3 in v0.3.0
+## 3. Container version scope
 
-**Accepted: v0.3.0 reads SPZ versions 1, 2, and 3. Version 4 is deferred.**
+**The importer reads SPZ versions 1, 2, and 3. Version 4 is unsupported.**
 
 The two generations differ structurally:
 
@@ -62,12 +53,8 @@ The two generations differ structurally:
 | Layout | attribute-major within one stream | table of contents + N streams |
 | Dependency | zlib | zstd |
 
-v1-v3 is a single decompression dependency and one linear layout, which is the
-right size for a release whose stated purpose is *proving the shared
-architecture supports a compressed second format* — not maximizing format
-coverage. v4 is tracked for reconsideration after SOG v2 ships
-([release plan](../roadmap/release-plan.md)), where it is an additive change
-behind the same container-version check rather than a rewrite.
+The importer handles the gzip layout through the shared semantic pipeline.
+The different version 4 layout requires a separate reader path.
 
 **Version 4 files must fail with a specific unsupported-version diagnostic, not
 a malformed-container one.** The distinction is a release criterion: a user
@@ -161,31 +148,26 @@ The accepted behavior:
   and §7.6 assigns the explanation to `Read()`'s diagnostics, not to a silent
   routing refusal.
 
-## 7. Open items
+## 7. Validation decisions
 
-- **Resolved.** SH quantization bit-depth is not an assumption the decoder
+- SH quantization bit-depth is not an assumption the decoder
   makes: the reference dequantization `(byte - 128) / 128` is independent of the
   encoder's packing bit-depth (gzip restores the zeroed low bits), so
   `GaussianSpzDecoder` reads any bit-depth without a per-asset option. See
   [SPZ_MAPPING.md §3](SPZ_MAPPING.md).
-- **Resolved.** Degree-4 handling: the decoder rejects degree 4 with the
+- Degree-4 handling: the decoder rejects degree 4 with the
   *unsupported* diagnostic `GSPZ-E011` (not malformed), and `DecodeMetadata`
-  applies the same check. `GaussianCloudData` carries degrees 0-3; degree 4
-  is deferred to a release whose shared model carries it. See
+  applies the same check. `GaussianCloudData` carries degrees 0-3. See
   [SPZ_MAPPING.md §7](SPZ_MAPPING.md).
-- **Resolved.** A legally redistributable SPZ asset with recorded provenance
+- A legally redistributable SPZ asset with recorded provenance
   for the corpus: two CC0-1.0 author-captured Scaniverse exports are committed
   under `plugins/gaussian-spz/tests/corpus/`, derived by
   `scripts/spz_subset.py` and checked semantically by the smoke test. See §8
-  for what those real exports revealed. (Still open: PLY/SPZ equivalence pairs
-  remain in the "Equivalence and real assets" workstream.)
-- Decide whether the import pipeline needs an overall decompressed-size policy
-  for hostile inputs. Container memory is bounded by DEFLATE's inherent 1032:1
-  expansion over the file size (the payload additionally by the declared-count
-  plausibility check; extension records have no declared size to check), which
-  still lets a small crafted file demand gigabytes. Whether to cap that is a
-  host-application policy question, not a container fact — revisit alongside
-  the semantic decoder.
+  for what those real exports revealed.
+
+- Cross-format equivalence is exercised by
+  [deterministic fixtures](EQUIVALENCE.md). The enforced compressed and
+  decompressed input budgets are in [IMPORT_LIMITS.md](IMPORT_LIMITS.md).
 
 ## 8. Producer traits observed in real exports
 

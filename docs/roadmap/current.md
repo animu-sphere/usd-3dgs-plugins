@@ -1,230 +1,38 @@
-# Current
+# Current: v0.10.0 — Format Coverage Expansion
 
-Updated: 2026-11-16
-Scope: v0.9.0 rendering integration preview
+## Goal
 
-## Current position
+Extend input coverage through the shared decoder-to-USD pipeline.
 
-The project supports PlayCanvas SOG v2 import in both supported layouts:
+## Scope and selection
 
-- bundled `.sog` archives;
-- unbundled `meta.json` files with lossless WebP companion planes.
+Use the [candidate evaluation order](release-plan.md#candidate-evaluation) to
+start the spikes. Release scope is pending evidence review. The
+[capability matrix](../reference/CAPABILITY_MATRIX.md) is the reference for
+what can be opened today.
 
-The project now has three primary input families:
+## Active work
 
-- Graphdeco-style Gaussian PLY;
-- Niantic SPZ v1-v3;
-- PlayCanvas SOG v2.
+All workstreams are owned by `usd-3dgs-plugins`. Add issue or PR links here
+as work starts; keep task checklists in those issues or PRs.
 
-Each format-specific reader and decoder produces the shared
-`GaussianCloudData` model. The shared `GaussianLayerWriter` authors that model
-as `ParticleField3DGaussianSplat` in the USD stage.
+| ID | Work | Exit criterion | Tracking |
+| --- | --- | --- | --- |
+| FMT-01 | Evaluate candidates, starting with compressed PLY | Spike documents representative assets, a reproducible format signature, attribute fidelity, license and fixture availability, and dependency cost. | — |
+| FMT-02 | Select the release scope | Record the selected format or variant in the selection issue or PR. Record skipped candidates and revisit conditions in the [backlog](backlog.md). | — |
+| FMT-03 | Implement the first selected format end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate). | — |
+| FMT-04 | Update references and validate packages | Capability claims cite implementation evidence. Declared source and package consumer gates pass on the release targets. | — |
 
-The shared model, validation contract, diagnostics, USD authoring layer, import
-statistics, and safety limits now cover all three format bundles. The
-[v0.8.0 release record](../releases/v0.8.0.md) covers the USD composition
-workflows and the three verified product packages.
+## Decisions needed
 
-Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
+- FMT-01 owner: verify that compressed PLY can route unambiguously alongside
+  the existing PLY path and that representative fixtures can be published.
+- FMT-02 owner: accept a format only after identifying any lossy or missing
+  semantics and confirming the scope can ship independently.
 
-## v0.9.0 — rendering integration preview
+## Release exit
 
-The experimental PLY preview passed the locked `testusdview` smoke test after
-an anonymous pull of the published Windows x86_64 `lookdev` package pair and
-runtime into a fresh store. The
-[renderer capability note](../reference/CAPABILITY_MATRIX.md#hydra-rendering)
-links to the locked Formation, run instructions, and verification scope.
-See the [release plan](release-plan.md#v090--rendering-integration-preview-delivered-by-hydra-merlin)
-for the preview criteria.
-
-The remaining milestone work is the [v0.9.0 release gate](../releases/README.md#release-gate).
-
-## v0.6.0 — production import hardening
-
-Prioritize import-pipeline robustness over another input format.
-
-### Limits for large or hostile input
-
-Define and test shared limits for; the initial shared count and container
-budgets are recorded in [IMPORT_LIMITS.md](../reference/IMPORT_LIMITS.md):
-
-- Gaussian count and plane dimensions;
-- ZIP entry count and expanded size;
-- integer overflow and allocation sizes;
-- codebook and palette counts;
-- JSON nesting and token counts;
-- compression-bomb behavior;
-- companion files reached through an asset resolver;
-- duplicate and missing planes.
-
-Prefer shared validation and checked-size utilities over separate copies of the
-same protection in each format bundle.
-
-### Diagnostics and observability
-
-All three readers expose import summaries with aggregated warning counts.
-The format-specific catalogs are cross-checked against the C++ definitions
-in the Python smoke tests run by the hosted workspace CTest cells. The shared
-layer writer uses the calling bundle's diagnostic codes. See the
-[diagnostics reference](../reference/DIAGNOSTICS.md) for code lookup, source
-and companion paths, and headless validation.
-
-### Asset-resolver verification
-
-Use unbundled SOG as the driver for a documented resolver test matrix covering
-relative, absolute, package-relative, search-path, and custom-resolver cases,
-as well as missing companions, case sensitivity, Windows paths, URI-like
-identifiers, and metadata-only reads that must not open property planes.
-
-### Package-consumer tests
-
-The release lane runs the [aggregate installation check](../guides/INSTALL.md#verify-the-aggregate-installation)
-after the package-origin verification pyramid. It passed on local Windows
-and in the hosted Windows, macOS, and Linux dry run and tag jobs.
-
-## Next format candidates
-
-Choose the next format only after the v0.6.0 foundation work has been
-evaluated.
-
-### First candidate: SuperSplat compressed PLY
-
-Reasons to investigate it first:
-
-- it is distributed with a `.ply` extension and can be confused with ordinary
-  Gaussian PLY;
-- the current importer explicitly rejects it, so the user value is clear;
-- it extends the existing PLY dialect and detection work;
-- it may reuse the current PLY plugin without changing the shared model.
-
-The claim gate must distinguish it strictly from canonical Graphdeco PLY. Its
-compressed layout should remain a format-specific reader rather than becoming
-an accidental mode of the ordinary PLY decoder.
-
-### Second candidate: `.splat`
-
-`.splat` is widely exchanged and may be inexpensive to implement. Its missing
-or implicit semantics around provenance, SH, precision, and coordinate systems
-must be documented before support is claimed. “Can be decoded” and “can be
-decoded with preserved meaning” remain separate acceptance criteria.
-
-### Third candidate: `.ksplat`
-
-`.ksplat` may benefit GaussianSplats3D users as a compressed distribution
-format. Investigation must cover version and compression dependencies,
-specification stability, independent implementability, fixtures, and license
-status.
-
-### Later candidates
-
-- streamed SOG and LOD chunks;
-- LCC / LCC2;
-- glTF / GLB Gaussian extensions.
-
-Streamed SOG is a larger composition milestone involving LOD, chunk lifecycle,
-resolver behavior, and multiple payloads. It should not be treated as a small
-extension of one-object import. glTF Gaussian extensions should be reconsidered
-as their specification and ecosystem mature.
-
-## Hydra boundary
-
-`usd-3dgs-plugins` owns import and USD authoring. Rendering remains owned by
-the sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin).
-
-The user-facing integration should still be improved through documentation
-and tests covering:
-
-- compatible OpenUSD versions;
-- the shared schema contract;
-- sample stages and source assets;
-- importer-to-renderer smoke evidence from Merlin's locked Formation;
-- reciprocal README links;
-- known renderer limitations;
-- the difference between stock `usdview` and a Gaussian-capable delegate.
-
-## Release operations
-
-Keep the tag-driven, digest-reproducible, SBOM-backed release process. Add or
-standardize:
-
-- a release checklist;
-- a documentation-state check;
-- artifact-install smoke tests;
-- checksum verification;
-- release-note and `CHANGELOG.md` consistency checks;
-- release-tag-qualified capability claims;
-- explicit known limitations;
-- a distinction between hosted and local verification;
-- benchmark environment records.
-
-Release records should state not only what was implemented, but also which
-real environments and package paths were actually verified.
-
-## Immediate actions
-
-- ✅ Broaden hostile-input fixture coverage. Every declared-size budget has a
-  fixture, and the real-file-size bounds (1 GiB SOG archive and SPZ source,
-  512 MiB SOG companion through the directory loader and the asset resolver)
-  are covered by sparse files grown at test time; see the
-  [coverage table](../reference/IMPORT_LIMITS.md#test-coverage). That work
-  found and fixed the SPZ full read loading up to 1 GiB before refusing an
-  oversized file.
-- ✅ Asset-resolver test matrix: the
-  [matrix](../reference/RESOLVER_MATRIX.md) is defined and its
-  `ArDefaultResolver` rows are automated. That work found and fixed a missing
-  companion being replaced by a same-named file from the current directory or
-  search path. Every reader now opens UTF-8 paths through the shared
-  `GaussianFileIO.h` helper, so non-ASCII paths no longer depend on the
-  Windows ANSI code page. The SOG primary asset is now read through
-  `ArAsset`, so a `meta.json` or `.sog` inside a `.usdz` opens, with
-  companions anchored inside the package rather than beside it. The
-  `workspace-ctest-pr-*` CI cells now run the workspace CTest suites on
-  Windows, macOS, and Linux as a hosted gate. Their first green run observed
-  the non-ASCII tests on Windows and the package-relative resolver cases on
-  all three. A test-only `gstest:` URI resolver plugin now covers the last
-  ⬜ rows: a URI-style primary identifier, companions served by a custom
-  resolver, and assets served as a stream without `GetBuffer()`
-  (`gaussianSog_python_uri_resolver`). Its first hosted run passed in all
-  three `workspace-ctest-pr-*` cells. Only the Windows-only separator row
-  stays ⚠️, by nature.
-- ✅ Large-asset benchmark corpus: the
-  [corpus](../reference/BENCHMARK_CORPUS.md) is defined in four tiers —
-  committed fixtures, the committed CC0 subsets, a generated scale ladder
-  (1M, 4M, and 7,995,392 Gaussians, just under the import ceiling) in all
-  three formats from one CC0 source, and real exports kept outside the
-  repository. The manifest declares the resource targets.
-  `scripts/benchmark_corpus.py` generates the ladder deterministically and
-  checks it against recorded hashes; all nine scale assets decode with zero
-  contract violations. The `benchmark_corpus_ci` CTest case measures the
-  fixture, corpus, and 1M rows in the `workspace-ctest-pr-*` cells; its
-  [hosted reports](../reference/BENCHMARK_CORPUS.md#hosted-gate) contain all
-  36 passing rows across Windows, macOS, and Linux.
-  A local Windows Release run passed all nine scale rows (including the 4M
-  and ceiling steps) and all nine real rows, including a full Leica Sofort
-  capture converted to SOG and the Graphdeco Garden and Bicycle PLY exports.
-  See the [measured rows](../reference/BENCHMARK_CORPUS.md#local-measurements).
-  The manifest sets resource targets from those measurements, including
-  the run-to-run variation in macOS 1M PLY peak memory. CTest applies the
-  targets in each workspace job.
-- ✅ Verify the release dry run and tag jobs on Windows, macOS, and Linux.
-  The [release record](../releases/v0.6.0.md) links the runs and lists the
-  verified artifact checksums.
-
-## Decision criteria
-
-Evaluate every proposed format against the following criteria:
-
-1. Is it actually in use?
-2. Is there a public specification or independently implementable reference?
-3. Is the licensing clear?
-4. Can deterministic fixtures be created?
-5. Can a provenance-recorded real-asset corpus be obtained?
-6. Can it map to `GaussianCloudData` without losing meaning?
-7. Can cross-format equivalence tests be built?
-8. Can stable diagnostics be defined?
-9. Does metadata-only read make sense?
-10. Can the result be reproduced in a package-consumer environment?
-
-The number of supported formats is not the goal. A format should be accepted
-only when its specification, semantics, validation, and distribution story can
-be maintained together.
+- At least one selected input passes the
+  [format acceptance gate](release-plan.md#format-acceptance-gate).
+- The [release procedure](../releases/) covers package verification, draft
+  review, and the post-tag record.

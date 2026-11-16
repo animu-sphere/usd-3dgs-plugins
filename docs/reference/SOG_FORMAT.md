@@ -1,26 +1,9 @@
 # SOG format scope and decisions
 
-This records the specification source, licence review, dependency decisions,
-and the implementation and fixture plan the v0.4.0
-[release plan](../roadmap/release-plan.md#v040--gaussian-import-foundation)
-requires *before* SOG decoding is implemented (workstream 9 in
-[current.md](../roadmap/current.md)). It is the SOG counterpart of
-[SPZ_FORMAT.md](SPZ_FORMAT.md). The format-independent model the decoder
-targets is [GAUSSIAN_MODEL_CONTRACT.md](GAUSSIAN_MODEL_CONTRACT.md); the
-SOG-specific semantic mapping is [SOG_MAPPING.md](SOG_MAPPING.md), mirroring
-[SPZ_MAPPING.md](SPZ_MAPPING.md).
-
-Status: **implemented.** The plan was accepted 2026-07-22 with the v0.4.0
-`gaussian-sog` skeleton; the v2 container facts were confirmed against the
-reference implementation and the §6 decisions (coordinate frame, `CanRead()`
-bounds, libwebp pin) recorded the same day. The v0.5.0 reader and decoder then
-landed against exactly those facts — `SogReader`, `GaussianSogDecoder`, both
-layouts, the `GSSOG-****` catalog, and the fixture and equivalence plan of §4-§5
-— with two mapping corrections recorded in
-[SOG_MAPPING.md](SOG_MAPPING.md) (no `f_rest` transpose is needed; `count == 0`
-is rejected at import). The one remaining §6 item, a provenance-recorded real
-SOG asset, stays open. This document keeps the decisions; the normative semantic
-mapping is [SOG_MAPPING.md](SOG_MAPPING.md).
+This records the specification, dependency decisions, and container behavior
+of the SOG importer. See the [v0.5.0 release record](../releases/v0.5.0.md)
+for the initial delivery, the [capability matrix](CAPABILITY_MATRIX.md) for
+current support, and [SOG_MAPPING.md](SOG_MAPPING.md) for the semantic mapping.
 
 ## 1. Specification source
 
@@ -55,8 +38,7 @@ Target: **SOG v2** (the `meta.json` `version: 2` generation), both layouts:
 - **unbundled** — `meta.json` opened directly, with the property images as
   resolver-backed companion files.
 
-Streamed SOG (`lod-meta.json`, spatial chunks, LOD) is SOG M2-M4 and excluded
-from v0.5.0.
+Streamed SOG (`lod-meta.json`, spatial chunks, LOD) is unsupported.
 
 ## 2. Decision — implement from the specification
 
@@ -85,10 +67,9 @@ SOG property images are **lossless** WebP by specification; a lossy plane
 would silently corrupt positions. The reader therefore rejects a lossy VP8
 bitstream as malformed rather than decoding it approximately.
 
-## 4. Implementation plan (v0.5.0)
+## 4. Reader and decoder
 
-One reader, one decoder, one writer — the v0.4.0 contract exercised by a
-third format:
+The reader and decoder use the shared writer:
 
 - `plugins/gaussian-sog/src/io/SogReader.*` — layout detection (ZIP signature
   vs `meta.json`), ZIP central-directory walking, `meta.json` schema/version
@@ -102,8 +83,8 @@ third format:
   and optional higher-order SH palette/label resolution. All allocation
   through `GaussianSizeMath.h`; quaternions through `NormalizeQuaternion`;
   the SOG source frame converted to the model's RUB frame per
-  [ADR 0001](../adr/0001-model-frame-is-rub.md) (the exact conversion is a
-  §6 open item, resolved in [SOG_MAPPING.md](SOG_MAPPING.md)).
+  [ADR 0001](../adr/0001-model-frame-is-rub.md) (see
+  [SOG_MAPPING.md](SOG_MAPPING.md) for the exact conversion).
 - USD authoring through the unchanged shared `GaussianLayerWriter`;
   format-specific USD construction remains forbidden.
 - Diagnostics: the `GSSOG-****` namespace first shipped with the skeleton
@@ -112,7 +93,7 @@ third format:
   internal/USD, E2xx entry point, W0xx warnings); codes are never renumbered or
   reused.
 
-## 5. Fixture and equivalence plan
+## 5. Fixture and equivalence coverage
 
 - **Deterministic fixtures** — hand-built minimal `meta.json` + tiny property
   images with hand-computed expected values (the `TestShLayout` discipline),
@@ -124,15 +105,14 @@ third format:
   back to `CompareClouds`-empty, with tolerances derived from the SOG
   quantization equations, before any real asset is attempted.
 - **Cross-format equivalence** — `tools/generate_equivalence_fixtures.py`
-  grows a SOG encoder so the existing one-source-model PLY/SPZ pairs become
-  PLY/SPZ/SOG triples in `tests/equivalence/`.
+  generates one-source-model PLY/SPZ/SOG triples in `tests/equivalence/`.
 - **Real assets** — two provenance-recorded real SOG assets (the CC0
   `yashica-t4` and `leica-sofort` corpus conversions, made with pinned
   SplatTransform v3.1.6) are committed and validated automatically by the
   semantic smoke test. Cross-format equivalence remains covered by synthetic
   triples only.
 
-## 6. Open items
+## 6. Format decisions
 
 Resolved 2026-07-22 against the reference implementation (§1); the equations
 they settle are in [SOG_MAPPING.md](SOG_MAPPING.md).
@@ -171,11 +151,9 @@ they settle are in [SOG_MAPPING.md](SOG_MAPPING.md).
     `version == 2` + SOG-keys gate is what keeps it from claiming unrelated
     JSON.
 
-- **libwebp pin — decided: v1.6.0** (§3), the current upstream stable. The
-  exact commit and the BSD-3-Clause notice land with the vendored source,
-  before any decoder code, in the vendoring workstream.
+- **libwebp pin — decided: v1.6.0** (§3), The exact commit and
+  BSD-3-Clause notice are recorded in the
+  [third-party notices](../../THIRD_PARTY_NOTICES.md).
 
-Still open:
-
-- §12.1 performance baselines for the committed real SOG corpus; these require
-  a dedicated benchmark pass and are tracked in the roadmap.
+See the [SOG benchmark results](PERFORMANCE_BASELINES.md#results--sog) for
+measurements of the committed corpus.

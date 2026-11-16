@@ -8,6 +8,7 @@ current-state contracts.
 | --- | --- |
 | [ost/](ost/) | Append-only OpenStrata dogfooding reports. |
 | [delivery-history.md](delivery-history.md) | Completed milestone and capability log. |
+| [Roadmap triage (2026-11-17)](roadmap-triage-2026-11-17.md) | Disposition and evidence for stale roadmap items. |
 
 ## What belongs where
 

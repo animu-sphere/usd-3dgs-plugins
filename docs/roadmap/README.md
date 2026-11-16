@@ -1,61 +1,13 @@
 # Roadmap
 
-The roadmap contains only incomplete work. Completed work moves to the
-[delivery history](../reports/delivery-history.md), and tagged behavior gets an
-immutable record under [releases/](../releases/). Design rationale belongs in
-[design/](../design/).
-
-Legend: 🚧 in progress · ⬜ not started · ⛔ blocked
-
-| Document | Contents |
+| Document | Use it for |
 | --- | --- |
-| [release-plan.md](release-plan.md) | The versioned release sequence (v0.1.0 → v1.0.0) with per-release themes and completion criteria. |
-| [current.md](current.md) | Work for the active release milestone. |
-| [backlog.md](backlog.md) | Ordered but unscheduled format and cross-cutting work. |
+| [Release plan](release-plan.md) | The next release theme, candidate evaluation order, and acceptance criteria. |
+| [Current work](current.md) | Open work and exit criteria for the active milestone. Use issues and PRs for task-level tracking. |
+| [Backlog](backlog.md) | Unscheduled work with an owner and a condition for revisiting it. |
 
-## Sequences
-
-Four sequences are tracked and always qualified:
-
-| Sequence | Notation | What it tracks | Source of truth |
-| --- | --- | --- | --- |
-| Release versions | **v0.1.0-v1.0.0** | One tagged release per primary theme, from the PLY vertical slice to the stable import API. | [release-plan.md](release-plan.md) |
-| Delivery milestones | **M0-M5** | User-visible and engineering capability: workspace, PLY read/mapping/validation/integration, then SPZ. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §18 |
-| SOG maturity | **SOG M1-M4** | One SOG object through payload-oriented streaming composition. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §4.4 |
-| Format phases | **Phase 1-5** | PLY stabilization → SPZ → interoperability candidates → advanced loading → optional export. | [DESIGN_POLICY.md](../design/DESIGN_POLICY.md) §4 |
-
-Never use an unqualified “M1” for SOG work.
-
-## Status at a glance
-
-- v0.1.0 through v0.5.1 are tagged and published, all with immutable
-  [release records](../releases/README.md); completed milestone detail is in
-  the [delivery history](../reports/delivery-history.md).
-- v0.4.0 formalized the shared decoder-to-USD contract, and v0.5.0 shipped the
-  first format built on it: SOG v2 one-object import. The v0.6.0 tag passed
-  production import hardening and release verification.
-  [v0.6.0 release record](../releases/v0.6.0.md)
-- v0.7.0 improved large-asset import performance. v0.8.0 verified USD
-  references, payloads, instancing, and packaging.
-  [v0.7.0 release record](../releases/v0.7.0.md) ·
-  [v0.8.0 release record](../releases/v0.8.0.md) · [Current work](current.md)
-- M5 (`gaussian-spz`) shipped in v0.3.0: SPZ decodes into `GaussianCloudData`
-  and reuses the shared USD authoring contract; a second USD authoring path is
-  not permitted, and making that invariant normative is v0.4.0's purpose.
-- SOG M2-M4 (streaming, spatial chunks, and LOD) remain unscheduled; glTF/GLB
-  and other Phase 3 formats are reconsidered after the SOG roadmap.
-- The v0.9.0 rendering integration preview is delivered by the sibling project
-  [hydra-merlin](https://github.com/animu-sphere/hydra-merlin); this
-  repository stays renderer-neutral.
-- Of the [priority ladder](backlog.md#priority-ladder), P0 (real-dataset
-  benchmarks), P1 (metadata-only reads), and P2 (PLY dialects and the SPZ
-  importer) have shipped; P3 stays unscheduled.
-
-## Quality bar
-
-- Current-state reference docs match code and tests.
-- Every claimed configuration has an observed gate, not only a generated CI job.
-- New formats decode into `GaussianCloudData` and share one USD contract.
-- Fixtures are deterministic, redistributable, and provenance-recorded.
-- Performance work begins with measurements from license-cleared real assets.
-- Every documented command has been run in the context claimed by the document.
+Move a work item between the current view and backlog when its scope changes.
+Keep completed work in [release records](../releases/) or
+[delivery history](../reports/delivery-history.md). For current support, use
+the [capability matrix](../reference/CAPABILITY_MATRIX.md). See the
+[documentation index](../README.md) for ownership and maintenance rules.

@@ -4,20 +4,12 @@ Read-only import of Niantic [SPZ](https://github.com/nianticlabs/spz)
 Gaussian Splatting assets. Scaffolded by
 `ost plugin new usd-fileformat gaussian-spz --extension spz`.
 
-**Development status (v0.3.0 cycle):** container reading, semantic decoding
-into `GaussianCloudData`, and authoring through the shared `gaussianUsd` layer
-writer are all implemented. Opening an `.spz` stage authors the same
-`/Asset`/`/Asset/Splat` hierarchy as `gaussian-ply`; defective containers fail
-with their stable `GSPZ-****` diagnostics. Remaining v0.3.0 work is a
-redistributable SPZ corpus asset, PLY/SPZ equivalence fixtures, and
-performance baselines.
-
-Scope and format decisions are recorded in
-[docs/reference/SPZ_FORMAT.md](../../docs/reference/SPZ_FORMAT.md): supported
-container versions 1-3 (gzip), version 4 (ZSTD) deferred and rejected with a
-specific unsupported-version diagnostic. The semantic mapping and the reference
-quantization constants are in
-[docs/reference/SPZ_MAPPING.md](../../docs/reference/SPZ_MAPPING.md).
+The bundle decodes SPZ into `GaussianCloudData` and authors USD through the
+shared `gaussianUsd` writer. See the
+[capability matrix](../../docs/reference/CAPABILITY_MATRIX.md#spz-input-and-semantic-mapping)
+for supported versions and diagnostics, the
+[format reference](../../docs/reference/SPZ_FORMAT.md) for container behavior,
+and the [mapping](../../docs/reference/SPZ_MAPPING.md) for quantization.
 
 ## Layout
 

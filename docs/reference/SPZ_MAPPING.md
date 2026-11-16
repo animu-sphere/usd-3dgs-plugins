@@ -16,7 +16,7 @@ it is quoted from that source, not inferred.
 ## 1. Container signature and versions
 
 The decoder reads SPZ container versions 1-3 (gzip-wrapped, single stream).
-Version 4 (ZSTD) is deferred and rejected by the container reader with the
+Version 4 (ZSTD) is rejected by the container reader with the
 unsupported-version diagnostic `GSPZ-E003`. See
 [SPZ_FORMAT.md §3](SPZ_FORMAT.md) for the version decision.
 

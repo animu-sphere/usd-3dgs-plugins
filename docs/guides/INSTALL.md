@@ -8,6 +8,24 @@ Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
 before reusing a binary package: OpenUSD plugin binaries must match the target
 platform, compiler ABI, OpenUSD build, and Python ABI.
 
+## Install a binary release
+
+With a matching OpenUSD environment active, download the target product
+archive and [verify it](#verify-a-downloaded-release-artifact). OpenStrata
+installs the members into a new directory below the chosen prefix:
+
+```sh
+ost plugin product install ./name-of-the-downloaded-product.tar.zst --prefix ./usd-3dgs
+. ./usd-3dgs/activate.sh
+usdcat --flatten --out scene.usda scene.ply
+```
+
+In PowerShell, dot-source `. .\usd-3dgs\activate.ps1` instead of
+`activate.sh`. For a Python host, run the installed
+`openstrata_activate.py` in the host process before importing `pxr`.
+If activating an extracted standalone bundle, use
+[manual package activation](#manual-package-activation).
+
 ## With OpenStrata
 
 From the repository root:
@@ -19,10 +37,9 @@ ost plugin doctor plugins/gaussian-ply
 ost plugin test --workspace --up-to 5
 ```
 
-The workspace ships three independent plugin bundles: `gaussian-ply` for
-Graphdeco-style `.ply`, `gaussian-spz` for Niantic `.spz` (container versions
-1-3), and `gaussian-sog` for PlayCanvas SOG v2 (bundled `.sog` and unbundled
-`meta.json`). They install and activate the same way — substitute
+The workspace ships independent bundles for PLY, SPZ, and SOG. See the
+[capability matrix](../reference/CAPABILITY_MATRIX.md) for supported inputs.
+The bundles install and activate the same way — substitute
 `plugins/gaussian-spz` or `plugins/gaussian-sog` in the per-bundle commands
 throughout this guide. Install only the ones you need; none depends on another.
 
@@ -40,16 +57,15 @@ ost plugin run plugins/gaussian-ply -- usdcat --flatten \
   plugins/gaussian-ply/tests/fixtures/one-gaussian-ascii.ply
 ```
 
+The flattened USDA shows the `Asset` default prim and its `Splat` child of
+type `ParticleField3DGaussianSplat`. This is a headless import check. For a
+viewport check of a Gaussian PLY, see the separate
+[Merlin preview](../reference/CAPABILITY_MATRIX.md#hydra-rendering).
+
 For interactive inspection:
 
 ```powershell
 ost plugin view plugins\gaussian-ply "C:\path\to\scene.ply"
-```
-
-The local cactus dogfooding sample was opened with:
-
-```powershell
-ost plugin view plugins\gaussian-ply "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.ply"
 ```
 
 Flatten the plugin-backed stage to a binary `.usd` file with no source-path
@@ -57,12 +73,6 @@ comment:
 
 ```powershell
 ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out "C:\path\to\scene.usd" "C:\path\to\scene.ply"
-```
-
-The cactus sample was flattened next to its source with:
-
-```powershell
-ost plugin run plugins\gaussian-ply -- usdcat --flatten --skipSourceFileComment --usdFormat usdc --out "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.usd" "C:\Users\snkm\Desktop\testdata_3dgs\3DGS_PLY_sample_data\PLY(postshot)\cactus_splat3_30kSteps_142k_splats.ply"
 ```
 
 ## SOG usage examples
@@ -114,6 +124,11 @@ The plugin only authors Gaussian schema data; this repository does not provide
 a Hydra renderer. Opening a stage and rendering visible splats are separate
 capabilities.
 
+Examples viewed with OpenUSD's `hdParticleField` delegate:
+[PLY](../assets/usdview_hdParticleField_PLY.png),
+[SOG](../assets/usdview_hdParticleField_SOG.png), and
+[SPZ](../assets/usdview_hdParticleField_SPZ.png).
+
 ## Package and verify
 
 ```sh
@@ -131,12 +146,9 @@ plugins/<bundle>/dist/plugins/<bundle>/<version>/<target>/
 
 alongside `manifest.json`, `sbom.spdx.json`, and `SHA256SUMS`.
 
-On Windows, OpenStrata 0.23.20 passes source and package-origin verification
-through L5 for all three bundles. Two consecutive packaging runs produce the
-same aggregate archive SHA-256. The v0.5.1 hosted release dry-run
-[#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493)
-passed package-origin verification at the declared Windows L4 cap and at L5 on
-macOS arm64 and Linux after the OpenUSD 26.08 re-pin.
+Use the verification level for your environment in
+[supported configurations](../reference/SUPPORTED_CONFIGURATIONS.md).
+[Release records](../releases/) document the actual package results.
 
 ### Verify the aggregate installation
 
@@ -194,42 +206,39 @@ the target and profile explicitly, for example
 
 ## Verify a downloaded release artifact
 
-Download the target archive, its `manifest.json` and `sbom.spdx.json` sidecars,
-and `SHA256SUMS` from the same GitHub release. Keep those files in one
-directory before extracting or activating the package. On macOS or Linux,
-verify every downloaded file with:
+Download the target archive and `SHA256SUMS` from the same GitHub release
+into one directory. Choose the entry for the exact archive filename. On
+macOS, use `shasum -a 256 -c`; on Linux, use `sha256sum -c` as below:
 
 ```sh
-sha256sum -c SHA256SUMS
+archive='name-of-the-downloaded-product.tar.zst'
+entry=$(awk -v archive="$archive" '$2 == archive { print }' SHA256SUMS)
+test -n "$entry" && printf '%s\n' "$entry" | sha256sum -c
 ```
 
 On Windows PowerShell, use the equivalent check:
 
 ```powershell
-Get-Content .\SHA256SUMS | ForEach-Object {
-  $expected, $name = $_ -split '\s+', 2
-  $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $name).Hash.ToLowerInvariant()
-  if ($actual -ne $expected) {
-    throw "$name has SHA-256 $actual, expected $expected"
-  }
+$archive = 'name-of-the-downloaded-product.tar.zst'
+$entry = Get-Content .\SHA256SUMS | Where-Object { ($_ -split '\s+', 2)[1] -ceq $archive }
+if (-not $entry) { throw "No checksum published for $archive" }
+$expected = ($entry -split '\s+', 2)[0]
+$actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash
+if ($actual -ne $expected) {
+  throw "$archive has SHA-256 $actual, expected $expected"
 }
 ```
 
-Do not extract or activate an archive when the check fails. After extraction,
-confirm that the manifest describes the selected `cy2026` target, OpenUSD
-profile, plugin version, and bundle names, and that the SBOM lists the same
-bundle and its declared runtime closure. At minimum, validate that both
-sidecars are well-formed JSON:
+The published aggregate includes its manifest, member SBOMs, and provenance.
+Before activation, verify every member and confirm the displayed target,
+version, and bundle names match the release:
 
-```powershell
-Get-ChildItem -File -Include *.manifest.json,*.sbom.spdx.json |
-  ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null }
+```sh
+ost plugin product verify ./name-of-the-downloaded-product.tar.zst
 ```
 
-The checksum list covers the archive, sidecars, and source archive, but it is
-not a signature. Obtain all release files from the same GitHub release page,
-then use the target and ABI checks above before putting the extracted `lib`
-directory on a host search path.
+The checksum list verifies integrity and is not a signature. Resolve any
+checksum or target mismatch before installing.
 
 ## Plain CMake build
 
@@ -264,5 +273,6 @@ passed all three CTest entries.
   documented Gaussian dialect.
 - **The stage opens but nothing is drawn**: the USD data contract is available,
   but the active Hydra renderer may not implement Gaussian splat rendering.
-- **A large file consumes substantial memory**: v0.1 intentionally performs a
-  full read/decode/author pass; streaming is future work.
+- **A large file consumes substantial memory**: opening a Gaussian cloud
+  materializes its arrays. See [payload loading](COMPOSITION.md) for how to
+  defer opening the asset.
