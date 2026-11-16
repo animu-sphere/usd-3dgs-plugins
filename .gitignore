@@ -2,6 +2,7 @@
 /build/
 /.strata/
 /strata.lock
+/strata.openstrata-*.lock
 CMakeUserPresets.json
 
 # CI and release scratch. Written by the workflows on a runner; listed here so
