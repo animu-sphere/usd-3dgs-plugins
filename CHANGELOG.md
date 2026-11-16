@@ -6,6 +6,28 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-16
+
+**Experimental Hydra rendering integration preview.**
+
+### Added
+
+- A digest-pinned OpenStrata Formation in hydra-merlin opens a synthetic
+  Graphdeco PLY directly in `testusdview`. The verified run pulled the
+  runtime and packages from GHCR into an empty store and checked the
+  PLY root layer, `/Asset/Splat`, and visible red, green, and blue splats.
+  [Run instructions and verification](https://github.com/animu-sphere/hydra-merlin/blob/ad4bc6a44b3e6c01c536366b1971a62d9d88f659/formations/gaussian-host-session/README.md)
+
+### Compatibility
+
+- The verified Formation pins `gaussian-ply` 0.8.0 and hdMerlin 0.16.6
+  on Windows x86_64 with Python 3.13, OpenUSD 26.08 `lookdev`, and Vulkan
+  1.4. The smoke test covers the bundled PLY fixture with Merlin's Tier 0
+  CPU presentation path on an NVIDIA RTX A5000.
+- The v0.9.0 aggregate packages contain the PLY, SPZ, and SOG importers
+  for the OpenStrata `cy2026` / `usd` profile. Use the Formation's pinned
+  `lookdev` artifacts to reproduce the viewport check.
+
 ## [0.8.0] - 2026-11-15
 
 **USD packaging and asset composition.**
