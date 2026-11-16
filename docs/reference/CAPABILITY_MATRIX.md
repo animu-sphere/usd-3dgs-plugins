@@ -115,4 +115,23 @@ revision and local parser fixes.
 | Package-origin L0-L4 | supported; locally green |
 | Package-origin L5 | supported since OST 0.20.0; passes for all three bundles on local Windows with OST 0.23.20. The v0.5.1 hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493) passed package-origin L5 on macOS/Linux and the declared Windows L4 cap |
 | Windows/macOS/Linux generated CI | supported and validated by hosted release dry-run [#34996154493](https://github.com/animu-sphere/usd-3dgs-plugins/actions/runs/34996154493): Windows L4, macOS arm64 L5, and Linux L5 |
-| Hydra Gaussian renderer | unsupported here; owned by the sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) ([release plan](../roadmap/release-plan.md) v0.9.0) |
+| Hydra Gaussian rendering | experimental Windows PLY preview with hdMerlin, described below |
+
+## Hydra rendering
+
+All three importers author `ParticleField3DGaussianSplat`. Stage inspection
+works with the stock `usdview` delegate. Visible splats require a delegate that
+implements the schema.
+
+The experimental [Merlin Gaussian PLY host session](https://github.com/animu-sphere/hydra-merlin/tree/ad4bc6a44b3e6c01c536366b1971a62d9d88f659/formations/gaussian-host-session)
+pins the matching `gaussian-ply` v0.8.0 and hdMerlin v0.16.6 packages and the
+OpenUSD 26.08 OpenStrata `cy2026` / `lookdev` runtime. The locked `testusdview`
+smoke test passed after pulling all three artifacts anonymously from GHCR
+into an empty store. It checked the PLY root layer, `/Asset/Splat`, three
+Gaussian points, the active Merlin delegate, and the visible red, green,
+and blue splats. [Run instructions and verification](https://github.com/animu-sphere/hydra-merlin/blob/ad4bc6a44b3e6c01c536366b1971a62d9d88f659/formations/gaussian-host-session/README.md#verification)
+
+The verification covers the bundled synthetic Graphdeco PLY fixture on Windows
+x86_64 with Python 3.13, an RTX A5000, and Merlin's Vulkan 1.4 renderer with
+Tier 0 CPU presentation. The [v0.8.0 release binaries](../releases/v0.8.0.md)
+target the `usd` profile. Use the pinned `lookdev` packages for the preview.

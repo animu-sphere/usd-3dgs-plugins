@@ -1,6 +1,6 @@
 # Current
 
-Updated: 2026-11-15
+Updated: 2026-11-16
 Scope: v0.9.0 rendering integration preview
 
 ## Current position
@@ -29,13 +29,13 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ## v0.9.0 — rendering integration preview
 
-The sibling project [hydra-merlin](https://github.com/animu-sphere/hydra-merlin)
-owns the rendering preview and its OpenStrata Formation. The first smoke
-check should open a representative Gaussian source file in `testusdview`
-with the released import plugin and verify visible splats with Merlin. This
-repository documents import and stage inspection and links to Merlin's run
-instructions and verified configuration. See the
-[release plan](release-plan.md#v090--rendering-integration-preview-delivered-by-hydra-merlin).
+The experimental PLY preview passed the locked `testusdview` smoke test after
+an anonymous pull of the published Windows x86_64 `lookdev` package pair and
+runtime into a fresh store. The
+[renderer capability note](../reference/CAPABILITY_MATRIX.md#hydra-rendering)
+links to the locked Formation, run instructions, and verification scope.
+See the [release plan](release-plan.md#v090--rendering-integration-preview-delivered-by-hydra-merlin)
+for the preview criteria.
 
 ## v0.6.0 — production import hardening
 

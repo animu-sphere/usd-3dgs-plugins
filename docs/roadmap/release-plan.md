@@ -34,7 +34,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | v0.6.0 | Production import hardening | — | ✅ tagged and verified — [record](../releases/v0.6.0.md) |
 | v0.7.0 | Performance and large-asset readiness | Phase 4 | ✅ tagged and verified — [record](../releases/v0.7.0.md) |
 | v0.8.0 | USD packaging and asset composition | — | ✅ published and verified — [record](../releases/v0.8.0.md) |
-| v0.9.0 | Rendering integration preview — delivered by [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) | — | ⬜ |
+| v0.9.0 | Rendering integration preview — delivered by [hydra-merlin](https://github.com/animu-sphere/hydra-merlin) | — | ✅ [public preview verified](../reference/CAPABILITY_MATRIX.md#hydra-rendering) |
 | v1.0.0 | Stable import API and file-format support | — | ⬜ |
 
 ## v0.2.0 — production-ready Graphdeco PLY import
