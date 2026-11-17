@@ -46,9 +46,10 @@ PlyScalarType ConvertType(tinyply::Type type) noexcept
     }
 }
 
-bool BuildHeader(const std::vector<tinyply::PlyElement>& elements, bool binary,
-                 PlyHeader* header, std::string* error)
+bool BuildHeader(tinyply::PlyFile& file, PlyHeader* header, std::string* error)
 {
+    const std::vector<tinyply::PlyElement> elements = file.get_elements();
+    const bool binary = file.is_binary_file();
     if (!header) {
         if (error)
             *error = "PLY reader received a null header output.";
@@ -75,6 +76,25 @@ bool BuildHeader(const std::vector<tinyply::PlyElement>& elements, bool binary,
     PlyHeader result;
     result.vertexCount = vertex->size;
     result.binary = binary;
+    result.encoding = !binary              ? PlyEncoding::Ascii :
+                      file.is_big_endian() ? PlyEncoding::BinaryBigEndian :
+                                             PlyEncoding::BinaryLittleEndian;
+    result.comments = file.get_comments();
+    result.elements.reserve(elements.size());
+    for (const tinyply::PlyElement& element : elements) {
+        PlyElementDescription description;
+        description.name = element.name;
+        description.count = element.size;
+        description.properties.reserve(element.properties.size());
+        for (const tinyply::PlyProperty& property : element.properties) {
+            description.properties.push_back({
+                property.name,
+                ConvertType(property.propertyType),
+                property.isList,
+            });
+        }
+        result.elements.push_back(std::move(description));
+    }
     std::set<std::string> names;
     result.vertexProperties.reserve(vertex->properties.size());
     for (const tinyply::PlyProperty& property : vertex->properties) {
@@ -232,8 +252,7 @@ bool PlyReader::ReadHeader(const std::string& path, PlyHeader* header,
                 *error = "Could not parse the PLY header.";
             return false;
         }
-        return BuildHeader(file.get_elements(), file.is_binary_file(), header,
-                           error);
+        return BuildHeader(file, header, error);
     } catch (const std::exception& exception) {
         if (error)
             *error =
@@ -269,8 +288,7 @@ bool PlyReader::Read(const std::string& path,
 
         PlyDocument result;
         const auto elements = file.get_elements();
-        if (!BuildHeader(elements, file.is_binary_file(), &result.header,
-                         error)) {
+        if (!BuildHeader(file, &result.header, error)) {
             return false;
         }
 
@@ -334,6 +352,149 @@ bool PlyReader::Read(const std::string& path,
         }
 
         *document = std::move(result);
+        return true;
+    } catch (const std::exception& exception) {
+        if (error)
+            *error =
+                ExceptionMessage("Could not read the PLY payload", exception);
+        return false;
+    }
+}
+
+bool PlyReader::ReadElementRows(const std::string& path,
+                                std::vector<PlyElementRows>* rows,
+                                PlyHeader* header, std::string* error) const
+{
+    if (!rows || !header) {
+        if (error)
+            *error = "PLY reader received a null row or header output.";
+        return false;
+    }
+
+    std::ifstream stream =
+        openstrata::gs::OpenInputFile(path, std::ios::binary);
+    if (!stream) {
+        if (error)
+            *error = "Could not open PLY file '" + path + "'.";
+        return false;
+    }
+    try {
+        tinyply::PlyFile file;
+        if (!file.parse_header(stream)) {
+            if (error)
+                *error = "Could not parse the PLY header.";
+            return false;
+        }
+
+        PlyHeader parsed;
+        if (!BuildHeader(file, &parsed, error)) {
+            return false;
+        }
+        if (parsed.encoding != PlyEncoding::BinaryLittleEndian) {
+            if (error)
+                *error = "PLY raw-row reads require binary_little_endian.";
+            return false;
+        }
+        if (!IsGaussianCountWithinLimit(parsed.vertexCount)) {
+            if (error)
+                *error = "PLY vertex count exceeds the shared import limit.";
+            return false;
+        }
+
+        // Every element's rows, requested or not, must be present before
+        // tinyPLY allocates the requested ones.
+        const auto elements = file.get_elements();
+        if (!HasPayloadBytes(stream, MinimumPayloadSize(elements, true))) {
+            if (error)
+                *error = "PLY payload is truncated or unreadable.";
+            return false;
+        }
+
+        std::vector<std::shared_ptr<tinyply::PlyData>> requested;
+        requested.reserve(rows->size());
+        for (PlyElementRows& request : *rows) {
+            const PlyElementDescription* element = nullptr;
+            for (const PlyElementDescription& candidate : parsed.elements) {
+                if (candidate.name == request.element) {
+                    element = &candidate;
+                    break;
+                }
+            }
+            if (!element || request.properties.empty()) {
+                if (error)
+                    *error = "PLY element '" + request.element +
+                             "' is missing or has no requested properties.";
+                return false;
+            }
+            // tinyPLY sizes a grouped request by one property's type, so a
+            // mixed-type group would be read with the wrong stride.
+            PlyScalarType type = PlyScalarType::Invalid;
+            for (const std::string& name : request.properties) {
+                const PlyPropertyDescription* property = nullptr;
+                for (const PlyPropertyDescription& candidate :
+                     element->properties) {
+                    if (candidate.name == name) {
+                        property = &candidate;
+                        break;
+                    }
+                }
+                if (!property || property->isList ||
+                    property->type == PlyScalarType::Invalid ||
+                    (type != PlyScalarType::Invalid &&
+                     property->type != type)) {
+                    if (error)
+                        *error = "PLY property '" + request.element + "." +
+                                 name +
+                                 "' is missing, not scalar, or differs in "
+                                 "type from its group.";
+                    return false;
+                }
+                type = property->type;
+            }
+            auto data = file.request_properties_from_element(
+                request.element, request.properties);
+            if (!data || data->isList) {
+                if (error)
+                    *error = "tinyPLY returned no scalar data for element '" +
+                             request.element + "'.";
+                return false;
+            }
+            request.type = type;
+            request.rowCount = element->count;
+            requested.push_back(std::move(data));
+        }
+
+        file.read(stream);
+        if (stream.fail()) {
+            if (error)
+                *error = "PLY payload is truncated or unreadable.";
+            return false;
+        }
+
+        for (std::size_t i = 0; i < rows->size(); ++i) {
+            PlyElementRows& request = (*rows)[i];
+            tinyply::PlyData& data = *requested[i];
+            const std::size_t valueStride =
+                tinyply::PropertyTable.at(data.t).stride;
+            std::size_t rowStride = 0;
+            std::size_t expectedBytes = 0;
+            if (!CheckedMulSize(valueStride, request.properties.size(),
+                                &rowStride) ||
+                !CheckedMulSize(rowStride, request.rowCount, &expectedBytes) ||
+                data.buffer.size_bytes() != expectedBytes) {
+                if (error)
+                    *error = "PLY element '" + request.element +
+                             "' row data does not match its declared size.";
+                return false;
+            }
+            request.rowStride = rowStride;
+            request.bytes.assign(data.buffer.get_const(),
+                                 data.buffer.get_const() + expectedBytes);
+            // Release the parser-owned copy before the next element's rows.
+            data.buffer = tinyply::Buffer();
+        }
+
+        *header = std::move(parsed);
         return true;
     } catch (const std::exception& exception) {
         if (error)

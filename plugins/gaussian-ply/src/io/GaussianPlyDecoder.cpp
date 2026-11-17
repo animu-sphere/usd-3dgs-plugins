@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "io/GaussianPlyDecoder.h"
 
+#include "io/CompressedPlyDecoder.h"
 #include "io/GaussianPlyDiagnostics.h"
 #include "io/PlyReader.h"
 #include "openstrata/gs/GaussianFileIO.h"
@@ -229,7 +230,8 @@ bool GaussianPlyDecoder::CanRead(const std::string& path) const noexcept
         if (!PlyReader().ReadHeader(path, &header)) {
             return false;
         }
-        return HasGaussianSignature(PropertyMap(header));
+        return HasGaussianSignature(PropertyMap(header)) ||
+               compressed::HasCompressedSignature(header);
     } catch (...) {
         return false;
     }
@@ -252,6 +254,17 @@ bool GaussianPlyDecoder::DecodeMetadata(const std::string& path,
         return false;
     }
 
+    if (compressed::HasCompressedSignature(header)) {
+        compressed::CompressedLayout layout;
+        if (!compressed::ValidateLayout(header, &layout, error)) {
+            return false;
+        }
+        metadata->gaussianCount = layout.gaussianCount;
+        metadata->shDegree = layout.shDegree;
+        metadata->dialect = GaussianPlyDialect::Compressed;
+        return true;
+    }
+
     std::map<std::size_t, std::string> indexedRest;
     int shDegree = 0;
     if (!ValidateHeaderLayout(header, &indexedRest, &shDegree, error)) {
@@ -260,14 +273,15 @@ bool GaussianPlyDecoder::DecodeMetadata(const std::string& path,
 
     metadata->gaussianCount = header.vertexCount;
     metadata->shDegree = shDegree;
+    metadata->dialect = GaussianPlyDialect::Graphdeco;
     return true;
 }
 
 bool GaussianPlyDecoder::Decode(const std::string& path,
                                 GaussianCloudData* cloud,
                                 std::vector<std::string>* warnings,
-                                std::string* error,
-                                GaussianImportStats* stats) const
+                                std::string* error, GaussianImportStats* stats,
+                                GaussianPlyDialect* dialect) const
 {
     if (!cloud) {
         SetError(error, diag::kInternalError,
@@ -293,6 +307,44 @@ bool GaussianPlyDecoder::Decode(const std::string& path,
             SetError(error, diag::kUnreadableContainer, readerError);
             return false;
         }
+    }
+
+    if (compressed::HasCompressedSignature(header)) {
+        compressed::CompressedLayout layout;
+        if (!compressed::ValidateLayout(header, &layout, error)) {
+            return false;
+        }
+        GaussianCloudData result;
+        std::vector<std::string> dialectWarnings;
+        double bodySeconds = 0.0;
+        if (!compressed::Decode(path, layout, &result, &dialectWarnings, error,
+                                &bodySeconds)) {
+            return false;
+        }
+        readSeconds += bodySeconds;
+        if (warnings) {
+            warnings->insert(warnings->end(), dialectWarnings.begin(),
+                             dialectWarnings.end());
+        }
+        if (stats) {
+            stats->sourceFormat = kCompressedSourceFormatToken;
+            stats->sourceVersion = "binary_little_endian";
+            stats->coordinateConversion =
+                GaussianCoordinateConversion::RdfToRub;
+            stats->gaussianCount = result.gaussianCount;
+            stats->shDegree = result.shDegree;
+            stats->warningCount = warnings ? warnings->size() : 0;
+            stats->sourceBytes = FileSizeOf(path);
+            stats->decodedBytes = ComputeDecodedByteSize(result);
+            stats->readSeconds = readSeconds;
+            stats->decodeSeconds =
+                seconds(decodeStart, Clock::now()) - readSeconds;
+        }
+        if (dialect) {
+            *dialect = GaussianPlyDialect::Compressed;
+        }
+        *cloud = std::move(result);
+        return true;
     }
 
     std::map<std::size_t, std::string> indexedRest;
@@ -572,6 +624,9 @@ bool GaussianPlyDecoder::Decode(const std::string& path,
         stats->decodeSeconds = seconds(decodeStart, Clock::now()) - readSeconds;
     }
 
+    if (dialect) {
+        *dialect = GaussianPlyDialect::Graphdeco;
+    }
     *cloud = std::move(result);
     return true;
 }

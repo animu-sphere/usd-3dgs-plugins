@@ -1,0 +1,28 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "yashica-t4-top8192.ply",
+    "sha256": "42537f23b36c093e96b4378845f0d86f77d755b7a611434aa95edbb4fcf53cde",
+    "bytes": 1935010,
+    "gaussian_count": 8192,
+    "sh_degree": 3
+  },
+  "derivation": {
+    "tool": "@playcanvas/splat-transform",
+    "tool_version": "3.11.2",
+    "tool_license": "MIT",
+    "runtime": "Node.js v22.12.0",
+    "command": "splat-transform yashica-t4-top8192.ply yashica-t4-top8192.compressed.ply",
+    "selection": "none; every source Gaussian is kept, rows reordered by the writer (Morton order)",
+    "deterministic": true,
+    "date_utc": "2026-11-17"
+  },
+  "output": {
+    "file": "yashica-t4-top8192.compressed.ply",
+    "sha256": "3d0ec36a5713e3c9eb1898e384f047ac3e2eb9669a803afe15ca8cb02543eb83",
+    "bytes": 504026,
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "dialect": "SuperSplat compressed PLY, 18-property chunk"
+  }
+}

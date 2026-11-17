@@ -6,7 +6,7 @@
             "code": "GSPLY-E001",
             "severity": "error",
             "summary": "The file is a valid PLY file but not a supported Gaussian Splatting dialect.",
-            "action": "Export the asset as a Graphdeco-style Gaussian PLY (scale_*, rot_*, opacity, f_dc_* vertex properties)."
+            "action": "Export the asset as a Graphdeco-style Gaussian PLY (scale_*, rot_*, opacity, f_dc_* vertex properties) or as a SuperSplat compressed PLY (chunk element plus packed_* vertex properties)."
         },
         {
             "code": "GSPLY-E002",
@@ -117,6 +117,36 @@
             "action": "Reduce the asset size or import it through a host that can partition the asset before loading."
         },
         {
+            "code": "GSPLY-E020",
+            "severity": "error",
+            "summary": "A SuperSplat compressed PLY is stored as ASCII or binary big-endian.",
+            "action": "Re-export as binary little-endian, the only encoding compressed PLY producers write."
+        },
+        {
+            "code": "GSPLY-E021",
+            "severity": "error",
+            "summary": "The compressed PLY uses the 12-property chunk variant without colour bounds.",
+            "action": "Re-export with a current SuperSplat or SplatTransform, which write the 18-property chunk."
+        },
+        {
+            "code": "GSPLY-E022",
+            "severity": "error",
+            "summary": "A compressed PLY element does not have exactly the expected properties and types, or an unexpected element is declared.",
+            "action": "The message names the element; compressed PLY needs an 18-float chunk, four uint packed_* vertex properties, and an optional uchar sh element."
+        },
+        {
+            "code": "GSPLY-E023",
+            "severity": "error",
+            "summary": "The compressed PLY chunk row count is not ceil(N / 256), or the sh row count is not N.",
+            "action": "The file is inconsistent or was edited after export; re-export it."
+        },
+        {
+            "code": "GSPLY-E024",
+            "severity": "error",
+            "summary": "A compressed PLY chunk bound is non-finite, or a minimum exceeds its maximum.",
+            "action": "The file is damaged or hostile; re-export it."
+        },
+        {
             "code": "GSPLY-E100",
             "severity": "error",
             "summary": "An import entry point was called with a null output parameter.",
@@ -181,6 +211,12 @@
             "severity": "warning",
             "summary": "Unrecognized vertex properties were ignored.",
             "action": "Informational; unknown properties are tolerated and skipped."
+        },
+        {
+            "code": "GSPLY-W004",
+            "severity": "warning",
+            "summary": "A compressed PLY SplatRenderMode comment (for example mip or 2dgs) was ignored.",
+            "action": "Informational; the authored schema carries no render-mode convention, so the Gaussians are authored as ordinary 3DGS splats."
         }
     ]
 }

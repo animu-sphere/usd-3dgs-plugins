@@ -1,6 +1,8 @@
 # gaussian-ply
 
-Read-only OpenUSD `SdfFileFormat` for typical 3D Gaussian Splatting PLY files.
+Read-only OpenUSD `SdfFileFormat` for 3D Gaussian Splatting PLY files: the
+Graphdeco-style float dialect and SuperSplat compressed PLY, told apart by
+their header structure.
 The bundle targets OpenUSD 26.05's `ParticleField3DGaussianSplat` schema and is
 part of the parent OpenStrata workspace.
 
@@ -18,8 +20,9 @@ ost plugin package plugins/gaussian-ply
 
 ```text
 src/GaussianPlyFileFormat.*    thin USD file-format entry point
-src/io/PlyReader.*             tinyPLY isolation and scalar conversion
-src/io/GaussianPlyDecoder.*    Gaussian property mapping and validation
+src/io/PlyReader.*             tinyPLY isolation, scalar conversion, raw rows
+src/io/GaussianPlyDecoder.*    dialect routing; Graphdeco mapping and validation
+src/io/CompressedPlyDecoder.*  SuperSplat compressed PLY layout and decode
 tests/                         C++ and Python integration coverage
 tools/generate_fixtures.py     deterministic binary fixture generator
 ```
@@ -48,6 +51,8 @@ inspectable by `usdcat` and OST's golden test.
 ## Contracts and status
 
 - [PLY mapping](../../docs/reference/PLY_MAPPING.md)
+- [Compressed PLY mapping](../../docs/reference/COMPRESSED_PLY_MAPPING.md)
+- [PLY dialects](../../docs/reference/PLY_DIALECTS.md)
 - [Capability matrix](../../docs/reference/CAPABILITY_MATRIX.md)
 - [Supported configurations](../../docs/reference/SUPPORTED_CONFIGURATIONS.md)
 - [Build and install guide](../../docs/guides/INSTALL.md)

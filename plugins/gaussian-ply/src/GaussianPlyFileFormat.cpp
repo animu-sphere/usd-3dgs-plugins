@@ -123,7 +123,7 @@ bool GaussianPlyFileFormat::Read(SdfLayer* layer,
         auto task = std::async(std::launch::async, [&]() {
             return writer.WriteMetadataToLayer(
                 metadata.gaussianCount, effectiveDegree,
-                gsply::kSourceFormatToken, &generated, &error);
+                gsply::SourceFormatToken(metadata.dialect), &generated, &error);
         });
         if (!task.get()) {
             TF_RUNTIME_ERROR("gaussian-ply: failed to author USD for '%s': %s",
@@ -142,7 +142,9 @@ bool GaussianPlyFileFormat::Read(SdfLayer* layer,
 
     openstrata::gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
-    if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error, statsOut)) {
+    gsply::GaussianPlyDialect dialect = gsply::GaussianPlyDialect::Graphdeco;
+    if (!decoder.Decode(resolvedPath, &cloud, &warnings, &error, statsOut,
+                        &dialect)) {
         TF_RUNTIME_ERROR("gaussian-ply: failed to read '%s': %s",
                          resolvedPath.c_str(), error.c_str());
         return false;
@@ -177,7 +179,8 @@ bool GaussianPlyFileFormat::Read(SdfLayer* layer,
     // authored.
     const auto authorStart = std::chrono::steady_clock::now();
     auto task = std::async(std::launch::async, [&]() {
-        return writer.WriteToLayer(std::move(cloud), gsply::kSourceFormatToken,
+        return writer.WriteToLayer(std::move(cloud),
+                                   gsply::SourceFormatToken(dialect),
                                    &generated, &error);
     });
     if (!task.get()) {

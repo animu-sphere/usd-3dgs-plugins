@@ -34,7 +34,32 @@ NEGATIVE_FIXTURES = {
     # The truncation failure stage is an implementation detail; any stable
     # error code is acceptable.
     "truncated-binary-le.ply": "GSPLY-E",
+    # SuperSplat compressed PLY (COMPRESSED_PLY_MAPPING.md).
+    "compressed-missing-chunk.ply": "GSPLY-E001",
+    "compressed-empty.ply": "GSPLY-E002",
+    "compressed-sh-not-rgb.ply": "GSPLY-E008",
+    "compressed-scale-overflow.ply": "GSPLY-E012",
+    "compressed-truncated.ply": "GSPLY-E015",
+    "compressed-sh-degree-4.ply": "GSPLY-E017",
+    "compressed-ascii.ply": "GSPLY-E020",
+    "compressed-big-endian.ply": "GSPLY-E020",
+    "compressed-colourless-chunk.ply": "GSPLY-E021",
+    "compressed-float-packed.ply": "GSPLY-E022",
+    "compressed-extra-vertex-property.ply": "GSPLY-E022",
+    "compressed-extra-element.ply": "GSPLY-E022",
+    "compressed-sh-bad-name.ply": "GSPLY-E022",
+    "compressed-chunk-count.ply": "GSPLY-E023",
+    "compressed-sh-rows.ply": "GSPLY-E023",
+    "compressed-nan-bound.ply": "GSPLY-E024",
+    "compressed-inverted-bound.ply": "GSPLY-E024",
 }
+
+PLY_SOURCE_FORMAT = "Gaussian Splatting PLY"
+COMPRESSED_SOURCE_FORMAT = "Gaussian Splatting compressed PLY"
+
+
+def is_compressed(path):
+    return pathlib.Path(path).name.endswith(".compressed.ply")
 
 
 def close(a, b, epsilon=1.0e-5):
@@ -162,6 +187,54 @@ def check_additional_elements():
         oversized.write_bytes(ascii_fixture.replace(b"element vertex 1\n",
                                                     b"element vertex 8000000\n"))
         check_unreadable_container(oversized)
+
+
+def check_compressed_stage():
+    """The compressed dialect reaches the same stage contract as Graphdeco
+    PLY, through the same writer, with its own source-format token."""
+    path = FIXTURES / "compressed-sh1.ply"
+    stage = Usd.Stage.Open(str(path))
+    assert stage, "failed to open compressed-sh1.ply"
+    assert stage.GetDefaultPrim().GetPath() == Sdf.Path("/Asset")
+    assert UsdGeom.GetStageUpAxis(stage) == UsdGeom.Tokens.y
+    metadata = stage.GetPrimAtPath("/Asset").GetCustomData().get("gs", {})
+    assert metadata.get("sourceFormat") == COMPRESSED_SOURCE_FORMAT, metadata
+    assert metadata.get("gaussianCount") == 4, metadata
+    assert metadata.get("shDegree") == 1, metadata
+
+    splat = stage.GetPrimAtPath("/Asset/Splat")
+    assert splat and splat.GetTypeName() == "ParticleField3DGaussianSplat", splat
+    positions = splat.GetAttribute("positions").Get()
+    opacities = splat.GetAttribute("opacities").Get()
+    coefficients = splat.GetAttribute(
+        "radiance:sphericalHarmonicsCoefficients").Get()
+    # Position bounds equal the code range, so RDF codes (1, 2, 3) are
+    # authored in the RUB model frame as (1, -2, -3).
+    assert tuple(positions[0]) == (1.0, -2.0, -3.0), positions[0]
+    assert tuple(positions[3]) == (2047.0, -1023.0, 0.0), positions[3]
+    # Opacity bytes 255 and 0 decode to exactly 1 and 0.
+    assert opacities[0] == 1.0 and opacities[2] == 0.0, opacities
+    assert len(coefficients) == 4 * 4
+
+    layer = Sdf.Layer.OpenAsAnonymous(str(path), metadataOnly=True)
+    gs = layer.GetPrimAtPath("/Asset").customData.get("gs", {})
+    assert gs.get("sourceFormat") == COMPRESSED_SOURCE_FORMAT, gs
+    assert gs.get("gaussianCount") == 4, gs
+    assert gs.get("shDegree") == 1, gs
+    for arrayName in ("positions", "scales", "orientations", "opacities"):
+        attr = layer.GetAttributeAtPath(f"/Asset/Splat.{arrayName}")
+        assert attr is None or attr.default is None, (
+            f"metadata-only read authored {arrayName}")
+
+    # Format arguments apply to the decoded cloud as for Graphdeco PLY.
+    identifier = Sdf.Layer.CreateIdentifier(
+        str(path), {"opacityThreshold": "0.4", "shDegree": "0"})
+    stage = Usd.Stage.Open(identifier)
+    assert stage, "compressed stage with format args failed to open"
+    metadata = stage.GetPrimAtPath("/Asset").GetCustomData().get("gs", {})
+    # Opacities 1.0, 128/255, 0.0, 51/255: two survive the threshold.
+    assert metadata.get("gaussianCount") == 2, metadata
+    assert metadata.get("shDegree") == 0, metadata
 
 
 def check_metadata_only():
@@ -301,9 +374,12 @@ def check_corpus_asset(ply_path):
     assert UsdGeom.GetStageUpAxis(stage) == UsdGeom.Tokens.y
     assert close(UsdGeom.GetStageMetersPerUnit(stage), 1.0)
 
+    compressed = is_compressed(ply_path)
+    expected_format = (COMPRESSED_SOURCE_FORMAT if compressed
+                       else PLY_SOURCE_FORMAT)
     asset = stage.GetPrimAtPath("/Asset")
     metadata = asset.GetCustomData().get("gs", {})
-    assert metadata.get("sourceFormat") == "Gaussian Splatting PLY", metadata
+    assert metadata.get("sourceFormat") == expected_format, metadata
     assert metadata.get("gaussianCount") == expected_count, metadata
     assert metadata.get("shDegree") == expected_degree, metadata
 
@@ -323,8 +399,13 @@ def check_corpus_asset(ply_path):
     assert all(math.isfinite(c) for v in coefficients for c in v)
     # The decoder maps log scales through exp, opacity logits through the
     # sigmoid, and normalizes quaternions; check those semantic ranges.
+    # Compressed PLY stores physical opacity as a byte, so 0 and 1 are
+    # reachable there.
     assert all(c > 0.0 and math.isfinite(c) for s in scales for c in s)
-    assert all(0.0 < o < 1.0 for o in opacities)
+    if compressed:
+        assert all(0.0 <= o <= 1.0 for o in opacities)
+    else:
+        assert all(0.0 < o < 1.0 for o in opacities)
     for q in orientations:
         norm = math.sqrt(q.GetReal() ** 2 + sum(c * c for c in q.GetImaginary()))
         assert close(norm, 1.0, 1.0e-3), q
@@ -344,6 +425,7 @@ def check_corpus_asset(ply_path):
     gs = layer.GetPrimAtPath("/Asset").customData.get("gs", {})
     assert gs.get("gaussianCount") == expected_count, gs
     assert gs.get("shDegree") == expected_degree, gs
+    assert gs.get("sourceFormat") == expected_format, gs
 
 
 def main():
@@ -365,6 +447,7 @@ def main():
     check_additional_elements()
     check_metadata_only()
     check_format_args()
+    check_compressed_stage()
     check_negative_fixtures(catalog_codes)
 
     corpus_assets = sorted(CORPUS.glob("*/*.ply")) if CORPUS.is_dir() else []

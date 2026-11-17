@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Generate PLY/SPZ/SOG fixture triples that encode one identical source model.
+"""Generate PLY/SPZ/SOG/compressed-PLY fixtures that encode one source model.
 
 All three bundles decode into the same format-independent `GaussianCloudData`
 (GAUSSIAN_MODEL_CONTRACT.md). This script defines Gaussians *in that shared
@@ -14,16 +14,22 @@ harmonics — and then encodes the same values three times:
     reference quantization; SPZ is natively RUB, so no frame conversion); and
   * to a bundled SOG v2 archive, by inverting SOG_MAPPING.md §3-§6 (codebooks,
     split-precision log positions, smallest-three quaternions, an SH palette;
-    SOG stores PLY-native RDF columns, so it flips the same signs PLY does).
+    SOG stores PLY-native RDF columns, so it flips the same signs PLY does);
+    and
+  * to a SuperSplat compressed PLY, by the in-repo encoder of
+    COMPRESSED_PLY_MAPPING.md (per-chunk bounds, 11/10/11 and 8-bit unorm
+    packing, smallest-three rotation, byte SH). Unlike SplatTransform it keeps
+    source order, so the test compares index by index.
 
-`tests/equivalence/test_equivalence.cpp` decodes every member of a triple and
+`tests/equivalence/test_*equivalence.cpp` decode every member of a set and
 asserts the clouds agree within the per-format quantization envelopes
 documented in EQUIVALENCE.md. Because the PLY side is float32-exact, it is the
 reference each quantizing format is compared against; the two frame-flipping
 formats (PLY, SOG) and the one that flips nothing (SPZ) all having to agree is
 what makes a sign error impossible to hide.
 
-The SPZ and SOG encoders are imported from their bundles' fixture generators
+The SPZ, SOG, and compressed PLY encoders are imported from their bundles'
+fixture generators
 rather than reimplemented here, so the reference quantization formulas exist
 once in the repository and cannot drift between a bundle's decoder suite and
 this one. That is safe as a cross-check because the PLY side is an independent
@@ -206,6 +212,36 @@ def off_grid() -> list[Gaussian]:
     ]
 
 
+def chunked_degree2(count: int = 600) -> list[Gaussian]:
+    """`count` degree-2 Gaussians spread over several compressed-PLY chunks,
+    the last one partial. Each chunk sits around its own centre with its own
+    extent, so a row decoded against the wrong chunk's bounds lands far
+    outside the per-chunk tolerance. Deterministic: a fixed LCG, no `random`.
+    """
+    state = 0x2545F491
+
+    def uniform(low, high):
+        nonlocal state
+        state = (state * 6364136223846793005 + 1442695040888963407) % (1 << 64)
+        return low + (high - low) * ((state >> 11) / float(1 << 53))
+
+    out = []
+    for i in range(count):
+        chunk = i // ply.CHUNK_SIZE
+        centre = (10.0 * chunk - 7.5, 3.0 - 4.0 * chunk, 0.5 * chunk * chunk)
+        radius = 1.0 + 2.5 * chunk
+        quaternion = normalized(tuple(uniform(-1.0, 1.0) for _ in range(4)))
+        out.append(Gaussian(
+            position=tuple(c + uniform(-radius, radius) for c in centre),
+            scale=tuple(math.exp(uniform(-6.0, 1.0)) for _ in range(3)),
+            rotation=quaternion,
+            opacity=uniform(0.01, 0.99),
+            dc=tuple(uniform(-1.5, 1.5) for _ in range(3)),
+            rest=[tuple(uniform(-1.0, 1.0) for _ in range(3))
+                  for _ in range(8)]))
+    return out
+
+
 # --------------------------------------------------------------------------
 # PLY encoding — the inverse of PLY_MAPPING.md §3-§4
 # --------------------------------------------------------------------------
@@ -245,6 +281,32 @@ def write_ply(name: str, gaussians: list[Gaussian]) -> None:
         rows.append(tuple(row))
     (ROOT / name).write_bytes(
         ply.header(len(gaussians), properties) + ply.pack_rows(rows))
+
+
+# --------------------------------------------------------------------------
+# Compressed PLY encoding — the inverse of COMPRESSED_PLY_MAPPING.md
+# --------------------------------------------------------------------------
+
+def write_compressed(name: str, gaussians: list[Gaussian]) -> None:
+    """The same RDF columns `write_ply` stores, quantized by the bundle's
+    writer-compatible encoder: compressed PLY keeps the Graphdeco frame and
+    channel-major rest order, and stores physical opacity and log scales."""
+    rest_count = len(gaussians[0].rest)
+    native = []
+    for g in gaussians:
+        w, x, y, z = g.rotation
+        rest = []
+        for channel in range(3):
+            rest.extend(
+                FLIP_SH[k] * g.rest[k][channel] for k in range(rest_count))
+        native.append((
+            to_rdf(g.position),
+            tuple(math.log(s) for s in g.scale),
+            (w, *to_rdf((x, y, z))),
+            g.opacity,
+            g.dc,
+            rest))
+    (ROOT / name).write_bytes(ply.encode_compressed(native))
 
 
 # --------------------------------------------------------------------------
@@ -331,6 +393,15 @@ def main() -> None:
     write_ply("equiv-degree1-offgrid-binary-le.ply", arbitrary)
     write_spz("equiv-degree1-offgrid-v2.spz", arbitrary, version=2)
     offgrid_span = write_sog("equiv-degree1-offgrid.sog", arbitrary)
+
+    # The same two models as compressed PLY, plus a multi-chunk model whose
+    # chunks each carry their own bounds. The test derives every tolerance
+    # from the file's own chunk table.
+    write_compressed("equiv-degree3-exact.compressed.ply", exact)
+    write_compressed("equiv-degree1-offgrid.compressed.ply", arbitrary)
+    chunked = chunked_degree2()
+    write_ply("equiv-degree2-chunked-binary-le.ply", chunked)
+    write_compressed("equiv-degree2-chunked.compressed.ply", chunked)
 
     # The spans the SOG position tolerances in test_equivalence.cpp are derived
     # from; printed so the constants there can be re-checked after any change

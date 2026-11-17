@@ -24,7 +24,9 @@ revision and local parser fixes.
 | Binary little-endian PLY | supported | generated binary fixture and decoder/stage assertions |
 | Binary big-endian PLY | unverified | no fixture or support claim |
 | Gaussian dialect detection | supported | Gaussian signature check; ordinary mesh fixture rejected. See [PLY dialects](PLY_DIALECTS.md) for exporter evidence. |
-| SuperSplat compressed PLY | unsupported | Rejected as an unsupported dialect (`GSPLY-E001`) |
+| SuperSplat compressed PLY | supported | binary little-endian with the 18-property `chunk`, SH degrees 0-3, full and metadata-only reads, routed by header signature inside `gaussian-ply`. Hand-coded decoder fixtures, an index-by-index equivalence suite against lossless PLY, and committed CC0 SplatTransform 3.11.2 conversions matched to their sources; locally verified on SuperSplat 2.4.1-2.7.1 exports up to 1.94M Gaussians. Mapping and quantization loss in [COMPRESSED_PLY_MAPPING.md](COMPRESSED_PLY_MAPPING.md); producers in [PLY dialects](PLY_DIALECTS.md#observed-compressed-producers) |
+| Compressed PLY variants | unsupported | ASCII or big-endian (`GSPLY-E020`) and the 12-property colourless `chunk` (`GSPLY-E021`) are rejected with specific diagnostics |
+| Compressed PLY render-mode tags | supported (ignored) | `SplatRenderMode: mip \| 2dgs` and `postshot.anti_aliasing=1` produce warning `GSPLY-W004`; the Gaussians are authored as ordinary 3DGS splats |
 | `.splat` and `.ksplat` | unsupported | No registered importer for either format |
 | Position | supported | `x/y/z` copied as local-space position |
 | Scale | supported | stable finite `exp(scale_*)` conversion |

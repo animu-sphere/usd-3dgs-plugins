@@ -1,10 +1,12 @@
 # PLY dialect compatibility
 
-Observed compatibility between real exporter output and the
-[Gaussian PLY mapping contract](PLY_MAPPING.md). Property resolution is
-name-based and `f_rest` indices are parsed numerically, so declaration order
-never matters; the three exporters below ship three different orders and all
-decode identically. Import support is a file-format claim only — rendering is
+Observed compatibility between real exporter output and the two dialects the
+`gaussian-ply` bundle reads: the Graphdeco dialect
+([mapping contract](PLY_MAPPING.md)) and SuperSplat compressed PLY
+([mapping contract](COMPRESSED_PLY_MAPPING.md)). Property resolution is
+name-based in both dialects, and Graphdeco `f_rest` indices are parsed
+numerically, so declaration order never matters; the three Graphdeco
+exporters below ship three different orders and all decode identically. Import support is a file-format claim only — rendering is
 a separate concern ([capability matrix](CAPABILITY_MATRIX.md)).
 
 ## Observed compatible dialects
@@ -20,6 +22,18 @@ Supported SH degrees are 0-3 (1, 4, 9, or 16 coefficients per channel);
 degrees 0-3 are fixture- and asset-verified. ASCII and binary little-endian
 encodings are both supported and produce identical stages.
 
+## Observed compressed producers
+
+Every producer below writes binary little-endian with the 18-property
+`chunk`, which is the supported layout
+([COMPRESSED_PLY_MAPPING.md §2](COMPRESSED_PLY_MAPPING.md)).
+
+| Producer | Verified with | Result |
+| --- | --- | --- |
+| SplatTransform 3.11.2 | committed CC0 conversions of the corpus (`yashica-t4`, `leica-sofort`, 8,192 each, SH degree 3), matched row by row to their source PLYs within the quantization bounds | ✅ full import |
+| SuperSplat 2.4.1 | local exports of the Postshot `cactus` series, 139,410 to 1,935,120 Gaussians, SH degree 3 (2026-11-17). The 139,410 export imports with the same position percentiles, mean opacity, mean DC, and band-1 SH sign as its uncompressed Postshot source. | ✅ full import; not redistributable |
+| SuperSplat 2.6.1, 2.7.1 | PlayCanvas engine example assets `skull` (246,821, SH degree 3) and `guitar` (90,854, degree 0) (2026-11-17) | ✅ full import; no licence file, so not redistributable |
+
 ## Property aliases
 
 None. Every observed exporter uses the canonical Graphdeco property names,
@@ -34,7 +48,8 @@ it is never guessed at.
 
 | Input | Behavior |
 | --- | --- |
-| SuperSplat **compressed** `.ply` (chunked `packed_*` properties) | Rejected as an unsupported dialect (`GSPLY-E001`); the packed layout is a different format, not a property reordering |
+| Compressed PLY as ASCII or big-endian, or with the 12-property `chunk` | Rejected (`GSPLY-E020` / `GSPLY-E021`); see [COMPRESSED_PLY_MAPPING.md §2](COMPRESSED_PLY_MAPPING.md) for every compressed rejection |
+| `packed_*` vertex properties without a `chunk` element | Rejected as an unsupported dialect (`GSPLY-E001`) |
 | `binary_big_endian` PLY | Unsupported; not claimed until a deterministic fixture passes on every supported platform |
 | Mesh or plain point-cloud PLY without the Gaussian signature | Rejected (`GSPLY-E001`); `CanRead` also returns false so other `.ply` plugins can claim the file |
 | List-valued required or SH properties | Rejected (`GSPLY-E004`) |

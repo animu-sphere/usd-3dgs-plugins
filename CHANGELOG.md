@@ -6,6 +6,29 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Added
+
+- `gaussian-ply` imports SuperSplat compressed PLY: binary little-endian
+  files with the 18-property `chunk`, SH degrees 0-3, through full and
+  metadata-only reads. The dialect is recognized from the header, so `.ply`
+  files open the same way whichever dialect they use. Verified against
+  SplatTransform 3.11.2 and SuperSplat 2.4.1-2.7.1 output. See the
+  [mapping contract](docs/reference/COMPRESSED_PLY_MAPPING.md) for the
+  quantization loss.
+- New diagnostics `GSPLY-E020` to `GSPLY-E024` reject unsupported or
+  malformed compressed files: ASCII or big-endian encodings, the
+  colourless 12-property chunk, unexpected properties or elements,
+  inconsistent row counts, and invalid chunk bounds.
+- Warning `GSPLY-W004` reports a compressed file tagged with a non-default
+  splat render mode (`mip` or `2dgs`); the Gaussians are authored as
+  ordinary 3DGS splats.
+
+### Changed
+
+- A compressed PLY now imports instead of failing with `GSPLY-E001`. Its
+  stage records `customData.gs.sourceFormat = "Gaussian Splatting compressed
+  PLY"`; uncompressed PLY is unchanged.
+
 ## [0.9.0] - 2026-11-16
 
 **Experimental Hydra rendering integration preview.**
