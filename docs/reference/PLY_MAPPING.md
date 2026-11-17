@@ -2,7 +2,9 @@
 
 This is the normative mapping for the `gaussian-ply` bundle. It documents the
 canonical Graphdeco-style dialect and the exact OpenUSD values the plugin
-authors. Observed exporter coverage lives in [PLY_DIALECTS.md](PLY_DIALECTS.md).
+authors. The bundle's second dialect, SuperSplat compressed PLY, has its own
+contract in [COMPRESSED_PLY_MAPPING.md](COMPRESSED_PLY_MAPPING.md). Observed
+exporter coverage lives in [PLY_DIALECTS.md](PLY_DIALECTS.md).
 
 ## 1. Dialect signature
 

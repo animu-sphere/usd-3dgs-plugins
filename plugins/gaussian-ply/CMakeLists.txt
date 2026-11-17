@@ -44,6 +44,7 @@ endif()
 # and unit tests. tinyPLY is isolated behind PlyReader.
 add_library(gaussianPlyDecoder STATIC
     src/io/PlyReader.cpp
+    src/io/CompressedPlyDecoder.cpp
     src/io/GaussianPlyDecoder.cpp
     src/io/GaussianPlyImportOptions.cpp
     "${TINYPLY_ROOT}/tinyply.cpp")

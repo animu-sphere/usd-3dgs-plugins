@@ -31,15 +31,19 @@ as work starts; keep task checklists in those issues or PRs.
 | --- | --- | --- | --- |
 | FMT-01 | Evaluate candidates, starting with compressed PLY | Spike documents representative assets, a reproducible format signature, attribute fidelity, license and fixture availability, and dependency cost. | [Compressed PLY spike](../reports/format-spike-compressed-ply-2026-11-17.md) |
 | FMT-02 | Select the release scope | Record the selected format or variant in the selection issue or PR. Record skipped candidates and revisit conditions in the [backlog](backlog.md). | Compressed PLY selected; see [Scope and selection](#scope-and-selection) |
-| FMT-03 | Implement the first selected format end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate). | — |
+| FMT-03 | Implement the first selected format end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate). | [PR #63](https://github.com/animu-sphere/usd-3dgs-plugins/pull/63); [mapping contract](../reference/COMPRESSED_PLY_MAPPING.md) |
 | FMT-04 | Update references and validate packages | Capability claims cite implementation evidence. Declared source and package consumer gates pass on the release targets. | — |
 
-## Decisions needed
+## Decisions
 
-- FMT-03 owner: decide whether `SplatRenderMode: mip` warns, by analogy with
-  SPZ's antialiased flag (`GSPZ-W002`).
-- FMT-03 owner: settle the source-format label recorded in `customData.gs`
-  and in the import stats.
+- Render-mode tags warn. A non-default `SplatRenderMode` (`mip` or `2dgs`) or
+  `postshot.anti_aliasing=1` in a compressed PLY produces `GSPLY-W004`, by
+  analogy with SPZ's antialiased flag (`GSPZ-W002`). The
+  [backlog](backlog.md#other-format-candidates) records whether the
+  uncompressed dialect should follow.
+- The source-format label is `"Gaussian Splatting compressed PLY"` in
+  `customData.gs` and in the import stats, so consumers can tell a quantized
+  source apart. Uncompressed PLY keeps `"Gaussian Splatting PLY"`.
 
 ## Release exit
 

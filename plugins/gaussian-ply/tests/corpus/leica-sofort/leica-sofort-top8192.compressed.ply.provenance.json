@@ -1,0 +1,28 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "leica-sofort-top8192.ply",
+    "sha256": "853cd6d8f1c59c471f5a53333d752282daea42ff4f70b89fb1b7d9d7f968d847",
+    "bytes": 1935011,
+    "gaussian_count": 8192,
+    "sh_degree": 3
+  },
+  "derivation": {
+    "tool": "@playcanvas/splat-transform",
+    "tool_version": "3.11.2",
+    "tool_license": "MIT",
+    "runtime": "Node.js v22.12.0",
+    "command": "splat-transform leica-sofort-top8192.ply leica-sofort-top8192.compressed.ply",
+    "selection": "none; every source Gaussian is kept, rows reordered by the writer (Morton order)",
+    "deterministic": true,
+    "date_utc": "2026-11-17"
+  },
+  "output": {
+    "file": "leica-sofort-top8192.compressed.ply",
+    "sha256": "cd37cda3182610701ea8939289d03d8fe521b0dbd1b977f111be5eacc465d7fa",
+    "bytes": 504027,
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "dialect": "SuperSplat compressed PLY, 18-property chunk"
+  }
+}

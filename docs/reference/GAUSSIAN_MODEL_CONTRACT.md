@@ -9,8 +9,9 @@ Authors of new decoders can use this contract directly. Where this document
 and a decoder disagree, review the behavior against the contract and tests.
 
 The format-specific halves of each mapping live with their formats
-([PLY_MAPPING.md](PLY_MAPPING.md), [SPZ_MAPPING.md](SPZ_MAPPING.md),
-[SOG_MAPPING.md](SOG_MAPPING.md)); this
+([PLY_MAPPING.md](PLY_MAPPING.md),
+[COMPRESSED_PLY_MAPPING.md](COMPRESSED_PLY_MAPPING.md),
+[SPZ_MAPPING.md](SPZ_MAPPING.md), [SOG_MAPPING.md](SOG_MAPPING.md)); this
 document owns only what is true for every format.
 
 A decoder that satisfies this contract is guaranteed to author a valid stage.
@@ -33,6 +34,8 @@ model:
 | SPZ quantized SH coefficients | dequantized coefficients |
 | SOG WebP image planes | linear position, scale, rotation, opacity |
 | SOG codebook indices and palette labels | dequantized SH coefficients |
+| Compressed PLY chunk-relative unorm codes | linear position, scale, DC; physical opacity |
+| Compressed PLY byte SH | dequantized SH coefficients |
 
 The SOG rows are stated now, before a SOG decoder exists, because they are the
 kind of representation this rule exists to keep out: WebP pixels, codebook

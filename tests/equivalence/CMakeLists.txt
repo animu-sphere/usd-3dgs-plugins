@@ -9,11 +9,13 @@
 # decoder: gaussianSpzDecoder and gaussianSogDecoder each carry their own
 # vendored miniz translation unit (with different definitions, since SPZ
 # compiles the archive APIs out and SOG needs them), so linking both into one
-# program is a duplicate-symbol error. See equivalence_common.h.
+# program is a duplicate-symbol error. See equivalence_common.h. The
+# compressed PLY suite needs only the PLY decoder, which reads both dialects.
 
 foreach(_suite
         "equivalence_tests;test_equivalence.cpp;gaussianSpzDecoder;gaussian_ply_spz_equivalence"
-        "sog_equivalence_tests;test_sog_equivalence.cpp;gaussianSogDecoder;gaussian_ply_sog_equivalence")
+        "sog_equivalence_tests;test_sog_equivalence.cpp;gaussianSogDecoder;gaussian_ply_sog_equivalence"
+        "compressed_equivalence_tests;test_compressed_equivalence.cpp;gaussianPlyDecoder;gaussian_ply_compressed_equivalence")
     list(GET _suite 0 _target)
     list(GET _suite 1 _source)
     list(GET _suite 2 _decoder)

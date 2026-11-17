@@ -30,6 +30,19 @@ a wooden table.
   `scripts/ply_subset.py --top-n 8192`. Exact hashes and parameters are in
   [`yashica-t4-top8192.ply.provenance.json`](yashica-t4-top8192.ply.provenance.json).
 
+## Compressed conversion
+
+- `yashica-t4-top8192.compressed.ply`: the committed subset converted to
+  SuperSplat compressed PLY by
+  [SplatTransform](https://github.com/playcanvas/splat-transform) 3.11.2
+  (MIT) on Node.js v22.12.0, with
+  `splat-transform yashica-t4-top8192.ply yashica-t4-top8192.compressed.ply`.
+  The conversion is deterministic; rerunning it reproduced the committed
+  bytes. The writer reorders Gaussians (Morton order) and quantizes every
+  attribute, so the file is a lossy derivative of the subset, not a second
+  capture. Hashes are in
+  [`yashica-t4-top8192.compressed.ply.provenance.json`](yashica-t4-top8192.compressed.ply.provenance.json).
+
 ## Dialect notes
 
 Brush exports binary little-endian PLY with the Graphdeco property set but

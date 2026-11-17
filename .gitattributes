@@ -32,3 +32,7 @@ tests/equivalence/fixtures/*.ply -text
 # them as loose files beside meta.json, so without this rule a checkout on a
 # CRLF platform would rewrite bytes inside the compressed bitstream.
 *.webp -text
+
+# SuperSplat compressed PLY fixtures are binary (one is ASCII by design, and
+# LF-only either way).
+plugins/gaussian-ply/tests/fixtures/compressed-*.ply -text

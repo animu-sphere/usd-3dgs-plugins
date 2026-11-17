@@ -39,6 +39,20 @@ inline constexpr const char* kModelAllocationFailed = "GSPLY-E018";
 // import safety ceiling permits before payload allocation begins.
 inline constexpr const char* kImportLimitExceeded = "GSPLY-E019";
 
+// SuperSplat compressed PLY (docs/reference/COMPRESSED_PLY_MAPPING.md).
+// The packed layout is recognized, but stored as ASCII or big-endian.
+inline constexpr const char* kCompressedUnsupportedEncoding = "GSPLY-E020";
+// A recognized but unsupported compressed variant: the 12-property chunk
+// without colour bounds.
+inline constexpr const char* kCompressedUnsupportedVariant = "GSPLY-E021";
+// The chunk, vertex, or sh element does not have exactly the expected
+// properties and types, or an unexpected element is declared.
+inline constexpr const char* kCompressedLayoutMismatch = "GSPLY-E022";
+// The chunk row count is not ceil(N / 256), or the sh row count is not N.
+inline constexpr const char* kCompressedRowCountMismatch = "GSPLY-E023";
+// A chunk bound is non-finite, or a minimum exceeds its maximum.
+inline constexpr const char* kCompressedInvalidChunkBounds = "GSPLY-E024";
+
 // Internal misuse of the import pipeline (null output parameters). Reported
 // defensively; not reachable from file content.
 inline constexpr const char* kInternalError = "GSPLY-E100";
@@ -58,6 +72,9 @@ inline constexpr const char* kWriteUnsupported = "GSPLY-E203";
 inline constexpr const char* kQuaternionsNormalized = "GSPLY-W001";
 inline constexpr const char* kQuaternionsReplaced = "GSPLY-W002";
 inline constexpr const char* kUnknownPropertiesIgnored = "GSPLY-W003";
+// A compressed PLY records a non-default `SplatRenderMode` comment; the
+// authored schema carries no render-mode convention, so it is not applied.
+inline constexpr const char* kRenderModeIgnored = "GSPLY-W004";
 
 // Every diagnostic message starts with its bracketed code so text consumers
 // and machine consumers see one stable spelling: "[GSPLY-E003] ...". The

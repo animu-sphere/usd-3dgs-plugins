@@ -26,10 +26,41 @@ struct PlyPropertyDescription {
     bool isList = false;
 };
 
+enum class PlyEncoding {
+    Ascii,
+    BinaryLittleEndian,
+    BinaryBigEndian,
+};
+
+struct PlyElementDescription {
+    std::string name;
+    std::size_t count = 0;
+    std::vector<PlyPropertyDescription> properties;
+};
+
 struct PlyHeader {
     std::size_t vertexCount = 0;
     bool binary = false;
+    PlyEncoding encoding = PlyEncoding::Ascii;
     std::vector<PlyPropertyDescription> vertexProperties;
+    // Every element in declaration order, the vertex element included.
+    // Property names are reported as declared; only the vertex element is
+    // checked for duplicates here.
+    std::vector<PlyElementDescription> elements;
+    // Header `comment` lines with the keyword and one separator removed.
+    std::vector<std::string> comments;
+};
+
+// One element's requested scalar properties, row-interleaved in request
+// order and in native little-endian bytes. Every property in a request has
+// the same scalar type, so a row is `properties.size()` values of that type.
+struct PlyElementRows {
+    std::string element;
+    std::vector<std::string> properties;
+    PlyScalarType type = PlyScalarType::Invalid;
+    std::size_t rowCount = 0;
+    std::size_t rowStride = 0;
+    std::vector<unsigned char> bytes;
 };
 
 struct PlyDocument {
@@ -50,6 +81,16 @@ class PlyReader {
     bool Read(const std::string& path,
               const std::vector<std::string>& requestedProperties,
               PlyDocument* document, std::string* error = nullptr) const;
+
+    // Raw-row read for layouts whose values must not pass through float
+    // (bit-packed integer properties). Each entry of `rows` names an element
+    // and its properties in file order on input and receives the rows on
+    // output. Only binary little-endian files are accepted, so the bytes are
+    // already in host order on every supported platform. `header` receives
+    // the header of the stream actually read.
+    bool ReadElementRows(const std::string& path,
+                         std::vector<PlyElementRows>* rows, PlyHeader* header,
+                         std::string* error = nullptr) const;
 };
 
 } // namespace openstrata::gs::ply
