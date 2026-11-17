@@ -17,22 +17,29 @@ and the [mapping](../../docs/reference/SPZ_MAPPING.md) for quantization.
 openstrata.plugin.yaml          bundle contract (identity, runtime range, provides, tests)
 CMakeLists.txt                  builds the plugin library into lib/
 src/GaussianSpzFileFormat.{h,cpp}  thin SdfFileFormat integration (routes to gaussianUsd)
-src/io/SpzReader.{h,cpp}        SPZ container reading (gzip framing, header/size
-                                validation, quantized attribute spans)
+src/io/SpzReader.{h,cpp}        SPZ container reading (v1-v3 gzip framing, v4
+                                TOC and zstd streams, header/size validation,
+                                extension records, quantized attribute spans)
 src/io/GaussianSpzDecoder.{h,cpp}  semantic decode into GaussianCloudData
                                 (dequantization, rotation decode; native RUB)
 src/io/GaussianSpzDiagnostics.h stable GSPZ-**** diagnostic identifiers
 plugin/resources/gaussian-spz/  plugInfo.json + machine-readable diagnostics.json
 tests/fixtures/                 deterministic valid + invalid container fixtures
-tools/generate_fixtures.py      fixture generator (fixtures are committed)
+                                (installed with the package)
+tests/reference/                third-party reference-written files (not packaged)
+tests/corpus/                   real-asset subsets (not packaged)
+tools/generate_fixtures.py      fixture generator (fixtures are committed); the
+                                v4 fixtures need the Python `zstandard` package
 ```
 
 Build and install settings use the workspace's
 [OpenStrata CMake helper](../../cmake/OpenStrataPlugin.cmake).
 
-The vendored DEFLATE/CRC32 implementation is `third_party/miniz` (MIT); the
-gzip member framing is parsed by `SpzReader` itself so container diagnostics
-can distinguish malformed, truncated, corrupt, and unsupported inputs.
+The vendored DEFLATE/CRC32 implementation is `third_party/miniz` (MIT), and
+the vendored zstd frame decoder for version 4 is `third_party/zstd`
+(BSD-3-Clause, decompression only). The gzip member framing and the v4 table
+of contents are parsed by `SpzReader` itself so container diagnostics can
+distinguish malformed, truncated, corrupt, and unsupported inputs.
 
 ## Workflow
 

@@ -317,8 +317,11 @@ def write_spz(name: str, gaussians: list[Gaussian], version: int) -> None:
     rest_count = len(gaussians[0].rest)
     degree = int(round(math.sqrt(rest_count + 1))) - 1
 
+    # Version 4 stores the v3 attribute bytes in its zstd container, so the
+    # stream is built as v3 and rewrapped below.
     stream = spz.spz_header(
-        version, len(gaussians), degree, fractional_bits=FRACTIONAL_BITS)
+        min(version, 3), len(gaussians), degree,
+        fractional_bits=FRACTIONAL_BITS)
 
     # SPZ's native RUB frame is the model frame (ADR 0001): every attribute
     # is quantized directly, with no frame conversion anywhere.
@@ -341,7 +344,8 @@ def write_spz(name: str, gaussians: list[Gaussian], version: int) -> None:
     stream += spz.enc_sh_stream(
         [[g.rest[k] for k in range(rest_count)] for g in gaussians])
 
-    (ROOT / name).write_bytes(spz.gzip_member(stream))
+    container = spz.v4_container(stream) if version == 4 else         spz.gzip_member(stream)
+    (ROOT / name).write_bytes(container)
 
 
 # --------------------------------------------------------------------------
@@ -381,6 +385,8 @@ def main() -> None:
     # Both SPZ files share one PLY partner, so a v3-only disagreement is
     # attributable to the rotation path and nothing else.
     write_spz("equiv-degree3-exact-v3.spz", exact, version=3)
+    # And through the v4 zstd container, which changes no attribute byte.
+    write_spz("equiv-degree3-exact-v4.spz", exact, version=4)
 
     # The same source model as a bundled SOG v2 archive. SOG flips the same
     # RDF/RUB signs PLY does while SPZ flips none, so a triple that agrees pins
@@ -392,6 +398,7 @@ def main() -> None:
     arbitrary = off_grid()
     write_ply("equiv-degree1-offgrid-binary-le.ply", arbitrary)
     write_spz("equiv-degree1-offgrid-v2.spz", arbitrary, version=2)
+    write_spz("equiv-degree1-offgrid-v4.spz", arbitrary, version=4)
     offgrid_span = write_sog("equiv-degree1-offgrid.sog", arbitrary)
 
     # The same two models as compressed PLY, plus a multi-chunk model whose

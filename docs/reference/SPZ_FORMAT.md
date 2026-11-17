@@ -42,25 +42,36 @@ reader / decoder / diagnostics split. USD prim construction stays in
 
 ## 3. Container version scope
 
-**The importer reads SPZ versions 1, 2, and 3. Version 4 is unsupported.**
+**The importer reads SPZ versions 1, 2, 3, and 4.** Versions 1-3 have been
+read since v0.3.0. Version 4 is read since v0.11.0, after the
+[FMT-05 spike](../reports/format-spike-spz-v4-2026-11-17.md) found that the
+reference library, its web converter, and SplatTransform write it by default,
+and [ADR 0002](../adr/0002-vendored-zstd-decoder.md) accepted the decoder
+dependency.
 
 The two generations differ structurally:
 
 | | v1-v3 | v4 |
 | --- | --- | --- |
-| Header | 16 bytes | 32 bytes |
-| Compression | gzip, single stream | ZSTD, independent per-attribute streams |
-| Layout | attribute-major within one stream | table of contents + N streams |
-| Dependency | zlib | zstd |
+| Header | 16 bytes, inside the gzip member | 32 bytes, plaintext |
+| Compression | gzip, single stream | Zstandard, one frame per attribute stream |
+| Layout | attribute-major within one stream | extension zone, table of contents, N streams |
+| Extension records | after the attribute streams, inside the gzip member | plaintext zone between the header and the TOC |
+| Decoder | vendored miniz (raw DEFLATE) | vendored Zstandard v1.5.7, decompression only |
 
-The importer handles the gzip layout through the shared semantic pipeline.
-The different version 4 layout requires a separate reader path.
+Each v4 stream is byte-identical to the matching v3 attribute section (spike
+§3), so the reader delivers the same six byte spans to the semantic decoder
+for both generations. Only the container code differs.
 
-**Version 4 files must fail with a specific unsupported-version diagnostic, not
-a malformed-container one.** The distinction is a release criterion: a user
-handed a v4 file needs to be told the version is not supported yet, not that
-their file is corrupt. The `GSPZ-****` catalog therefore separates
-*unsupported* from *malformed* from the outset.
+**A version this release does not know fails with a specific
+unsupported-version diagnostic (`GSPZ-E003`), not a malformed-container
+one.** The distinction is a release criterion: a user handed a newer file
+needs to be told the version is not supported yet, not that their file is
+corrupt. Version 0 and versions above 4 are `GSPZ-E003`. A layout that no
+version defines is malformed (`GSPZ-E004`): a plaintext header with version
+1-3, or a gzip member whose header says version 4. The reference reader
+accepts the second; no writer produces it, and the format defines version 4
+only as the plaintext container.
 
 ## 4. Container facts to validate against fixtures
 
@@ -105,6 +116,60 @@ smallest-three rotation encoding was recorded without its version qualifier
   colour channel with the channel as the inner (faster-varying) axis; the
   header field admits degrees 0-4.
 
+### Version 4 container
+
+Recorded from the upstream README and `load-spz.cc` at commit `d5abdee9b37c`
+(spike §2), and confirmed against the reference-written file in
+`plugins/gaussian-spz/tests/reference/`. All fields are little-endian.
+
+```text
+bytes 0..31           header (plaintext)
+bytes 32..tbo-1       extension records, only when flags & 0x2
+bytes tbo..tbo+16N-1  TOC: N × { u64 compressedSize, u64 uncompressedSize }
+bytes tbo+16N..end    N zstd streams, back to back
+```
+
+- Header: magic, version (4), point count, SH degree, fractional bits, flags
+  (one byte each from offset 12), then `numStreams` (u8), `tocByteOffset`
+  (u32), and twelve reserved bytes.
+- Streams: positions, alphas, colours, scales, rotations, spherical
+  harmonics, with empty streams omitted, so `numStreams` is 5 at SH degree 0
+  and 6 otherwise. Attribute widths are v3's: 24-bit fixed-point positions,
+  smallest-three rotations.
+- Each stream is one zstd frame. The last stream may be followed by zstd
+  skippable frames that carry extension data; its `compressedSize` covers
+  them, its `uncompressedSize` does not.
+
+The reader checks, in this order (ADR 0002 item 6), and allocates the
+attribute buffer only after every check before decoding has passed:
+
+| Check | Failure |
+| --- | --- |
+| The file holds the 32-byte header | `GSPZ-E007` |
+| Count, SH degree, and the shared Gaussian ceiling, as in v1-v3 | `GSPZ-E002`, `E005`, `E006`, `E015` |
+| `numPoints × 9` is at most 1024 times the file size, the reference reader's bound | `GSPZ-E007` |
+| `tocByteOffset` is at least 32 and within the file | `GSPZ-E004` |
+| An extension zone is present only with the `0x2` flag, and is at most 64 MiB | `GSPZ-E009`, `E015` |
+| `numStreams` matches the SH degree | `GSPZ-E004` |
+| The TOC fits in the file | `GSPZ-E007` |
+| A coordinate-system record declares RUB (§5) | `GSPZ-E016`, `E004` |
+| Each `uncompressedSize` equals the size the header implies | `GSPZ-E004` |
+| The streams fit in the file (`E007`) and fill it exactly (`E004`) | `GSPZ-E007`, `E004` |
+| Each stream begins with one data frame, not a skippable frame | `GSPZ-E004` |
+| The frame is complete (`E007`) and its header decodable (`E008`) | `GSPZ-E007`, `E008` |
+| A recorded frame content size equals the TOC size | `GSPZ-E004` |
+| Without a recorded size, the frame's block bound can hold the TOC size | `GSPZ-E007` |
+| The data frame fills every stream but the last | `GSPZ-E004` |
+| Only complete skippable frames follow it in the last stream | `GSPZ-E004`, `E007` |
+| Each frame decodes, passes its checksum when it has one, and yields exactly the TOC size | `GSPZ-E008` |
+
+Two deliberate choices follow the reference reader. Non-zero reserved bytes
+are accepted, as the reference does not check them and the v1-v3 reserved
+byte is not checked either. Skippable frames are bounded and counted but
+never decompressed; they are reported with the ignored extensions
+(`GSPZ-W001`). The metadata-only read (`ReadHeader`) runs every check up to
+the frames, because v4 keeps that structure in plaintext.
+
 ## 5. Coordinate system
 
 SPZ conventionally stores right-up-back (RUB). Since
@@ -119,6 +184,50 @@ same stage, which the equivalence criterion forbids; the frame handling is
 covered by the PLY/SPZ equivalence fixtures, which would otherwise disagree
 on sign in two axes.
 
+### Declared frame
+
+**Decided in FMT-07 (v0.11.0): a file that declares a storage frame other
+than RUB is refused with the unsupported diagnostic `GSPZ-E016`, in every
+container version.**
+
+The `SPZ_ADOBE_coordinate_system` extension record (type `0xADBE0003`, one
+u32 value) names the frame the stored data is in. The reference loader
+converts from that frame on read, and its documentation warns that a reader
+ignoring the record "will silently misinterpret the data". Through v0.10.0
+the importer treated every extension record as opaque, so a v1-v3 file that
+declared, for example, RDF was authored in the wrong orientation with only
+`GSPZ-W001`.
+
+| Declared value | Result |
+| --- | --- |
+| 0 (UNSPECIFIED) or 4 (RUB) | Imported as before; the record is honored, not reported as ignored |
+| 1-3, 5-16 (any other defined frame) | `GSPZ-E016` |
+| above 16 (undefined) | `GSPZ-E016` |
+| a record shorter than four payload bytes | `GSPZ-E004` |
+
+Every coordinate-system record in the file must declare RUB; there is no
+first-one-wins rule. Extension records are walked as the reference reader
+walks them: `[u32 type][u32 byteLength][payload]`, stopping without an error
+at the first record whose length runs past the end. In v1-v3 the records
+follow the attribute streams, so only the full read sees them; in v4 the
+metadata-only read refuses the file too.
+
+Converting instead of refusing is a later option. The eight axis-sign frames
+need only the sign flips the PLY decoder already applies, but the eight
+rotated frames also rotate spherical harmonics, which is out of scope.
+
+### Undeclared frame (SplatTransform 3.x)
+
+SplatTransform since 3.0.0 (2026-07-09) converts data to PLY's RDF frame and
+writes it with no coordinate-system record (spike §5). Nothing in such a file
+distinguishes it from a conforming RUB file, so the importer cannot detect
+it: it is imported as RUB, which negates Y and Z relative to the PLY the file
+was converted from. A conforming reader, including the reference library,
+does the same. SplatTransform 2.1.0 to 2.x wrote spec-conforming RUB. This
+was read from SplatTransform's source code and has not been confirmed on a
+generated file. No warning is emitted, because any warning would also fire on
+every conforming file.
+
 ## 6. Decision — `CanRead()` strategy
 
 **Accepted 2026-07-20, implemented in `SpzReader::CanRead()`: bounded partial
@@ -131,9 +240,10 @@ is also how the reference implementation distinguishes the two generations.
 The accepted behavior:
 
 - `.spz` extension, then signature: a plaintext `NGSP` magic at offset 0 is
-  claimed immediately — a v4 file must reach `Read()` so it fails with the
-  specific unsupported-version diagnostic (`GSPZ-E003`, §3) instead of USD
-  reporting that no plugin was found.
+  claimed immediately, whatever its version. A v4 file is read; a file with
+  another version must still reach `Read()` so it fails with its specific
+  diagnostic (`GSPZ-E003` or `GSPZ-E004`, §3) instead of USD reporting that
+  no plugin was found.
 - A `0x1f 0x8b` gzip signature alone is *not* enough (that is the over-broad
   direction §7.6 warns about): the reader inflates only the first four
   decompressed bytes — bounded over a 64 KiB file prefix, retrying once over
@@ -168,6 +278,13 @@ The accepted behavior:
 - Cross-format equivalence is exercised by
   [deterministic fixtures](EQUIVALENCE.md). The enforced compressed and
   decompressed input budgets are in [IMPORT_LIMITS.md](IMPORT_LIMITS.md).
+- Version 4 has no redistributable real-world capture yet (spike §6). Its
+  coverage is the deterministic fixtures from
+  `plugins/gaussian-spz/tools/generate_fixtures.py`, v4 partners in the
+  PLY/SPZ equivalence suite, and an independent check: SplatTransform's test
+  files, written by the reference library from one 4-point cloud as v3 and
+  as v4, must decode to identical clouds
+  (`plugins/gaussian-spz/tests/reference/`).
 
 ## 8. Producer traits observed in real exports
 
@@ -187,7 +304,9 @@ Two independent captures agreeing on every row is what makes these producer
 traits rather than one-off accidents. A second producer's exports should be
 compared against this table before its rows are generalized.
 
-SPZ v1-v3 carries no geolocation, capture-time, or device field anywhere in the
-container, and the observed framing sets `MTIME` to zero, so a `.spz` file
-discloses nothing about where or when it was captured beyond what the geometry
-itself depicts.
+The core SPZ header carries no geolocation, capture-time, or device field, and
+the observed framing sets `MTIME` to zero, so these exports disclose nothing
+about where or when they were captured beyond what the geometry itself
+depicts. Newer files can carry an `SPZ_NIANTIC_georeference` extension record;
+the importer does not read it and reports it with the other ignored extension
+records (`GSPZ-W001`).

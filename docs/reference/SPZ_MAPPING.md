@@ -1,10 +1,11 @@
 # Gaussian SPZ mapping contract
 
 This is the normative mapping for the `gaussian-spz` bundle. It documents how a
-decompressed SPZ v1-v3 container becomes the format-independent
+decompressed SPZ v1-v4 container becomes the format-independent
 [`GaussianCloudData`](GAUSSIAN_MODEL_CONTRACT.md) and the exact OpenUSD values
-the plugin authors. Container-level concerns (signature detection, gzip
-framing, truncation, size math) are owned by [SPZ_FORMAT.md](SPZ_FORMAT.md);
+the plugin authors. Container-level concerns (signature detection, gzip and
+zstd framing, truncation, size math, the declared-frame check) are owned by
+[SPZ_FORMAT.md](SPZ_FORMAT.md);
 this document owns the semantic decode. It mirrors [PLY_MAPPING.md](PLY_MAPPING.md)
 so the two decoders can be read side by side.
 
@@ -15,32 +16,37 @@ it is quoted from that source, not inferred.
 
 ## 1. Container signature and versions
 
-The decoder reads SPZ container versions 1-3 (gzip-wrapped, single stream).
-Version 4 (ZSTD) is rejected by the container reader with the
-unsupported-version diagnostic `GSPZ-E003`. See
+The decoder reads SPZ container versions 1-3 (gzip-wrapped, single stream)
+and 4 (one Zstandard stream per attribute). Other versions are rejected by the
+container reader with the unsupported-version diagnostic `GSPZ-E003`. See
 [SPZ_FORMAT.md §3](SPZ_FORMAT.md) for the version decision.
 
-The three supported versions differ only in two per-point encodings:
+The four supported versions differ only in two per-point encodings:
 
-| | v1 | v2 | v3 |
-| --- | --- | --- | --- |
-| Positions | float16 (6 bytes) | 24-bit fixed point (9 bytes) | 24-bit fixed point (9 bytes) |
-| Rotations | first-three (3 bytes) | first-three (3 bytes) | smallest-three (4 bytes) |
+| | v1 | v2 | v3 | v4 |
+| --- | --- | --- | --- | --- |
+| Positions | float16 (6 bytes) | 24-bit fixed point (9 bytes) | 24-bit fixed point (9 bytes) | 24-bit fixed point (9 bytes) |
+| Rotations | first-three (3 bytes) | first-three (3 bytes) | smallest-three (4 bytes) | smallest-three (4 bytes) |
 
-Every other attribute is identical across the three.
+Every other attribute is identical across the four. Version 4 changes only
+the container: its attribute bytes are v3's, so a v4 file decodes to exactly
+the cloud the same bytes decode to as v3.
 
 ## 2. Attribute stream order
 
-The decompressed stream is attribute-major (all of one attribute, then all of
-the next) in this order, matching the reference `saveSpz`:
+The attribute data is attribute-major (all of one attribute, then all of the
+next) in this order, matching the reference `saveSpz`. In v1-v3 it is one
+decompressed stream; in v4 each attribute is its own zstd stream, in the same
+order:
 
 ```text
 positions, alphas, colors, scales, rotations, spherical harmonics
 ```
 
-Extension records follow when the header's `0x2` flag is set; they are opaque
-at the container level and ignored by the decoder with a warning
-(`GSPZ-W001`).
+Extension records are present when the header's `0x2` flag is set: after the
+attribute streams in v1-v3, before the table of contents in v4. The decoder
+ignores them with a warning (`GSPZ-W001`), except a coordinate-system record,
+which the container reader checks first ([SPZ_FORMAT.md §5](SPZ_FORMAT.md)).
 
 ## 3. Semantic conversion
 
@@ -166,19 +172,27 @@ by construction. The Python smoke test
 Extension records and the antialiased flag (`0x1`) are ignored, each with an
 aggregated warning (`GSPZ-W001`, `GSPZ-W002`). The authored schema carries no
 antialiasing convention and no extension payload, so neither affects the
-decoded model.
+decoded model. `GSPZ-W001` names the ignored record types, the bytes that do
+not form a whole record, and, in v4, the bytes of zstd extension frames after
+the last stream. A coordinate-system record that declares RUB, or leaves the
+frame unspecified, is honored rather than ignored and is not reported; one
+that declares any other frame fails the import (`GSPZ-E016`).
 
 ## 10. Metadata-only reads
 
 `Read(metadataOnly=true)` authors the `/Asset` scaffold, stage metrics,
 `customData.gs`, and the SH degree attribute from the container header alone —
 no attribute streams are decompressed. The reported count is the header count.
+For v4 the header read also validates the plaintext extension zone and table
+of contents, so a declared non-RUB frame or an inconsistent TOC fails here as
+well as in the full read.
 
 ## 11. Diagnostics
 
 Every error and warning starts with a stable bracketed identifier
-(`[GSPZ-E011] ...`). The container series (`GSPZ-E001`-`E010`) is documented in
-[SPZ_FORMAT.md](SPZ_FORMAT.md); the decoder adds `GSPZ-E011`-`E013`, the shared
+(`[GSPZ-E011] ...`). The container series (`GSPZ-E001`-`E010`, the import
+limit `GSPZ-E015`, and the declared-frame code `GSPZ-E016`) is documented in
+[SPZ_FORMAT.md](SPZ_FORMAT.md); the decoder adds `GSPZ-E011`-`E014`, the shared
 authoring codes `GSPZ-E101`-`E104`, the read-only entry-point code `GSPZ-E201`,
 and the warnings `GSPZ-W001`-`W002`. The machine-readable catalog ships at
 `plugin/resources/gaussian-spz/diagnostics.json`; the smoke test cross-checks it

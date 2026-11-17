@@ -140,14 +140,16 @@ def invalid_fixtures() -> None:
     write("gzip-not-spz.spz", gzip_member(
         b"a gzip member holding something other than SPZ"))
 
-    # Plaintext NGSP layouts: v4 is real but unsupported (E003); v2 was
-    # never plaintext (E004). The v4 fixture follows the 32-byte header:
-    # magic, version, numPoints, shDegree, fractionalBits, flags,
-    # numStreams, tocByteOffset, reserved[12].
+    # Plaintext NGSP layouts. This v4 header is valid but the file ends
+    # inside its six-entry table of contents (E007). It predates v4 support,
+    # when the same bytes tested the unsupported-version path. v2 was never
+    # plaintext (E004); v5 is not defined yet (E003).
     v4_header = struct.pack(
         "<IIIBBBBI", MAGIC, 4, 100, 1, 12, 0, 6, 32) + bytes(12)
     write("plaintext-v4.spz", v4_header + payload(64))
     write("plaintext-v2.spz", spz_stream(2, 1, 0))
+    write("plaintext-v5.spz", struct.pack(
+        "<IIIBBBBI", MAGIC, 5, 1, 0, 12, 0, 5, 32) + bytes(12))
 
     # Header-field rejections inside a well-formed gzip member.
     write("version-0.spz", gzip_member(spz_stream(0, 1, 0)))
@@ -390,11 +392,244 @@ def decoder_fixtures() -> None:
     write("decode-nonfinite-v1.spz", gzip_member(bad))
 
 
+# --------------------------------------------------------------------------
+# SPZ version 4: plaintext header, extension zone, TOC, one zstd frame per
+# attribute stream (SPZ_FORMAT.md §4). The attribute bytes are the v3
+# encodings, so every v4 fixture is built from a v3 stream.
+# --------------------------------------------------------------------------
+
+SKIPPABLE_MAGIC = 0x184D2A53
+COORDINATE_SYSTEM = 0xADBE0003
+# Coordinate-system values (reference splat-types.h).
+COORD_UNSPECIFIED, COORD_RUB, COORD_RDF = 0, 4, 6
+
+
+def zstd_frame(data: bytes, *, content_size: bool = True,
+               checksum: bool = False) -> bytes:
+    """One zstd frame at the reference writer's level 12. `zstandard` is a
+    development-only dependency of this script (FMT-05 spike §6); 0.25.0
+    bundles libzstd 1.5.7, the version vendored for decoding."""
+    import zstandard  # imported here so the v1-v3 fixtures need no extra package
+
+    compressor = zstandard.ZstdCompressor(
+        level=12, write_content_size=content_size, write_checksum=checksum)
+    return compressor.compress(data)
+
+
+def skippable_frame(data: bytes) -> bytes:
+    return struct.pack("<II", SKIPPABLE_MAGIC, len(data)) + data
+
+
+def ext_record(record_type: int, data: bytes) -> bytes:
+    return struct.pack("<II", record_type, len(data)) + data
+
+
+def coordinate_record(value: int) -> bytes:
+    return ext_record(COORDINATE_SYSTEM, struct.pack("<I", value))
+
+
+def v3_streams(stream: bytes) -> tuple[bytes, list[bytes]]:
+    """Splits a v3 stream (16-byte header + payload) into its header and the
+    non-empty attribute streams in file order."""
+    header, body = stream[:16], stream[16:]
+    count = struct.unpack_from("<I", header, 8)[0]
+    sh_degree = header[12]
+    widths = [9, 1, 3, 3, 4, 3 * ((sh_degree + 1) ** 2 - 1)]
+    streams, cursor = [], 0
+    for width in widths:
+        size = count * width
+        streams.append(body[cursor:cursor + size])
+        cursor += size
+    assert cursor == len(body), "v3 stream length disagrees with its header"
+    return header, [s for s in streams if s]
+
+
+def v4_container(
+    v3: bytes,
+    *,
+    flags: int | None = None,
+    extensions: bytes = b"",
+    frames: list[bytes] | None = None,
+    toc: list[tuple[int, int]] | None = None,
+    num_streams: int | None = None,
+    toc_offset: int | None = None,
+    reserved: bytes = bytes(12),
+    version: int = 4,
+) -> bytes:
+    """Rewraps a v3 stream as a v4 container. Overrides build damaged files:
+    `frames` replaces the compressed streams, `toc` the (compressed,
+    uncompressed) entries, and `num_streams`/`toc_offset` the header fields.
+    `flags` defaults to the v3 flags plus 0x2 when `extensions` is set."""
+    header, streams = v3_streams(v3)
+    count = struct.unpack_from("<I", header, 8)[0]
+    sh_degree, fractional_bits, v3_flags = header[12], header[13], header[14]
+    if flags is None:
+        flags = v3_flags | (0x02 if extensions else 0)
+    if frames is None:
+        frames = [zstd_frame(s) for s in streams]
+    if toc is None:
+        toc = [(len(f), len(s)) for f, s in zip(frames, streams)]
+    if num_streams is None:
+        num_streams = len(toc)
+    if toc_offset is None:
+        toc_offset = 32 + len(extensions)
+    out = struct.pack("<IIIBBBBI", MAGIC, version, count, sh_degree,
+                      fractional_bits, flags, num_streams, toc_offset)
+    out += reserved + extensions
+    out += b"".join(struct.pack("<QQ", c, u) for c, u in toc)
+    return out + b"".join(frames)
+
+
+def v4_fixtures() -> None:
+    minimal = spz_stream(3, 1, 0)
+    write("minimal-v4.spz", v4_container(minimal))
+    write("three-points-degree1-v4.spz", v4_container(spz_stream(3, 3, 1)))
+    # Container-valid; the decoder refuses degree 4 (GSPZ-E011).
+    write("degree4-v4.spz", v4_container(spz_stream(3, 1, 4)))
+    # Antialiased + extensions: an unknown record, a RUB coordinate-system
+    # record (honored, so not reported), and a skippable frame after the
+    # last stream, which is where writers put framed extension data.
+    _, streams = v3_streams(spz_stream(3, 1, 1, flags=0x01))
+    frames = [zstd_frame(s) for s in streams]
+    frames[-1] += skippable_frame(b"FRAMEDATA")
+    write("extensions-v4.spz", v4_container(
+        spz_stream(3, 1, 1, flags=0x01),
+        extensions=ext_record(0x12345678, b"EXTBYTES") +
+        coordinate_record(COORD_RUB),
+        frames=frames,
+        toc=[(len(f), len(s)) for f, s in zip(frames, streams)]))
+    # Frames without a recorded content size and with a checksum; non-zero
+    # reserved header bytes, which the reference reader accepts.
+    _, streams = v3_streams(spz_stream(3, 2, 1))
+    frames = [zstd_frame(s, content_size=False, checksum=True)
+              for s in streams]
+    write("framing-v4.spz", v4_container(
+        spz_stream(3, 2, 1), frames=frames,
+        toc=[(len(f), len(s)) for f, s in zip(frames, streams)],
+        reserved=bytes(range(1, 13))))
+    # Declared frames that mean RUB: UNSPECIFIED, and RUB itself in v2.
+    write("coordinate-unspecified-v4.spz", v4_container(
+        minimal, extensions=coordinate_record(COORD_UNSPECIFIED)))
+    write("coordinate-rub-v2.spz", gzip_member(
+        spz_stream(2, 1, 0, flags=0x02) + coordinate_record(COORD_RUB)))
+
+    # ---- Rejections (ADR 0002 item 6 and the fixture list beside it) ----
+    # Declared non-RUB frames, in both generations (GSPZ-E016), and a
+    # coordinate record too short for its value (GSPZ-E004).
+    write("coordinate-rdf-v4.spz", v4_container(
+        minimal, extensions=coordinate_record(COORD_RDF)))
+    write("coordinate-rdf-v2.spz", gzip_member(
+        spz_stream(2, 1, 0, flags=0x02) + coordinate_record(COORD_RDF)))
+    write("coordinate-undefined-v4.spz", v4_container(
+        minimal, extensions=coordinate_record(17)))
+    write("coordinate-short-v4.spz", v4_container(
+        minimal, extensions=ext_record(COORDINATE_SYSTEM, b"\x04\x00")))
+    # Extension zone without the extensions flag (GSPZ-E009).
+    write("unflagged-zone-v4.spz", v4_container(
+        minimal, extensions=ext_record(0x12345678, b"EXTBYTES"), flags=0))
+    # A version-4 header inside gzip: v4 is only the plaintext layout.
+    write("gzip-v4.spz", gzip_member(spz_stream(4, 1, 0)))
+
+    # Header and TOC structure.
+    full = v4_container(minimal)
+    write("truncated-header-v4.spz", full[:20])
+    write("shared-limit-v4.spz", v4_container(minimal)[:8] +
+          struct.pack("<I", 8_000_001) + full[12:])
+    write("count-exceeds-file-v4.spz", v4_container(minimal)[:8] +
+          struct.pack("<I", 1_000_000) + full[12:])
+    write("toc-offset-low-v4.spz", v4_container(minimal, toc_offset=16))
+    write("toc-offset-past-end-v4.spz", v4_container(
+        minimal, toc_offset=len(full) + 1))
+    write("stream-count-v4.spz", v4_container(minimal, num_streams=6))
+    _, streams = v3_streams(minimal)
+    frames = [zstd_frame(s) for s in streams]
+    toc = [(len(f), len(s)) for f, s in zip(frames, streams)]
+    write("stream-size-v4.spz", v4_container(
+        minimal, toc=[toc[0], (toc[1][0], 2)] + toc[2:]))
+    # The TOC leaves bytes over (short) or claims more than is left (long).
+    write("toc-short-v4.spz", v4_container(minimal) + b"JUNK")
+    write("toc-overlong-v4.spz", full[:-3])
+    write("truncated-toc-v4.spz", full[:32 + 16 * 3])
+
+    # Frame layout. Larger streams, so the frames carry compressed blocks.
+    many = spz_stream(3, 64, 1)
+    _, streams = v3_streams(many)
+    frames = [zstd_frame(s) for s in streams]
+
+    def with_frames(replaced: list[bytes]) -> bytes:
+        return v4_container(many, frames=replaced, toc=[
+            (len(f), len(s)) for f, s in zip(replaced, streams)])
+
+    # A frame cut short, with the TOC describing the cut (GSPZ-E007).
+    cut = list(frames)
+    cut[1] = cut[1][:-2]
+    write("truncated-frame-v4.spz", with_frames(cut))
+    # Not a zstd frame at all (bad magic) and a reserved block type: both
+    # undecodable (GSPZ-E008).
+    bad = list(frames)
+    bad[2] = b"\x00\x00\x00\x00" + bad[2][4:]
+    write("corrupt-frame-v4.spz", with_frames(bad))
+    bad = list(frames)
+    header_size = len(bad[3]) - len(zstd_frame_body(bad[3]))
+    block = bytearray(bad[3])
+    block[header_size] |= 0x06  # Block_Type = 3 (reserved)
+    bad[3] = bytes(block)
+    write("corrupt-block-v4.spz", with_frames(bad))
+    # A checksummed frame whose content no longer matches (GSPZ-E008).
+    checked = [zstd_frame(s, checksum=True) for s in streams]
+    flipped = bytearray(checked[4])
+    flipped[-5] ^= 0xFF  # a content byte, not the 4-byte checksum
+    checked[4] = bytes(flipped)
+    write("bad-checksum-v4.spz", with_frames(checked))
+    # Two data frames in one stream: inside the first stream, and inside the
+    # last (where only skippable frames may follow).
+    write("second-frame-v4.spz", with_frames(
+        [frames[0] + zstd_frame(b"x")] + frames[1:]))
+    write("second-frame-last-v4.spz", with_frames(
+        frames[:-1] + [frames[-1] + zstd_frame(b"x")]))
+    # A skippable frame outside the last stream, and one that begins a
+    # stream instead of its data frame.
+    write("skippable-outside-last-v4.spz", with_frames(
+        [frames[0] + skippable_frame(b"EXT")] + frames[1:]))
+    write("skippable-first-v4.spz", with_frames(
+        frames[:2] + [skippable_frame(b"EXT") + frames[2]] + frames[3:]))
+    # A skippable frame that claims more bytes than the stream holds.
+    write("truncated-skippable-v4.spz", with_frames(
+        frames[:-1] + [frames[-1] + skippable_frame(b"EXTENSION")[:-4]]))
+    # The frame records a content size other than the TOC's (GSPZ-E004),
+    # and a frame with no recorded size that decodes to more (GSPZ-E008).
+    write("content-size-v4.spz", with_frames(
+        frames[:1] + [zstd_frame(streams[1] + b"\x00")] + frames[2:]))
+    write("oversize-frame-v4.spz", with_frames(
+        frames[:1] +
+        [zstd_frame(streams[1] + b"\x00", content_size=False)] + frames[2:]))
+
+    # Decoder fixture: a v4 rewrap of the v3 decoder fixture, so v4 must
+    # decode to exactly the cloud its v3 partner decodes to (wbits=31 reads
+    # the gzip member).
+    write("decode-v4.spz", v4_container(
+        zlib.decompress((ROOT / "decode-v3.spz").read_bytes(), 31)))
+
+
+def zstd_frame_body(frame: bytes) -> bytes:
+    """The frame after its header (magic, descriptor, optional window,
+    dictionary ID and content size), i.e. starting at the first block."""
+    descriptor = frame[4]
+    size_flag = descriptor >> 6
+    single_segment = (descriptor >> 5) & 1
+    dict_flag = descriptor & 3
+    header = 4 + 1 + (0 if single_segment else 1)
+    header += [0, 1, 2, 4][dict_flag]
+    header += [1 if single_segment else 0, 2, 4, 8][size_flag]
+    return frame[header:]
+
+
 def main() -> None:
     ROOT.mkdir(parents=True, exist_ok=True)
     valid_fixtures()
     invalid_fixtures()
     decoder_fixtures()
+    v4_fixtures()
 
 
 if __name__ == "__main__":

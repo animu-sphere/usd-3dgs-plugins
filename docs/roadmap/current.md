@@ -32,6 +32,20 @@ fixed. `.splat` remains the dependency-free fallback if the spike rejects v4.
   ([ADR 0002](../adr/0002-vendored-zstd-decoder.md)). It also found that the
   packaged notices for miniz and libwebp do not include their licence texts;
   FMT-08 fixes this.
+- FMT-07 decided the questions the spike left open
+  ([SPZ_FORMAT.md](../reference/SPZ_FORMAT.md) §3-§5): a declared non-RUB
+  frame fails with the new `GSPZ-E016` in every container version; non-zero
+  v4 reserved bytes are accepted, as the reference reader does; a
+  gzip-wrapped version-4 header is malformed (`GSPZ-E004`); and SplatTransform
+  3.x files, which store RDF data without declaring it, get no warning
+  because nothing in the file identifies them. FMT-07 also updated the SPZ
+  references and added the zstd notices, so FMT-08 keeps the manifest and
+  package-consumer declarations, the miniz and libwebp licence texts, and
+  package validation on the release targets.
+- No redistributable real-world SPZ v4 capture exists. FMT-07 covers v4
+  with synthetic fixtures, v4 equivalence pairs, and SplatTransform's
+  reference-written 4-point v3/v4 pair. A v4 corpus asset converted from the
+  CC0 PLY corpus by the reference library is still wanted.
 
 ## Active work
 

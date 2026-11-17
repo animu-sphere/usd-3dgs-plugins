@@ -22,12 +22,13 @@ struct GaussianSpzMetadata {
     int shDegree = 0;
 };
 
-// Semantic decoding of an SPZ v1-v3 container into the format-independent
+// Semantic decoding of an SPZ v1-v4 container into the format-independent
 // GaussianCloudData: position/scale dequantization, rotation decoding and
 // normalization, opacity decoding, and SH dequantization. SPZ's native RUB
 // frame is the model's reference frame (ADR 0001), so no frame conversion is
-// applied. Container concerns (signature, gzip framing, truncation, size
-// math) stay in SpzReader; this class consumes its packed document. The
+// applied; the reader refuses a file that declares another frame. Container
+// concerns (signature, gzip and zstd framing, truncation, size math) stay in
+// SpzReader; this class consumes its packed document. The
 // exact mapping is docs/reference/SPZ_MAPPING.md.
 class GaussianSpzDecoder {
   public:

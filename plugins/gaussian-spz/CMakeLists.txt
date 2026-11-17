@@ -41,28 +41,67 @@ if(NOT EXISTS "${MINIZ_ROOT}/miniz.h")
     message(FATAL_ERROR "Vendored miniz was not found at ${MINIZ_ROOT}")
 endif()
 
+# Decompression-only Zstandard for the SPZ v4 container (ADR 0002). The file
+# list is upstream's single-file decoder recipe; third_party/zstd/VENDORING.md
+# records what was kept and dropped.
+set(ZSTD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/zstd/lib")
+if(NOT EXISTS "${ZSTD_ROOT}/zstd.h")
+    message(FATAL_ERROR "Vendored zstd was not found at ${ZSTD_ROOT}")
+endif()
+set(ZSTD_DECODER_SOURCES
+    "${ZSTD_ROOT}/common/debug.c"
+    "${ZSTD_ROOT}/common/entropy_common.c"
+    "${ZSTD_ROOT}/common/error_private.c"
+    "${ZSTD_ROOT}/common/fse_decompress.c"
+    "${ZSTD_ROOT}/common/xxhash.c"
+    "${ZSTD_ROOT}/common/zstd_common.c"
+    "${ZSTD_ROOT}/decompress/huf_decompress.c"
+    "${ZSTD_ROOT}/decompress/zstd_ddict.c"
+    "${ZSTD_ROOT}/decompress/zstd_decompress.c"
+    "${ZSTD_ROOT}/decompress/zstd_decompress_block.c")
+
 # Container reader and semantic decoder are deliberately USD-free and shared by
-# the plugin and unit tests, mirroring the PLY reader/decoder split. miniz is
-# isolated behind SpzReader; the gzip member framing is parsed in this
-# repository so container diagnostics keep their required granularity.
+# the plugin and unit tests, mirroring the PLY reader/decoder split. miniz and
+# zstd are isolated behind SpzReader; the gzip member framing and the v4 table
+# of contents are parsed in this repository so container diagnostics keep
+# their required granularity.
 add_library(gaussianSpzDecoder STATIC
     src/io/SpzReader.cpp
     src/io/GaussianSpzDecoder.cpp
-    "${MINIZ_ROOT}/miniz.c")
-set_target_properties(gaussianSpzDecoder PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    "${MINIZ_ROOT}/miniz.c"
+    ${ZSTD_DECODER_SOURCES})
+# Hidden C visibility keeps every vendored zstd (and miniz) symbol inside the
+# plugin library: a USD host often has another libzstd loaded, and ELF
+# interposition must not bind this decoder to it (ADR 0002 item 5). The
+# exported-symbol check in tests/ asserts the result.
+set_target_properties(gaussianSpzDecoder PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden)
 target_compile_features(gaussianSpzDecoder PUBLIC cxx_std_17)
 target_include_directories(gaussianSpzDecoder
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    PRIVATE "${MINIZ_ROOT}")
+    PRIVATE "${MINIZ_ROOT}" "${ZSTD_ROOT}")
 # Only the inflate and CRC32 paths of miniz are used. Trimming the archive,
 # stdio, and time facilities keeps the binary lean and keeps wall-clock and
 # filesystem access out of the decode path, which the reproducible-package
 # gate depends on.
+#
+# The zstd definitions are fixed by ADR 0002 item 4. They also apply to the
+# C++ reader that includes zstd.h, so both sides see the same declarations:
+# the empty visibility macros stop zstd.h from forcing default visibility.
 target_compile_definitions(gaussianSpzDecoder PRIVATE
     MINIZ_NO_ARCHIVE_APIS
     MINIZ_NO_ARCHIVE_WRITING_APIS
     MINIZ_NO_STDIO
-    MINIZ_NO_TIME)
+    MINIZ_NO_TIME
+    ZSTD_LEGACY_SUPPORT=0
+    ZSTD_DISABLE_ASM=1
+    ZSTD_TRACE=0
+    DEBUGLEVEL=0
+    ZSTD_STRIP_ERROR_STRINGS
+    XXH_NAMESPACE=ZSTD_
+    ZSTDLIB_VISIBLE=
+    ZSTDERRORLIB_VISIBLE=)
 target_link_libraries(gaussianSpzDecoder PUBLIC openstrata::gaussianCore)
 # /Brepro here and on the shared library below: MSVC embeds wall-clock
 # timestamps in object files, the PE header, and the debug directory, so two

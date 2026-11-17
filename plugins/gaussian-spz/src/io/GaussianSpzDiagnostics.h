@@ -18,8 +18,10 @@
 namespace openstrata::gs::spz::diag {
 
 // Container errors (SpzReader). The malformed / unsupported / internal
-// distinction is a v0.3.0 release criterion: a user handed an SPZ v4 file is
-// told the version is not supported yet (E003), not that the file is corrupt.
+// distinction is a release criterion: a user handed a container version this
+// release does not know is told it is not supported (E003), not that the file
+// is corrupt. E004, E007, and E008 cover both the gzip (v1-v3) and the zstd
+// (v4) generations.
 inline constexpr const char* kNotSpzContainer = "GSPZ-E001";
 inline constexpr const char* kEmptyPointSet = "GSPZ-E002";
 inline constexpr const char* kUnsupportedVersion = "GSPZ-E003";
@@ -47,6 +49,11 @@ inline constexpr const char* kModelAllocationFailed = "GSPZ-E014";
 // A syntactically valid container exceeds the shared import safety ceiling or
 // the bounded extension-record budget.
 inline constexpr const char* kImportLimitExceeded = "GSPZ-E015";
+// An SPZ_ADOBE_coordinate_system extension declares a storage frame other than
+// RUB. Unsupported, not malformed: the file is valid, but the importer does
+// not convert between frames, and authoring it unconverted would silently
+// change its orientation (SPZ_FORMAT.md §5).
+inline constexpr const char* kUnsupportedCoordinateSystem = "GSPZ-E016";
 
 // Internal misuse of the import pipeline (null output parameters,
 // inconsistent container spans). Reported defensively; not reachable from

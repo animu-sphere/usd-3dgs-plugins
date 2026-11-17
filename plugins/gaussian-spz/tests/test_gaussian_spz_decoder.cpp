@@ -34,6 +34,12 @@ std::string Fixture(const char* name)
     return (std::filesystem::path(GAUSSIAN_SPZ_FIXTURE_DIR) / name).string();
 }
 
+// Third-party reference files that are not packaged (tests/reference).
+std::string Reference(const char* name)
+{
+    return (std::filesystem::path(GAUSSIAN_SPZ_REFERENCE_DIR) / name).string();
+}
+
 bool HasCode(const std::string& error, const char* code)
 {
     return error.rfind(std::string("[") + code + "]", 0) == 0;
@@ -232,6 +238,100 @@ void TestVersion3SmallestThreeRotation()
     CheckClose(cloud.rotations[0].k, 0.4f / norm, 2e-2f, "v3 rot.z");
 }
 
+// Exact equality of two decoded clouds: the same quantized bytes must yield
+// the same floats whichever container carried them.
+void CheckSameCloud(const gs::GaussianCloudData& a,
+                    const gs::GaussianCloudData& b, const char* what)
+{
+    const auto fail = [&](const char* field) {
+        std::cerr << what << ": " << field << " differs\n";
+        ++failures;
+    };
+    if (a.gaussianCount != b.gaussianCount || a.shDegree != b.shDegree) {
+        fail("count or degree");
+        return;
+    }
+    for (std::size_t i = 0; i < a.gaussianCount; ++i) {
+        const auto& p = a.positions[i];
+        const auto& q = b.positions[i];
+        if (p.x != q.x || p.y != q.y || p.z != q.z) {
+            fail("position");
+        }
+        const auto& s = a.scales[i];
+        const auto& t = b.scales[i];
+        if (s.x != t.x || s.y != t.y || s.z != t.z) {
+            fail("scale");
+        }
+        const auto& r = a.rotations[i];
+        const auto& u = b.rotations[i];
+        if (r.real != u.real || r.i != u.i || r.j != u.j || r.k != u.k) {
+            fail("rotation");
+        }
+        if (a.opacities[i] != b.opacities[i]) {
+            fail("opacity");
+        }
+        const auto& c = a.dcCoefficients[i];
+        const auto& d = b.dcCoefficients[i];
+        if (c.x != d.x || c.y != d.y || c.z != d.z) {
+            fail("dc");
+        }
+    }
+    if (a.restCoefficients.size() != b.restCoefficients.size()) {
+        fail("rest size");
+        return;
+    }
+    for (std::size_t i = 0; i < a.restCoefficients.size(); ++i) {
+        const auto& c = a.restCoefficients[i];
+        const auto& d = b.restCoefficients[i];
+        if (c.x != d.x || c.y != d.y || c.z != d.z) {
+            fail("rest");
+            return;
+        }
+    }
+}
+
+// v4 changes only the container: decode-v4.spz carries the very bytes of
+// decode-v3.spz in zstd streams, so it decodes to the identical cloud.
+void TestVersion4MatchesVersion3()
+{
+    const gsspz::GaussianSpzDecoder decoder;
+    gs::GaussianCloudData v3;
+    gs::GaussianCloudData v4;
+    std::vector<std::string> warnings;
+    std::string error;
+    gs::GaussianImportStats stats;
+    CHECK(decoder.Decode(Fixture("decode-v3.spz"), &v3, nullptr, &error));
+    CHECK(decoder.Decode(Fixture("decode-v4.spz"), &v4, &warnings, &error,
+                         &stats));
+    CHECK(error.empty());
+    CHECK(warnings.empty());
+    CheckContract(v4);
+    CheckSameCloud(v3, v4, "decode-v4 vs decode-v3");
+    CHECK(stats.sourceVersion == "4");
+    CHECK(stats.coordinateConversion == gs::GaussianCoordinateConversion::None);
+}
+
+// An independent check: SplatTransform wrote the same 4-point cloud as v3 and
+// as v4 with the reference library (tests/reference/README.md). The v3 path
+// shipped before v4 support, so equal clouds tie the new path to it.
+void TestReferenceWrittenVersion4()
+{
+    const gsspz::GaussianSpzDecoder decoder;
+    gs::GaussianCloudData v3;
+    gs::GaussianCloudData v4;
+    std::string error;
+    CHECK(decoder.Decode(Reference("splattransform-minimal-v3.spz"), &v3,
+                         nullptr, &error));
+    CHECK(error.empty());
+    CHECK(decoder.Decode(Reference("splattransform-minimal-v4.spz"), &v4,
+                         nullptr, &error));
+    CHECK(error.empty());
+    CHECK(v4.gaussianCount == 4);
+    CHECK(v4.shDegree == 0);
+    CheckContract(v4);
+    CheckSameCloud(v3, v4, "SplatTransform minimal v4 vs v3");
+}
+
 void TestMetadataOnly()
 {
     const gsspz::GaussianSpzDecoder decoder;
@@ -248,6 +348,21 @@ void TestMetadataOnly()
     CHECK(!decoder.DecodeMetadata(Fixture("decode-degree4-v2.spz"), &metadata,
                                   &error));
     CHECK(HasCode(error, gsspz::diag::kUnsupportedShDegree));
+
+    // v4 metadata comes from the plaintext header, without decompression,
+    // and refuses what Decode() would refuse for the header's sake.
+    error.clear();
+    CHECK(decoder.DecodeMetadata(Fixture("three-points-degree1-v4.spz"),
+                                 &metadata, &error));
+    CHECK(error.empty());
+    CHECK(metadata.gaussianCount == 3);
+    CHECK(metadata.shDegree == 1);
+    CHECK(
+        !decoder.DecodeMetadata(Fixture("degree4-v4.spz"), &metadata, &error));
+    CHECK(HasCode(error, gsspz::diag::kUnsupportedShDegree));
+    CHECK(!decoder.DecodeMetadata(Fixture("coordinate-rdf-v4.spz"), &metadata,
+                                  &error));
+    CHECK(HasCode(error, gsspz::diag::kUnsupportedCoordinateSystem));
 }
 
 void TestDecodeFailure(const char* fixture, const char* code)
@@ -268,7 +383,9 @@ void TestDecodeFailure(const char* fixture, const char* code)
 void TestContainerFailuresPropagate()
 {
     TestDecodeFailure("version-5.spz", gsspz::diag::kUnsupportedVersion);
-    TestDecodeFailure("plaintext-v4.spz", gsspz::diag::kUnsupportedVersion);
+    TestDecodeFailure("plaintext-v4.spz", gsspz::diag::kTruncatedContainer);
+    TestDecodeFailure("plaintext-v5.spz", gsspz::diag::kUnsupportedVersion);
+    TestDecodeFailure("corrupt-block-v4.spz", gsspz::diag::kCorruptContainer);
     TestDecodeFailure("empty-points-v2.spz", gsspz::diag::kEmptyPointSet);
     TestDecodeFailure("not-spz.spz", gsspz::diag::kNotSpzContainer);
     TestDecodeFailure("truncated-payload-v2.spz",
@@ -281,6 +398,13 @@ void TestSemanticFailures()
                       gsspz::diag::kUnsupportedShDegree);
     TestDecodeFailure("decode-nonfinite-v1.spz",
                       gsspz::diag::kNonFinitePosition);
+    TestDecodeFailure("degree4-v4.spz", gsspz::diag::kUnsupportedShDegree);
+    // A declared non-RUB frame is refused in both generations, never
+    // imported with only a warning (SPZ_FORMAT.md §5).
+    TestDecodeFailure("coordinate-rdf-v4.spz",
+                      gsspz::diag::kUnsupportedCoordinateSystem);
+    TestDecodeFailure("coordinate-rdf-v2.spz",
+                      gsspz::diag::kUnsupportedCoordinateSystem);
 }
 
 void TestWarningsForIgnoredData()
@@ -304,6 +428,37 @@ void TestWarningsForIgnoredData()
     }
     CHECK(sawExtensions);
     CHECK(sawAntialiased);
+
+    // v4: the unknown record and the extension frame are reported; the RUB
+    // coordinate-system record was honored, so it is not.
+    warnings.clear();
+    CHECK(decoder.Decode(Fixture("extensions-v4.spz"), &cloud, &warnings,
+                         &error));
+    CHECK(error.empty());
+    std::string extensionWarning;
+    sawAntialiased = false;
+    for (const std::string& warning : warnings) {
+        if (HasCode(warning, gsspz::diag::kExtensionsIgnored)) {
+            extensionWarning = warning;
+        }
+        sawAntialiased = sawAntialiased ||
+                         HasCode(warning, gsspz::diag::kAntialiasedFlagIgnored);
+    }
+    CHECK(sawAntialiased);
+    CHECK(extensionWarning.find("1 extension record(s) of type 0x12345678") !=
+          std::string::npos);
+    CHECK(extensionWarning.find("17 byte(s) of zstd extension frames") !=
+          std::string::npos);
+    CHECK(extensionWarning.find("0xADBE0003") == std::string::npos);
+
+    // A record that declares RUB, or leaves the frame unspecified, changes
+    // nothing and warns about nothing.
+    for (const char* fixture :
+         {"coordinate-unspecified-v4.spz", "coordinate-rub-v2.spz"}) {
+        warnings.clear();
+        CHECK(decoder.Decode(Fixture(fixture), &cloud, &warnings, &error));
+        CHECK(warnings.empty());
+    }
 }
 
 void TestInternalMisuse()
@@ -404,6 +559,8 @@ int main()
     TestDegree3ShStride();
     TestVersion1Float16Positions();
     TestVersion3SmallestThreeRotation();
+    TestVersion4MatchesVersion3();
+    TestReferenceWrittenVersion4();
     TestMetadataOnly();
     TestContainerFailuresPropagate();
     TestSemanticFailures();

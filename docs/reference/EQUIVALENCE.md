@@ -31,6 +31,11 @@ model. Several claims are asserted nowhere else:
 - the quaternion component order, the two SPZ rotation encodings, and SOG's
   smallest-three unpack.
 
+SPZ is paired in three containers. The degree-3 on-grid model is stored as v2
+(first-three rotations), v3 (smallest-three), and v4; the off-grid model as v2
+and v4. v4 stores v3's attribute bytes in per-attribute zstd streams, so its
+pairs hold the same tolerances as v3 and test the container path end to end.
+
 The per-bundle decoder suites check each format against re-derived formulas or
 an encode→decode inverse. Those catch a wrong formula; they cannot catch a
 formula that is wrong *consistently* on both the encode and decode side. The
@@ -52,7 +57,7 @@ Each tolerance is half of one SPZ quantization step:
 
 | Attribute | SPZ storage | Step | Tolerance |
 | --- | --- | --- | --- |
-| position (v2/v3) | 24-bit fixed point, `fractionalBits = 12` | 2⁻¹² | 2⁻¹³ ≈ 1.22e-4 |
+| position (v2-v4) | 24-bit fixed point, `fractionalBits = 12` | 2⁻¹² | 2⁻¹³ ≈ 1.22e-4 |
 | position (v1) | float16 | value-dependent | not paired; see §5 |
 | scale | `uint8`, log-encoded, `exp(b/16 - 10)` | 1/16 in log space | relative `exp(1/32) - 1` ≈ 3.18e-2 |
 | opacity | `uint8`, `b/255` | 1/255 | 1/510 ≈ 1.96e-3 |

@@ -22,8 +22,8 @@ single import into an unbounded allocation request.
 | SOG ZIP entry / companion input size | 512 MiB | SOG planes |
 | SOG decoded plane dimensions | 16,383 x 16,383 pixels | SOG WebP planes |
 | SOG decoded RGBA plane size | 512 MiB | SOG WebP planes |
-| SPZ source file size | 1 GiB | SPZ v1-v3 |
-| SPZ extension records | 64 MiB | SPZ v1-v3 |
+| SPZ source file size | 1 GiB | SPZ v1-v4 |
+| SPZ extension records | 64 MiB | SPZ v1-v4 |
 
 For bundled SOG, full and metadata-only reads check the declared expanded size
 of `meta.json` before allocating its extraction buffer or inflating the entry.
@@ -57,7 +57,7 @@ message naming the budget that fired.
 
 | Budget | Hostile input | Expected |
 | --- | --- | --- |
-| Declared Gaussian count | `gaussian-ply/.../too-many-gaussians.ply`, `gaussian-ply/.../compressed-too-many-gaussians.ply` (header only; full and metadata-only reads), `gaussian-spz/.../shared-limit-v2.spz`, `gaussian-sog/.../too-many-gaussians/meta.json` | `GSPLY-E019`, `GSPZ-E015`, `GSSOG-E016` |
+| Declared Gaussian count | `gaussian-ply/.../too-many-gaussians.ply`, `gaussian-ply/.../compressed-too-many-gaussians.ply` (header only; full and metadata-only reads), `gaussian-spz/.../shared-limit-v2.spz`, `gaussian-spz/.../shared-limit-v4.spz` (header only; full and metadata-only reads), `gaussian-sog/.../too-many-gaussians/meta.json` | `GSPLY-E019`, `GSPZ-E015`, `GSSOG-E016` |
 | SOG `meta.json` size | `zip-metadata-over-limit.sog` declares 4 MiB + 1 byte; unbundled `meta.json` of the same size, written at test time | `GSSOG-E016` (full and metadata-only reads) |
 | SOG JSON nesting depth / value tokens | in-memory documents one past each bound | `ParseJson` rejection (`GSSOG-E005` when reached through `meta.json`) |
 | SOG ZIP entries | `too-many-entries.sog` (65 entries) | `GSSOG-E016` |
@@ -68,6 +68,7 @@ message naming the budget that fired.
 | SOG plane dimensions | `oversized-plane-dimensions.sog` (header declares 16,384 x 1) | `GSSOG-E016` |
 | SOG decoded RGBA plane size | `oversized-plane-bytes.sog` (header declares 16,383 x 16,383) | `GSSOG-E016` |
 | SPZ extension records | `oversized-extensions-v2.spz` (64 MiB + 1 byte of zeros, ~64 KiB compressed) | `GSPZ-E015` |
+| SPZ v4 extension zone | `.spz` whose v4 header places the TOC 64 MiB + 1 byte after the header, grown to hold it at test time (reader `TestOversizedV4ExtensionZone`) | `GSPZ-E015` (full and header-only reads) |
 | SOG bundled archive source size | `.sog` grown to 1 GiB + 1 byte at test time (reader `TestOversizedBundledArchive`) | `GSSOG-E016` (full and metadata-only reads) |
 | SPZ source file size | `.spz` grown to 1 GiB + 1 byte at test time (reader `TestOversizedSource`) | `GSPZ-E015` (full and header-only reads) |
 | SOG companion input size, directory loader | `quats.webp` grown to 512 MiB + 1 byte at test time (reader `TestOversizedUnbundledCompanion`) | `GSSOG-E016`; the metadata-only read still succeeds |

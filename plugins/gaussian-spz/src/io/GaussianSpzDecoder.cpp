@@ -170,6 +170,50 @@ void UnpackRotationSmallestThree(const unsigned char* r, float (&q)[4]) noexcept
     q[largest] = std::sqrt(std::max(0.0f, 1.0f - squaredNorm));
 }
 
+// What GSPZ-W001 reports. A coordinate-system record has already been
+// checked by the reader: one that reached the decoder declares RUB or leaves
+// the frame unspecified, so it was honored, not ignored.
+std::string DescribeIgnoredExtensions(const SpzPackedDocument& document)
+{
+    std::vector<std::string> parts;
+    std::size_t records = 0;
+    std::string types;
+    for (const SpzExtensionRecord& record : document.extensionRecords) {
+        if (record.type == kCoordinateSystemExtension) {
+            continue;
+        }
+        static const char kDigits[] = "0123456789ABCDEF";
+        std::string hex = "0x";
+        for (int shift = 28; shift >= 0; shift -= 4) {
+            hex += kDigits[(record.type >> shift) & 0xfu];
+        }
+        if (types.find(hex) == std::string::npos) {
+            types += (types.empty() ? "" : ", ") + hex;
+        }
+        ++records;
+    }
+    if (records != 0) {
+        parts.push_back(std::to_string(records) +
+                        " extension record(s) of type " + types);
+    }
+    if (document.unparsedExtensionBytes != 0) {
+        parts.push_back(std::to_string(document.unparsedExtensionBytes) +
+                        " extension byte(s) that do not form a whole record");
+    }
+    if (document.extensionFrameBytes != 0) {
+        parts.push_back(std::to_string(document.extensionFrameBytes) +
+                        " byte(s) of zstd extension frames");
+    }
+    std::string text;
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+        text += (i == 0                ? "" :
+                 i + 1 == parts.size() ? " and " :
+                                         ", ") +
+                parts[i];
+    }
+    return text.empty() ? text : text + " were";
+}
+
 } // namespace
 
 bool GaussianSpzDecoder::CanRead(const std::string& path) const noexcept
@@ -405,12 +449,12 @@ bool GaussianSpzDecoder::Decode(const std::string& path,
     }
 
     if (warnings) {
-        if (!document.extensions.empty()) {
+        const std::string ignored = DescribeIgnoredExtensions(document);
+        if (!ignored.empty()) {
             warnings->push_back(diag::Format(
                 diag::kExtensionsIgnored,
-                std::to_string(document.extensions.size()) +
-                    " extension-record byte(s) were ignored; extension records "
-                    "are not part of the shared Gaussian model."));
+                ignored + " ignored; extension data is not part of the shared "
+                          "Gaussian model."));
         }
         if (header.IsAntialiased()) {
             warnings->push_back(diag::Format(
