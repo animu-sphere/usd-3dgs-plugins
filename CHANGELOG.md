@@ -6,6 +6,10 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-17
+
+**Format coverage expansion: SuperSplat compressed PLY.**
+
 ### Added
 
 - `gaussian-ply` imports SuperSplat compressed PLY: binary little-endian
@@ -32,6 +36,14 @@ semantic versioning for tagged releases.
 - A compressed PLY now imports instead of failing with `GSPLY-E001`. Its
   stage records `customData.gs.sourceFormat = "Gaussian Splatting compressed
   PLY"`; uncompressed PLY is unchanged.
+
+### Compatibility
+
+- The v0.10.0 aggregate packages contain the PLY, SPZ, and SOG importers
+  for the OpenStrata `cy2026` / `usd` profile on Windows x86_64, macOS
+  arm64, and Linux x86_64 with OpenUSD 26.08 and Python 3.13. Compressed
+  PLY needs no new library or plugin registration; it opens through the
+  existing `gaussian-ply` bundle.
 
 ## [0.9.0] - 2026-11-16
 
