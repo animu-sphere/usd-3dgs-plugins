@@ -34,6 +34,8 @@ as work starts; keep task checklists in those issues or PRs.
 | FMT-03 | Implement the first selected format end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate). | [PR #63](https://github.com/animu-sphere/usd-3dgs-plugins/pull/63); [mapping contract](../reference/COMPRESSED_PLY_MAPPING.md) |
 | FMT-04 | Update references and validate packages | Capability claims cite implementation evidence. Declared source and package consumer gates pass on the release targets. | [PR #64](https://github.com/animu-sphere/usd-3dgs-plugins/pull/64) |
 
+The remaining milestone work is the [v0.10.0 release gate](../releases/README.md#release-gate).
+
 ## Decisions
 
 - Render-mode tags warn. A non-default `SplatRenderMode` (`mip` or `2dgs`) or
