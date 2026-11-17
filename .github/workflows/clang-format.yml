@@ -2,6 +2,20 @@ name: clang-format
 
 on:
   pull_request:
+    # Keep in sync with SOURCE_SUFFIXES in scripts/check_clang_format.py.
+    paths:
+      - '**/*.c'
+      - '**/*.cc'
+      - '**/*.cpp'
+      - '**/*.cxx'
+      - '**/*.h'
+      - '**/*.hh'
+      - '**/*.hpp'
+      - '**/*.hxx'
+      - '.clang-format'
+      - '.clang-format-ignore'
+      - 'scripts/check_clang_format.py'
+      - '.github/workflows/clang-format.yml'
 
 permissions:
   contents: read

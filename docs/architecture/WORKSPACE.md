@@ -187,8 +187,14 @@ Every structural or format PR preserves these invariants:
 ## 8. CI and verification contract
 
 `openstrata.ci.yaml` is the source of truth. `scripts/generate_source_ci.py`
-runs `ost ci generate github` and adds the benchmark JSON to the workspace
-jobs' evidence uploads. The declared PR matrix is:
+runs `ost ci generate github`. It adds the benchmark JSON to the workspace
+jobs' evidence uploads. It also adds a path filter, so pull requests that
+change only `docs/` or Markdown files skip the build matrix. The filter keeps
+`THIRD_PARTY_NOTICES.md` because every bundle packages it. `docs.yml` checks
+documentation on every pull request, and `clang-format.yml` runs only when
+C/C++ sources or their format policy change. If a ruleset makes source CI
+checks required, a skipped workflow leaves them pending. Change the filter
+before enabling such a rule. The declared PR matrix is:
 
 | Host | Target | OST level |
 | --- | --- | --- |
