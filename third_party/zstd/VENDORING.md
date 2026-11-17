@@ -77,13 +77,17 @@ The size of `libGaussianSpzFileFormat` in the release products, before and
 after the decoder was added (ADR 0002, *Package change*). "Before" is the
 published v0.10.0 product; the plugin and library sources did not change
 between v0.10.0 and the vendoring change. "After" is the release workflow's
-dry run of the vendoring change.
+dry run of the vendoring change (run `44111232343`, 2026-11-17, commit
+`0f26227`). Sizes are in bytes.
 
 | Target | Before (v0.10.0) | After | Change |
 | --- | ---: | ---: | ---: |
-| Windows x86-64 (MSVC 143) | 235,008 | — | — |
-| Ubuntu 24.04 x86-64 (GCC) | 422,448 | — | — |
-| macOS 15 arm64 (Apple Clang) | 309,216 | — | — |
+| Windows x86-64 (MSVC 143) | 235,008 | 336,896 | +101,888 (+43%) |
+| Ubuntu 24.04 x86-64 (GCC) | 422,448 | 651,376 | +228,928 (+54%) |
+| macOS 15 arm64 (Apple Clang) | 309,216 | 416,576 | +107,360 (+35%) |
+
+The Linux library in the same dry run exports no vendored decoder symbol;
+the v0.10.0 one exported 40 miniz symbols.
 
 ## Re-vendoring
 
