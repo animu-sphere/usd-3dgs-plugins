@@ -6,6 +6,7 @@ Release records are history and are not rewritten after publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
+| v0.10.0 | 2026-11-17 | [v0.10.0.md](v0.10.0.md) — format coverage expansion: SuperSplat compressed PLY |
 | v0.9.0 | 2026-11-16 | [v0.9.0.md](v0.9.0.md) — experimental rendering integration preview |
 | v0.8.0 | 2026-11-15 | [v0.8.0.md](v0.8.0.md) — USD packaging and asset composition |
 | v0.7.0 | 2026-11-15 | [v0.7.0.md](v0.7.0.md) — performance and large-asset readiness |
