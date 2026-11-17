@@ -259,3 +259,15 @@ log the roadmap no longer needs to carry.
 - ✅ Shared CMake setup between workspace and standalone bundle builds and
   verified product packages on Windows, macOS, and Linux.
   [Release record](../releases/v0.8.0.md)
+
+## L. v0.10.0 — format coverage expansion
+
+- ✅ Evaluated compressed PLY, `.splat`, `.ksplat`, and SPZ v4, and selected
+  SuperSplat compressed PLY.
+  [Format spike](format-spike-compressed-ply-2026-11-17.md)
+- ✅ Imported compressed PLY in `gaussian-ply` with header-signature routing,
+  new diagnostics, and a lossless-PLY equivalence suite.
+  [Mapping contract](../reference/COMPRESSED_PLY_MAPPING.md)
+- ✅ Declared compressed fixtures in the package gates and verified product
+  packages on Windows, macOS, and Linux.
+  [Release record](../releases/v0.10.0.md)

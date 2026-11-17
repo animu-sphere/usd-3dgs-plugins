@@ -1,26 +1,21 @@
-# Current: v0.10.0 — Format Coverage Expansion
+# Current: v0.11.0 — SPZ v4 Format Coverage
 
 ## Goal
 
-Extend input coverage through the shared decoder-to-USD pipeline.
+Read SPZ version 4 through the existing `gaussian-spz` bundle and the shared
+decoder-to-USD pipeline, so files from current SPZ writers no longer fail with
+`GSPZ-E003`.
 
-## Scope and selection
+## Why SPZ v4
 
-FMT-02 selected SuperSplat compressed PLY as the v0.10.0 input, scoped as in
-[§7 of the spike](../reports/format-spike-compressed-ply-2026-11-17.md#7-proposed-scope):
-
-- Binary little-endian, the 18-property `chunk`, exactly the four packed
-  `uint` vertex properties, and an optional `sh` element for SH degree 1–3.
-  Full and metadata-only reads.
-- The 12-property chunk, ASCII, and big-endian encodings are rejected with
-  specific `GSPLY` diagnostics.
-- Routing and the decoder stay inside the existing `gaussian-ply` bundle. No
-  new dependency, library, or registration.
-
-`.splat`, `.ksplat`, and SPZ v4 were not selected; the
-[backlog](backlog.md#other-format-candidates) records why and when to revisit
-them. The [capability matrix](../reference/CAPABILITY_MATRIX.md) is the
-reference for what can be opened today.
+v0.10.0 deferred SPZ v4 because of its Zstandard dependency
+([SPZ container scope](../reference/SPZ_FORMAT.md#3-container-version-scope)).
+Its revisit trigger, a producer that writes v4 by default, now appears to be
+met. Niantic Spatial published SPZ 4 in May
+2026, replacing the single gzip stream with one ZSTD stream per attribute
+class. Postshot exports v4, and the PlayCanvas writer defaults to it.
+FMT-05 confirms these claims from primary sources before the release scope is
+fixed. `.splat` remains the dependency-free fallback if the spike rejects v4.
 
 ## Active work
 
@@ -29,27 +24,14 @@ as work starts; keep task checklists in those issues or PRs.
 
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
-| FMT-01 | Evaluate candidates, starting with compressed PLY | Spike documents representative assets, a reproducible format signature, attribute fidelity, license and fixture availability, and dependency cost. | [Compressed PLY spike](../reports/format-spike-compressed-ply-2026-11-17.md) |
-| FMT-02 | Select the release scope | Record the selected format or variant in the selection issue or PR. Record skipped candidates and revisit conditions in the [backlog](backlog.md). | Compressed PLY selected; see [Scope and selection](#scope-and-selection) |
-| FMT-03 | Implement the first selected format end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate). | [PR #63](https://github.com/animu-sphere/usd-3dgs-plugins/pull/63); [mapping contract](../reference/COMPRESSED_PLY_MAPPING.md) |
-| FMT-04 | Update references and validate packages | Capability claims cite implementation evidence. Declared source and package consumer gates pass on the release targets. | [PR #64](https://github.com/animu-sphere/usd-3dgs-plugins/pull/64) |
-
-The remaining milestone work is the [v0.10.0 release gate](../releases/README.md#release-gate).
-
-## Decisions
-
-- Render-mode tags warn. A non-default `SplatRenderMode` (`mip` or `2dgs`) or
-  `postshot.anti_aliasing=1` in a compressed PLY produces `GSPLY-W004`, by
-  analogy with SPZ's antialiased flag (`GSPZ-W002`). The
-  [backlog](backlog.md#other-format-candidates) records whether the
-  uncompressed dialect should follow.
-- The source-format label is `"Gaussian Splatting compressed PLY"` in
-  `customData.gs` and in the import stats, so consumers can tell a quantized
-  source apart. Uncompressed PLY keeps `"Gaussian Splatting PLY"`.
+| FMT-05 | Spike SPZ v4 | A report documents the container layout and its relation to v1-v3, the authoritative specification or reference implementation, the default version of each observed writer, redistributable fixtures, and the decoder's dependency and package cost. | — |
+| FMT-06 | Decide the Zstandard dependency | An ADR accepts or rejects a vendored, decompression-only Zstandard decoder: version pin, licence and notices, bounds on hostile streams, and the package change on every release target. | — |
+| FMT-07 | Implement SPZ v4 end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including v4 entries in the PLY/SPZ equivalence suite. | — |
+| FMT-08 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares v4 fixtures, and the declared source and package consumer gates pass on the release targets. | — |
 
 ## Release exit
 
-- At least one selected input passes the
+- SPZ v4, or the fallback chosen by FMT-05, passes the
   [format acceptance gate](release-plan.md#format-acceptance-gate).
 - The [release procedure](../releases/) covers package verification, draft
   review, and the post-tag record.
