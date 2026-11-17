@@ -317,6 +317,7 @@ void TestFailures()
         {"compressed-sh-not-rgb.ply", "GSPLY-E008", true, true},
         {"compressed-sh-degree-4.ply", "GSPLY-E017", true, true},
         {"compressed-empty.ply", "GSPLY-E002", true, true},
+        {"compressed-too-many-gaussians.ply", "GSPLY-E019", true, true},
         {"compressed-missing-chunk.ply", "GSPLY-E001", true, false},
         {"compressed-nan-bound.ply", "GSPLY-E024", false, true},
         {"compressed-inverted-bound.ply", "GSPLY-E024", false, true},

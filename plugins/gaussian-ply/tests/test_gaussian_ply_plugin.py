@@ -41,6 +41,7 @@ NEGATIVE_FIXTURES = {
     "compressed-scale-overflow.ply": "GSPLY-E012",
     "compressed-truncated.ply": "GSPLY-E015",
     "compressed-sh-degree-4.ply": "GSPLY-E017",
+    "compressed-too-many-gaussians.ply": "GSPLY-E019",
     "compressed-ascii.ply": "GSPLY-E020",
     "compressed-big-endian.ply": "GSPLY-E020",
     "compressed-colourless-chunk.ply": "GSPLY-E021",

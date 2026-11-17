@@ -32,7 +32,7 @@ as work starts; keep task checklists in those issues or PRs.
 | FMT-01 | Evaluate candidates, starting with compressed PLY | Spike documents representative assets, a reproducible format signature, attribute fidelity, license and fixture availability, and dependency cost. | [Compressed PLY spike](../reports/format-spike-compressed-ply-2026-11-17.md) |
 | FMT-02 | Select the release scope | Record the selected format or variant in the selection issue or PR. Record skipped candidates and revisit conditions in the [backlog](backlog.md). | Compressed PLY selected; see [Scope and selection](#scope-and-selection) |
 | FMT-03 | Implement the first selected format end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate). | [PR #63](https://github.com/animu-sphere/usd-3dgs-plugins/pull/63); [mapping contract](../reference/COMPRESSED_PLY_MAPPING.md) |
-| FMT-04 | Update references and validate packages | Capability claims cite implementation evidence. Declared source and package consumer gates pass on the release targets. | — |
+| FMT-04 | Update references and validate packages | Capability claims cite implementation evidence. Declared source and package consumer gates pass on the release targets. | [PR #64](https://github.com/animu-sphere/usd-3dgs-plugins/pull/64) |
 
 ## Decisions
 

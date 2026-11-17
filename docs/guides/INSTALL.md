@@ -58,8 +58,10 @@ ost plugin run plugins/gaussian-ply -- usdcat --flatten \
 ```
 
 The flattened USDA shows the `Asset` default prim and its `Splat` child of
-type `ParticleField3DGaussianSplat`. This is a headless import check. For a
-viewport check of a Gaussian PLY, see the separate
+type `ParticleField3DGaussianSplat`. A SuperSplat compressed `.ply` opens the
+same way through `gaussian-ply`, which routes it by its header; its stage
+records `sourceFormat = "Gaussian Splatting compressed PLY"`. This is a
+headless import check. For a viewport check of a Gaussian PLY, see the separate
 [Merlin preview](../reference/CAPABILITY_MATRIX.md#hydra-rendering).
 
 For interactive inspection:
@@ -160,9 +162,10 @@ ost plugin run plugins/gaussian-ply --no-inject -- python tests/package_consumer
 ```
 
 The test installs the aggregate archive with `ost plugin product install` in
-a temporary directory. Fresh Python and C++ consumers open the packaged PLY,
-SPZ, and bundled SOG fixtures. The Python consumer checks that the loaded
-libraries and diagnostic catalogs come from the active prefix. `usdcat`
+a temporary directory. Fresh Python and C++ consumers open the packaged
+Graphdeco PLY, compressed PLY, SPZ, and bundled SOG fixtures. The Python
+consumer checks that the loaded libraries and diagnostic catalogs come from the
+active prefix and that each stage records its source format. `usdcat`
 flattens each stage and `usdchecker` validates the resulting USD.
 
 OST installs to a new prefix. To switch prefixes, activate the new one in a

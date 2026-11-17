@@ -12,11 +12,18 @@ import sys
 import tempfile
 
 
+# (bundle, plugin, fixture, Gaussian count, SH degree, customData source format)
 FIXTURES = (
-    ("gaussian-ply", "GaussianPlyFileFormat", "one-gaussian-binary-le.ply", 1, 0),
-    ("gaussian-spz", "GaussianSpzFileFormat", "decode-degree1-v2.spz", 2, 1),
-    ("gaussian-sog", "GaussianSogFileFormat", "kit-one-degree0.sog", 1, 0),
+    ("gaussian-ply", "GaussianPlyFileFormat", "one-gaussian-binary-le.ply", 1, 0,
+     "Gaussian Splatting PLY"),
+    ("gaussian-ply", "GaussianPlyFileFormat", "compressed-sh1.ply", 4, 1,
+     "Gaussian Splatting compressed PLY"),
+    ("gaussian-spz", "GaussianSpzFileFormat", "decode-degree1-v2.spz", 2, 1,
+     "Gaussian Splatting SPZ"),
+    ("gaussian-sog", "GaussianSogFileFormat", "kit-one-degree0.sog", 1, 0,
+     "Gaussian Splatting SOG"),
 )
+BUNDLES = tuple(dict.fromkeys(bundle for bundle, *_ in FIXTURES))
 
 
 def run(*command, cwd=None):
@@ -26,7 +33,7 @@ def run(*command, cwd=None):
 def probe(consumer, prefix, previous):
     search_paths = [
         str(root / "bundles" / bundle / "plugin" / "resources" / bundle)
-        for root in previous for bundle, *_ in FIXTURES
+        for root in previous for bundle in BUNDLES
     ]
     if search_paths:
         runtime_paths = os.environ.get("PXR_PLUGINPATH_NAME")
@@ -41,7 +48,7 @@ def probe(consumer, prefix, previous):
 
     from pxr import Plug, Sdf, Tf, Usd, UsdVol
 
-    for bundle, plugin_name, filename, count, degree in FIXTURES:
+    for bundle, plugin_name, filename, count, degree, source_format in FIXTURES:
         asset = Path(filename).resolve()
         plugin = Plug.Registry().GetPluginWithName(plugin_name)
         extension = asset.suffix[1:]
@@ -73,6 +80,7 @@ def probe(consumer, prefix, previous):
         assert splat and len(splat.GetPositionsAttr().Get()) == count, asset.name
         metadata = stage.GetDefaultPrim().GetCustomDataByKey("gs")
         assert (metadata["gaussianCount"], metadata["shDegree"]) == (count, degree), asset.name
+        assert metadata["sourceFormat"] == source_format, (asset.name, metadata["sourceFormat"])
 
         run(consumer, asset, str(count))
         output = asset.with_suffix(".usda")
@@ -99,7 +107,7 @@ def check_lifecycle(archive, digest):
         for prefix in (first, replacement):
             run("ost", "plugin", "product", "install", archive, "--prefix", prefix,
                 "--expect-digest", digest, cwd=scratch)
-            for bundle, _, filename, _, _ in FIXTURES:
+            for bundle, _, filename, *_ in FIXTURES:
                 source = prefix / "bundles" / bundle / "tests" / "fixtures" / filename
                 shutil.copyfile(source, scratch / filename)
             if prefix == first:
