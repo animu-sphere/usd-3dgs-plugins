@@ -60,3 +60,26 @@ configuration only — no upstream source file is edited — so an upstream
 security update re-vendors cleanly. A lossy VP8 bitstream is rejected as
 malformed by the reader rather than decoded approximately
 ([SOG_FORMAT.md](docs/reference/SOG_FORMAT.md) §3).
+
+## Zstandard 1.5.7
+
+- Project: <https://github.com/facebook/zstd>
+- Vendored from: release archive `zstd-1.5.7.tar.gz` from the `v1.5.7`
+  GitHub release (commit `f8745da6ff1a`), SHA-256
+  `eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3`
+- Files: the **decompression subset only** under `third_party/zstd/lib/`
+  (`zstd.h`, `zstd_errors.h`, the decoder sources of `common/` and
+  `decompress/`), plus upstream `LICENSE`. The compressor, dictionary
+  builder, legacy decoders, threading pool, and assembly are not vendored;
+  `third_party/zstd/VENDORING.md` records exactly what was kept and dropped.
+- License: BSD-3-Clause (`third_party/zstd/LICENSE`). Zstandard is
+  dual-licensed under BSD-3-Clause or GPLv2 at the licensee's choice; this
+  project takes the BSD-3-Clause option and does not distribute it under the
+  GPLv2.
+
+Zstandard provides the frame decompression the `gaussian-spz` container
+reader needs for SPZ version 4; the header, the table of contents, the frame
+layout, and every Gaussian-specific dequantization are handled in this
+repository ([ADR 0002](docs/adr/0002-vendored-zstd-decoder.md)). No upstream
+source file is edited, and no zstd symbol is exported from the plugin
+library.

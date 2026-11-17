@@ -80,7 +80,8 @@ Not supported or not verified:
 
 Supported:
 
-- SPZ container versions 1, 2, and 3 (gzip-wrapped, single stream);
+- SPZ container versions 1, 2, and 3 (gzip-wrapped, single stream) and 4
+  (one Zstandard stream per attribute);
 - position, scale, rotation (first-three and smallest-three), opacity, and
   spherical harmonics dequantization — decoded verbatim into the model's
   native-RUB reference frame ([ADR 0001](../adr/0001-model-frame-is-rub.md));
@@ -89,7 +90,11 @@ Supported:
 
 Not supported or not verified:
 
-- SPZ version 4 (ZSTD) — rejected with the unsupported-version diagnostic;
+- SPZ versions above 4 — rejected with the unsupported-version diagnostic;
+- data stored in a declared coordinate frame other than RUB — rejected with
+  `GSPZ-E016` rather than converted;
+- SPZ v4 assets from real producers — no redistributable capture exists yet,
+  so v4 is verified by synthetic fixtures and one reference-written file;
 - SH degree 4 — rejected as unsupported (the shared model carries 0-3);
 - equivalence pairs for SPZ v1 float16 positions — the v1 position path is
   pinned by the SPZ decoder suite instead, for the reason in
@@ -97,7 +102,7 @@ Not supported or not verified:
 - writing or exporting SPZ;
 - streaming, partial reads, or memory mapping.
 
-PLY/SPZ cross-format equivalence *is* verified for SPZ v2 and v3 by synthetic
+PLY/SPZ cross-format equivalence *is* verified for SPZ v2, v3, and v4 by synthetic
 pairs that encode one source model into both formats; see
 [EQUIVALENCE.md](EQUIVALENCE.md).
 

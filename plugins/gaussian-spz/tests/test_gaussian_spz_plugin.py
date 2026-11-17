@@ -36,8 +36,19 @@ NEGATIVE_FIXTURES = {
     "decode-degree4-v2.spz": "GSPZ-E011",
     # A non-finite float16 position surfaces from the decoder.
     "decode-nonfinite-v1.spz": "GSPZ-E012",
-    # v4 is a real but unsupported container version, not corruption.
-    "plaintext-v4.spz": "GSPZ-E003",
+    # An undefined container version is unsupported, not corruption.
+    "plaintext-v5.spz": "GSPZ-E003",
+    # Version 4 failures reuse the container classes (ADR 0002 item 7).
+    "plaintext-v4.spz": "GSPZ-E007",
+    "stream-count-v4.spz": "GSPZ-E004",
+    "second-frame-v4.spz": "GSPZ-E004",
+    "truncated-frame-v4.spz": "GSPZ-E007",
+    "corrupt-block-v4.spz": "GSPZ-E008",
+    "unflagged-zone-v4.spz": "GSPZ-E009",
+    "degree4-v4.spz": "GSPZ-E011",
+    # A declared non-RUB frame is refused in both generations.
+    "coordinate-rdf-v4.spz": "GSPZ-E016",
+    "coordinate-rdf-v2.spz": "GSPZ-E016",
 }
 
 
@@ -119,6 +130,18 @@ def check_known_values():
     assert all(close(a, b, 0.02) for a, b in zip(coefficients[1], (0.1, 0.2, 0.3)))
 
 
+def check_v4_matches_v3():
+    """decode-v4.spz rewraps the quantized bytes of decode-v3.spz in the zstd
+    container, so the authored attribute values must be identical."""
+    v3 = Usd.Stage.Open(str(FIXTURES / "decode-v3.spz"))
+    v4 = Usd.Stage.Open(str(FIXTURES / "decode-v4.spz"))
+    for name in ("positions", "scales", "orientations", "opacities",
+                 "radiance:sphericalHarmonicsCoefficients", "extent"):
+        a = v3.GetPrimAtPath("/Asset/Splat").GetAttribute(name).Get()
+        b = v4.GetPrimAtPath("/Asset/Splat").GetAttribute(name).Get()
+        assert list(a) == list(b), name
+
+
 def check_metadata_only():
     """Read(metadataOnly=true) authors the contract without decoding streams."""
     layer = Sdf.Layer.OpenAsAnonymous(
@@ -138,6 +161,14 @@ def check_metadata_only():
         attr = layer.GetAttributeAtPath(f"/Asset/Splat.{array_name}")
         assert attr is None or attr.default is None, (
             f"metadata-only read authored {array_name}")
+
+    # v4 metadata comes from the plaintext header and TOC alone.
+    layer = Sdf.Layer.OpenAsAnonymous(
+        str(FIXTURES / "three-points-degree1-v4.spz"), metadataOnly=True)
+    assert layer, "v4 metadata-only open failed"
+    gs = layer.GetPrimAtPath("/Asset").customData.get("gs", {})
+    assert gs.get("gaussianCount") == 3, gs
+    assert gs.get("shDegree") == 1, gs
 
 
 def safe_error_text(exc):
@@ -293,7 +324,13 @@ def main():
     check_stage_contract("minimal-v1.spz", 1, 0)
     check_stage_contract("minimal-v2.spz", 1, 0)
     check_stage_contract("minimal-v3.spz", 1, 0)
+    check_stage_contract("decode-v4.spz", 1, 0)
+    check_stage_contract("minimal-v4.spz", 1, 0)
+    check_stage_contract("three-points-degree1-v4.spz", 3, 1)
+    check_stage_contract("extensions-v4.spz", 1, 1)
+    check_stage_contract("framing-v4.spz", 2, 1)
     check_known_values()
+    check_v4_matches_v3()
     check_metadata_only()
     check_negative_fixtures(catalog_codes)
 

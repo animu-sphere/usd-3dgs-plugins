@@ -50,18 +50,20 @@ revision and local parser fixes.
 | Capability | Status | Evidence / behavior |
 | --- | --- | --- |
 | SPZ container versions 1-3 (gzip) | supported | C++ container reader and decoder fixtures for each version |
-| SPZ version 4 (ZSTD) | unsupported | rejected with the specific unsupported-version diagnostic `GSPZ-E003` |
-| Position (v1 float16, v2/v3 24-bit fixed point) | supported | decoder fixtures with known values; non-finite float16 rejected (`GSPZ-E012`) |
+| SPZ version 4 (Zstandard) | supported | per-attribute zstd streams decoded by the vendored Zstandard v1.5.7 decoder ([ADR 0002](../adr/0002-vendored-zstd-decoder.md)); reader fixtures for every structural rule in [SPZ_FORMAT.md §4](SPZ_FORMAT.md), a v4 rewrap of the v3 decoder fixture that must decode bit-identically, a reference-written v3/v4 pair from SplatTransform that must decode to identical clouds, and v4 equivalence pairs |
+| SPZ versions above 4 | unsupported | rejected with the specific unsupported-version diagnostic `GSPZ-E003` |
+| Declared coordinate frame (`SPZ_ADOBE_coordinate_system`) | RUB only | a record that declares RUB or leaves the frame unspecified is honored; any other frame is refused with `GSPZ-E016` in every container version, never imported misoriented ([SPZ_FORMAT.md §5](SPZ_FORMAT.md)) |
+| Position (v1 float16, v2-v4 24-bit fixed point) | supported | decoder fixtures with known values; non-finite float16 rejected (`GSPZ-E012`) |
 | Scale (8-bit log) | supported | `exp(byte/16 - 10)`, strictly positive |
-| Rotation first-three (v1/v2) and smallest-three (v3) | supported | per-version fixtures pin reconstruction and normalization |
+| Rotation first-three (v1/v2) and smallest-three (v3/v4) | supported | per-version fixtures pin reconstruction and normalization |
 | Opacity (8-bit) | supported | `byte/255`, already in `[0,1]` |
 | DC and SH rest (8-bit quantized) | supported | dequantized directly into the model's Gaussian-major RGB triples (no transpose needed) |
 | SH degrees 0-3 | supported | decoder fixtures at degrees 0, 1, and 3; degree 4 reported unsupported (`GSPZ-E011`), not malformed |
 | Native-RUB reference frame (no conversion) | supported | SPZ's RUB convention is the model frame (ADR 0001); dequantized verbatim, verified through the decoder and USD |
-| Extension records, antialiased flag | supported (ignored) | preserved by the reader, ignored by the decoder with warnings `GSPZ-W001`/`W002` |
+| Extension records, extension frames, antialiased flag | supported (ignored) | records parsed by type and length in both generations, v4 skippable frames bounded but not decompressed; ignored by the decoder with warnings `GSPZ-W001`/`W002`, except the coordinate-system record above |
 | Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test |
-| Cross-format equivalence | supported | synthetic triples encode one source model into PLY, SPZ, and SOG; `gaussian_ply_spz_equivalence` and `gaussian_ply_sog_equivalence` compare every model attribute against the lossless PLY side at documented quantization-aware tolerances, covering SPZ v2/v3 and both SOG profiles — see [EQUIVALENCE.md](EQUIVALENCE.md) |
-| Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only |
+| Cross-format equivalence | supported | synthetic triples encode one source model into PLY, SPZ, and SOG; `gaussian_ply_spz_equivalence` and `gaussian_ply_sog_equivalence` compare every model attribute against the lossless PLY side at documented quantization-aware tolerances, covering SPZ v2-v4 and both SOG profiles — see [EQUIVALENCE.md](EQUIVALENCE.md) |
+| Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only; for v4 it also validates the plaintext extension zone and table of contents |
 | Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
 
 ## SOG input and semantic mapping

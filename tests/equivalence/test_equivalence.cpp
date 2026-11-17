@@ -218,10 +218,18 @@ int main()
              "equiv-degree3-exact-binary-le.ply", "equiv-degree3-exact-v3.spz",
              kExact, 4, 3);
 
+    // The same model in the v4 zstd container. v4 changes no attribute
+    // encoding, so it must agree exactly as v3 does.
+    TestPair("degree-3 exact, SPZ v4 (zstd container)",
+             "equiv-degree3-exact-binary-le.ply", "equiv-degree3-exact-v4.spz",
+             kExact, 4, 3);
+
     // Arbitrary values between quantization points: the envelope must hold
     // for input that was not chosen to round-trip.
     TestPair("degree-1 off-grid, SPZ v2", "equiv-degree1-offgrid-binary-le.ply",
              "equiv-degree1-offgrid-v2.spz", kEnvelope, 3, 1);
+    TestPair("degree-1 off-grid, SPZ v4", "equiv-degree1-offgrid-binary-le.ply",
+             "equiv-degree1-offgrid-v4.spz", kEnvelope, 3, 1);
 
     return Report("PLY/SPZ equivalence");
 }

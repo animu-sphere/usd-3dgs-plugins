@@ -6,6 +6,34 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Added
+
+- `gaussian-spz` imports SPZ version 4, the container the reference library,
+  its web converter, and SplatTransform write by default. Each attribute
+  stream is decompressed by a vendored, decompression-only Zstandard 1.5.7
+  ([ADR 0002](docs/adr/0002-vendored-zstd-decoder.md)) and decoded exactly as
+  version 3, through full and metadata-only reads. See
+  [SPZ_FORMAT.md](docs/reference/SPZ_FORMAT.md) for the container rules.
+- New diagnostic `GSPZ-E016` refuses a file whose
+  `SPZ_ADOBE_coordinate_system` extension declares a storage frame other than
+  RUB.
+
+### Changed
+
+- An SPZ v1-v3 file that declares a non-RUB frame through
+  `SPZ_ADOBE_coordinate_system` now fails with `GSPZ-E016`. It used to be
+  imported in the wrong orientation with only the warning `GSPZ-W001`.
+- An SPZ version 4 file now imports instead of failing with `GSPZ-E003`,
+  which is kept for versions above 4. `GSPZ-E004`, `E007`, `E008`, and
+  `E009` also cover version 4 container failures.
+- `GSPZ-W001` names the ignored extension record types and counts v4
+  extension frames. A coordinate-system record that declares RUB is no
+  longer reported as ignored.
+- A gzip-wrapped SPZ header that claims version 4 now fails as malformed
+  (`GSPZ-E004`) instead of unsupported (`GSPZ-E003`).
+- The `gaussian-spz` library no longer exports the vendored miniz symbols on
+  Linux and macOS. v0.10.0 exported 40 of them.
+
 ## [0.10.0] - 2026-11-17
 
 **Format coverage expansion: SuperSplat compressed PLY.**

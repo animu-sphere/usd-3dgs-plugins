@@ -17,13 +17,13 @@
         {
             "code": "GSPZ-E003",
             "severity": "error",
-            "summary": "The SPZ container version is not supported by this release. Supported container versions are 1-3; version 4 (the ZSTD container) is planned for a later release.",
-            "action": "Re-export the asset as SPZ version 1-3, or wait for version 4 support."
+            "summary": "The SPZ container version is not supported by this release. Supported container versions are 1-4: versions 1-3 are gzip-wrapped, version 4 is the plaintext ZSTD container.",
+            "action": "Re-export the asset as SPZ version 1-4, or wait for a release that supports the newer version."
         },
         {
             "code": "GSPZ-E004",
             "severity": "error",
-            "summary": "The container structure is malformed: a damaged gzip member header, a decompressed stream shorter than the SPZ header, or a plaintext layout no SPZ version defines.",
+            "summary": "The container structure is malformed: a damaged gzip member header, a decompressed stream shorter than the SPZ header, a plaintext layout no SPZ version defines, or a version 4 table of contents, stream count, stream size, frame layout, or extension record that disagrees with the header.",
             "action": "Re-export the asset; the file does not follow the documented SPZ container layout."
         },
         {
@@ -41,19 +41,19 @@
         {
             "code": "GSPZ-E007",
             "severity": "error",
-            "summary": "The container is truncated: the compressed stream ends before the declared attribute streams are complete.",
+            "summary": "The container is truncated: the compressed data ends before the header, the version 4 table of contents, or the declared attribute streams are complete.",
             "action": "The file was cut short in transfer or storage; obtain a complete copy."
         },
         {
             "code": "GSPZ-E008",
             "severity": "error",
-            "summary": "The container is corrupt: the DEFLATE stream is not decodable, or the gzip CRC32/length trailer does not match the decompressed data.",
+            "summary": "The container is corrupt: the DEFLATE stream is not decodable or the gzip CRC32/length trailer does not match (versions 1-3), or a ZSTD frame is not decodable, fails its checksum, or decodes to a size other than the declared one (version 4).",
             "action": "The file's bytes were altered; obtain an intact copy."
         },
         {
             "code": "GSPZ-E009",
             "severity": "error",
-            "summary": "Unexpected trailing data: decompressed bytes follow the attribute streams without the extensions flag, or bytes follow the gzip member.",
+            "summary": "Unexpected trailing data: decompressed bytes follow the attribute streams without the extensions flag, bytes follow the gzip member, or a version 4 extension zone is present without the extensions flag.",
             "action": "Re-export the asset; appended data is not part of the documented container layout."
         },
         {
@@ -91,6 +91,12 @@
             "severity": "error",
             "summary": "The SPZ container exceeds a shared import safety limit.",
             "action": "Reduce the Gaussian count or extension payload before importing the asset."
+        },
+        {
+            "code": "GSPZ-E016",
+            "severity": "error",
+            "summary": "The SPZ_ADOBE_coordinate_system extension declares that the data is stored in a coordinate frame other than RUB. The importer does not convert between frames, and importing the data unconverted would change its orientation.",
+            "action": "Re-export the asset in the SPZ default frame (RUB), or without a coordinate-system extension that declares another frame."
         },
         {
             "code": "GSPZ-E100",
@@ -131,7 +137,7 @@
         {
             "code": "GSPZ-W001",
             "severity": "warning",
-            "summary": "Extension records were present and ignored; they are not part of the shared Gaussian model.",
+            "summary": "Extension records or extension frames were present and ignored; they are not part of the shared Gaussian model. A coordinate-system record that declares RUB is honored, not ignored.",
             "action": "No action needed unless the extension data matters to your pipeline; if it does, file a feature request."
         },
         {
