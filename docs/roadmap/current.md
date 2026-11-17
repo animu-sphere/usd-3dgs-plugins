@@ -23,6 +23,11 @@ fixed. `.splat` remains the dependency-free fallback if the spike rejects v4.
   confirm the writer defaults and fixtures. If it finds a blocker, record the
   reason in the [backlog](backlog.md#other-format-candidates) and fall back
   to `.splat`.
+- FMT-05 found no blocker
+  ([spike report](../reports/format-spike-spz-v4-2026-11-17.md)). It found
+  that a non-RUB `SPZ_ADOBE_coordinate_system` extension is imported with
+  the wrong orientation and only `GSPZ-W001`, in v1-v3 as well as v4. Its
+  §8 proposes rejecting such files in FMT-07.
 
 ## Active work
 
@@ -31,7 +36,7 @@ as work starts; keep task checklists in those issues or PRs.
 
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
-| FMT-05 | Spike SPZ v4 | A report documents the container layout and its relation to v1-v3, the authoritative specification or reference implementation, the default version of each observed writer, redistributable fixtures, and the decoder's dependency and package cost. | — |
+| FMT-05 | Spike SPZ v4 | A report documents the container layout and its relation to v1-v3, the authoritative specification or reference implementation, the default version of each observed writer, redistributable fixtures, and the decoder's dependency and package cost. | [Report](../reports/format-spike-spz-v4-2026-11-17.md) |
 | FMT-06 | Decide the Zstandard dependency | An ADR accepts or rejects a vendored, decompression-only Zstandard decoder: version pin, licence and notices, bounds on hostile streams, and the package change on every release target. | — |
 | FMT-07 | Implement SPZ v4 end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including v4 entries in the PLY/SPZ equivalence suite. | — |
 | FMT-08 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares v4 fixtures, and the declared source and package consumer gates pass on the release targets. | — |

@@ -10,6 +10,7 @@ current-state contracts.
 | [delivery-history.md](delivery-history.md) | Completed milestone and capability log. |
 | [Roadmap triage (2026-11-17)](roadmap-triage-2026-11-17.md) | Disposition and evidence for stale roadmap items. |
 | [Compressed PLY spike (2026-11-17)](format-spike-compressed-ply-2026-11-17.md) | FMT-01 evaluation of SuperSplat compressed PLY against pinned upstream code and real files. |
+| [SPZ v4 spike (2026-11-17)](format-spike-spz-v4-2026-11-17.md) | FMT-05 evaluation of the SPZ v4 container, writer defaults, frame risks, fixtures, and Zstandard cost. |
 
 ## What belongs where
 
