@@ -17,6 +17,13 @@ class. Postshot exports v4, and the PlayCanvas writer defaults to it.
 FMT-05 confirms these claims from primary sources before the release scope is
 fixed. `.splat` remains the dependency-free fallback if the spike rejects v4.
 
+## Decisions
+
+- SPZ v4 is the v0.11.0 target (selected 2026-11-17). FMT-05 still has to
+  confirm the writer defaults and fixtures. If it finds a blocker, record the
+  reason in the [backlog](backlog.md#other-format-candidates) and fall back
+  to `.splat`.
+
 ## Active work
 
 All workstreams are owned by `usd-3dgs-plugins`. Add issue or PR links here
