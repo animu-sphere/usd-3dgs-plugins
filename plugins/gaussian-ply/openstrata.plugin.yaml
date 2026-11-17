@@ -44,8 +44,15 @@ tests:
     - tests/fixtures/degree-3-sh.ply
     - tests/fixtures/reordered-properties.ply
     - tests/fixtures/three-gaussian-binary-le.ply
+    # SuperSplat compressed PLY routes through the same bundle by header
+    # signature (docs/reference/COMPRESSED_PLY_MAPPING.md).
+    - tests/fixtures/compressed-sh1.ply
+    - tests/fixtures/compressed-reordered.ply
+    - tests/fixtures/compressed-two-chunks.ply
+    - tests/fixtures/compressed-render-mode-mip.ply
   roundtrip:
     - tests/fixtures/one-gaussian-ascii.ply
+    - tests/fixtures/compressed-sh1.ply
   negative:
     - tests/fixtures/mesh-not-gaussian.ply
     - tests/fixtures/missing-opacity.ply
@@ -61,3 +68,21 @@ tests:
     - tests/fixtures/degree-4-sh.ply
     - tests/fixtures/nan-opacity-binary-le.ply
     - tests/fixtures/overflow-scale.ply
+    - tests/fixtures/compressed-ascii.ply
+    - tests/fixtures/compressed-big-endian.ply
+    - tests/fixtures/compressed-colourless-chunk.ply
+    - tests/fixtures/compressed-float-packed.ply
+    - tests/fixtures/compressed-extra-vertex-property.ply
+    - tests/fixtures/compressed-extra-element.ply
+    - tests/fixtures/compressed-missing-chunk.ply
+    - tests/fixtures/compressed-chunk-count.ply
+    - tests/fixtures/compressed-sh-rows.ply
+    - tests/fixtures/compressed-sh-not-rgb.ply
+    - tests/fixtures/compressed-sh-degree-4.ply
+    - tests/fixtures/compressed-sh-bad-name.ply
+    - tests/fixtures/compressed-empty.ply
+    - tests/fixtures/compressed-too-many-gaussians.ply
+    - tests/fixtures/compressed-nan-bound.ply
+    - tests/fixtures/compressed-inverted-bound.ply
+    - tests/fixtures/compressed-scale-overflow.ply
+    - tests/fixtures/compressed-truncated.ply

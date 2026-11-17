@@ -58,11 +58,18 @@ Supported:
 - one scalar `vertex` element containing canonical Graphdeco Gaussian
   properties;
 - SH degree inferred from contiguous `f_rest_*` values;
-- unknown scalar vertex properties ignored with a warning.
+- unknown scalar vertex properties ignored with a warning;
+- SuperSplat compressed PLY in binary little-endian: the 18-property `chunk`
+  element, the four packed `uint` vertex properties, and an optional `sh`
+  element for SH degrees 1-3, routed by header signature and decoded into the
+  same model with documented quantization loss
+  ([COMPRESSED_PLY_MAPPING.md](COMPRESSED_PLY_MAPPING.md)).
 
 Not supported or not verified:
 
 - binary big-endian PLY;
+- ASCII or big-endian compressed PLY, and the 12-property colourless `chunk`
+  (rejected with `GSPLY-E020` and `GSPLY-E021`);
 - list-valued required properties;
 - arbitrary point clouds and polygon meshes;
 - user-defined property aliases;

@@ -1,9 +1,10 @@
 # Import limits
 
 These are the default resource limits applied before the PLY, SPZ, or SOG
-readers allocate unbounded source or model data. They are an input-safety
-policy, not a change to the `GaussianCloudData` model contract: the model has
-no semantic Gaussian-count ceiling below what the platform can address.
+readers allocate unbounded source or model data. PLY covers both the Graphdeco
+and the SuperSplat compressed dialects. They are an input-safety policy, not a
+change to the `GaussianCloudData` model contract: the model has no semantic
+Gaussian-count ceiling below what the platform can address.
 
 The shared Gaussian ceiling is deliberately above the committed 5.8-million
 Gaussian PLY performance asset, while keeping a declared count from turning a
@@ -56,7 +57,7 @@ message naming the budget that fired.
 
 | Budget | Hostile input | Expected |
 | --- | --- | --- |
-| Declared Gaussian count | `gaussian-ply/.../too-many-gaussians.ply`, `gaussian-spz/.../shared-limit-v2.spz`, `gaussian-sog/.../too-many-gaussians/meta.json` | `GSPLY-E019`, `GSPZ-E015`, `GSSOG-E016` |
+| Declared Gaussian count | `gaussian-ply/.../too-many-gaussians.ply`, `gaussian-ply/.../compressed-too-many-gaussians.ply` (header only; full and metadata-only reads), `gaussian-spz/.../shared-limit-v2.spz`, `gaussian-sog/.../too-many-gaussians/meta.json` | `GSPLY-E019`, `GSPZ-E015`, `GSSOG-E016` |
 | SOG `meta.json` size | `zip-metadata-over-limit.sog` declares 4 MiB + 1 byte; unbundled `meta.json` of the same size, written at test time | `GSSOG-E016` (full and metadata-only reads) |
 | SOG JSON nesting depth / value tokens | in-memory documents one past each bound | `ParseJson` rejection (`GSSOG-E005` when reached through `meta.json`) |
 | SOG ZIP entries | `too-many-entries.sog` (65 entries) | `GSSOG-E016` |

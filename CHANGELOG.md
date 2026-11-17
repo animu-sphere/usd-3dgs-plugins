@@ -22,6 +22,10 @@ semantic versioning for tagged releases.
 - Warning `GSPLY-W004` reports a compressed file tagged with a non-default
   splat render mode (`mip` or `2dgs`); the Gaussians are authored as
   ordinary 3DGS splats.
+- The `gaussian-ply` bundle declares compressed PLY smoke, roundtrip, and
+  negative fixtures, so `ost plugin test` checks the dialect from source and
+  from the package. The aggregate package consumer test also opens a
+  compressed PLY and checks the recorded source format for every fixture.
 
 ### Changed
 
