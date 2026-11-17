@@ -42,6 +42,11 @@ fixed. `.splat` remains the dependency-free fallback if the spike rejects v4.
   references and added the zstd notices, so FMT-08 keeps the manifest and
   package-consumer declarations, the miniz and libwebp licence texts, and
   package validation on the release targets.
+- FMT-07 found that the v0.10.0 Linux `gaussian-sog` library exported 319
+  libwebp and miniz symbols, the same interposition risk ADR 0002 item 5
+  rules out for zstd. They are hidden for v0.11.0, and both plugins now run
+  one shared exported-symbol check
+  ([libwebp vendoring](../../third_party/libwebp/VENDORING.md#symbol-visibility)).
 - No redistributable real-world SPZ v4 capture exists. FMT-07 covers v4
   with synthetic fixtures, v4 equivalence pairs, and SplatTransform's
   reference-written 4-point v3/v4 pair. A v4 corpus asset converted from the

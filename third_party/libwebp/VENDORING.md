@@ -55,6 +55,17 @@ would silently corrupt positions. The upstream decode driver is kept intact
 rejects a lossy VP8 bitstream as malformed rather than decoding it
 approximately.
 
+## Symbol visibility
+
+The decoder is compiled with hidden C visibility and `WEBP_EXTERN=extern`.
+Without the definition, `webp/types.h` gives the public API default
+visibility on GCC and Clang, overriding the preset. No libwebp symbol leaves
+`libGaussianSogFileFormat`, so a host's own libwebp cannot be bound in its
+place. The v0.10.0 Linux library exported 319 libwebp and miniz symbols. The
+CTest `gaussianSog_no_exported_decoder_symbols` checks the built library on
+every target. A few utilities carry no `WebP`/`VP8` prefix; the check in
+`cmake/check_exported_symbols.cmake` lists them by name.
+
 ## Re-vendoring
 
 1. Download the target tag's source archive; record the tag and commit above.
@@ -62,4 +73,6 @@ approximately.
    re-apply the drops listed above.
 3. Refresh `COPYING`/`AUTHORS`/`PATENTS` and the version in
    `THIRD_PARTY_NOTICES.md`.
-4. Rebuild `gaussian-sog` and run its decode smoke test.
+4. Rebuild `gaussian-sog` and run its CTests, including the exported-symbol
+   check. If a new release adds an unprefixed global, add it to the check's
+   name list.

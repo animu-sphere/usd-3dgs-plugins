@@ -26,6 +26,13 @@ if(MSVC)
 endif()
 add_test(NAME gaussianSog_decoder_unit COMMAND gaussianSogDecoder_tests)
 
+# The vendored libwebp and miniz decoders must stay internal to the plugin
+# library. v0.10.0 exported 319 of their symbols from the Linux library.
+include("../../../cmake/Usd3dgsExportedSymbols.cmake")
+usd3dgs_add_exported_symbol_test(
+    NAME gaussianSog_no_exported_decoder_symbols
+    TARGET ${PLUGIN_NAME})
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(NOT Python3_Interpreter_FOUND)
     message(STATUS "gaussian-sog: Python3 not found; skipping integration test")

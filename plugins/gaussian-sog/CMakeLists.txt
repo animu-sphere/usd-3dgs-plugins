@@ -47,13 +47,22 @@ if(NOT EXISTS "${LIBWEBP_ROOT}/src/webp/decode.h")
 endif()
 file(GLOB_RECURSE LIBWEBP_SOURCES CONFIGURE_DEPENDS "${LIBWEBP_ROOT}/src/*.c")
 add_library(gaussianSogWebpDecoder STATIC ${LIBWEBP_SOURCES})
-set_target_properties(gaussianSogWebpDecoder PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Hidden C visibility keeps every libwebp symbol inside the plugin library: a
+# USD host may have another libwebp loaded (OpenImageIO links one), and ELF
+# interposition must not bind this decoder to it. v0.10.0 exported them.
+set_target_properties(gaussianSogWebpDecoder PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden)
 # libwebp's own sources are root-relative (`src/dec/...`); consumers use the
 # public `webp/decode.h` (whose nested include is relative), so they only need
 # the `src` directory.
 target_include_directories(gaussianSogWebpDecoder
     PRIVATE "${LIBWEBP_ROOT}"
     INTERFACE "${LIBWEBP_ROOT}/src")
+# webp/types.h marks the public API with default visibility on GCC and Clang,
+# which overrides the preset. A plain `extern` is what it uses everywhere
+# else; SogReader sees the same declarations.
+target_compile_definitions(gaussianSogWebpDecoder PUBLIC WEBP_EXTERN=extern)
 # Vendored third-party C: silence its warnings so a strict bundle build (e.g.
 # /WX) is not held hostage to upstream style, and keep MSVC builds reproducible.
 if(MSVC)
@@ -79,7 +88,12 @@ add_library(gaussianSogDecoder STATIC
     src/io/SogReader.cpp
     src/io/GaussianSogDecoder.cpp
     "${MINIZ_ROOT}/miniz.c")
-set_target_properties(gaussianSogDecoder PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Hidden C visibility keeps miniz inside the plugin library, as in
+# gaussian-spz. Both plugins carry a miniz built with different definitions,
+# so an exported copy could bind one plugin to the other's.
+set_target_properties(gaussianSogDecoder PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden)
 target_compile_features(gaussianSogDecoder PUBLIC cxx_std_17)
 target_include_directories(gaussianSogDecoder
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"

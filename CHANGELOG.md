@@ -33,6 +33,9 @@ semantic versioning for tagged releases.
   (`GSPZ-E004`) instead of unsupported (`GSPZ-E003`).
 - The `gaussian-spz` library no longer exports the vendored miniz symbols on
   Linux and macOS. v0.10.0 exported 40 of them.
+- The `gaussian-sog` library no longer exports the vendored libwebp and miniz
+  symbols on Linux and macOS. v0.10.0 exported 319 of them, so a libwebp or
+  miniz loaded elsewhere in the host could be used in their place.
 
 ## [0.10.0] - 2026-11-17
 

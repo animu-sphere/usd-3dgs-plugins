@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Asserts that the plugin library exports no symbol of its vendored
-# decoders, zstd (ADR 0002 item 5) and miniz. A USD host often has another
-# libzstd loaded, and the gaussian-sog plugin carries its own miniz built with
-# other definitions; on ELF, an exported symbol could be interposed by either
-# and mix two copies' internal structures. v0.10.0 exported 40 miniz symbols
-# from the Linux library; hidden C visibility removed them.
+# Asserts that a plugin library exports no symbol of the vendored decoders:
+# zstd (ADR 0002 item 5), miniz, and libwebp. A USD host often has another
+# copy of libzstd, miniz, or libwebp loaded, and gaussian-spz and
+# gaussian-sog each carry their own miniz built with different definitions.
+# On ELF, an exported symbol can be interposed by another copy, mixing two
+# copies' internal structures. In v0.10.0 the Linux SPZ library exported 40
+# miniz symbols, and the SOG library exported 319 libwebp and miniz symbols.
+# Hidden C visibility removed them. Registered through
+# usd3dgs_add_exported_symbol_test() in Usd3dgsExportedSymbols.cmake.
 #
 #   cmake -DLIBRARY=<file> -DTOOL=<nm|dumpbin> -DFORMAT=<elf|macho|pe>
 #         -P check_exported_symbols.cmake
@@ -52,7 +55,10 @@ foreach(_line IN LISTS _lines)
     endif()
     string(REGEX REPLACE "^.*[ \t]" "" _name "${_line}")
     math(EXPR _symbols "${_symbols} + 1")
-    if(_name MATCHES "^_?(ZSTD_|ZSTDv|HUF_|FSE_|ERR_|XXH|HIST_|POOL_|mz_|tinfl_|tdefl_)")
+    # zstd, then miniz, then libwebp. A few libwebp utilities carry no
+    # prefix; they are listed by name, as found in the static library.
+    if(_name MATCHES "^_?(ZSTD_|ZSTDv|HUF_|FSE_|ERR_|XXH|HIST_|POOL_|mz_|tinfl_|tdefl_|miniz_|WebP|VP8|kVP8)"
+       OR _name MATCHES "^_?(GetColorPalette|IsValidColorspace|PaletteSort|PrepareMapToPalette|ReadHuffmanCodesHelper|SearchColorNoIdx)$")
         list(APPEND _leaked "${_name}")
     endif()
 endforeach()
