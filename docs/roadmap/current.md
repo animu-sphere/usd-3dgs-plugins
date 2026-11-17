@@ -18,7 +18,7 @@ as work starts; keep task checklists in those issues or PRs.
 
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
-| FMT-01 | Evaluate candidates, starting with compressed PLY | Spike documents representative assets, a reproducible format signature, attribute fidelity, license and fixture availability, and dependency cost. | — |
+| FMT-01 | Evaluate candidates, starting with compressed PLY | Spike documents representative assets, a reproducible format signature, attribute fidelity, license and fixture availability, and dependency cost. | [Compressed PLY spike](../reports/format-spike-compressed-ply-2026-11-17.md) |
 | FMT-02 | Select the release scope | Record the selected format or variant in the selection issue or PR. Record skipped candidates and revisit conditions in the [backlog](backlog.md). | — |
 | FMT-03 | Implement the first selected format end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate). | — |
 | FMT-04 | Update references and validate packages | Capability claims cite implementation evidence. Declared source and package consumer gates pass on the release targets. | — |
