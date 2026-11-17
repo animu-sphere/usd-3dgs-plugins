@@ -15,6 +15,11 @@ name: ost source ci
 
 on:
   pull_request:
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**/*.md'
+      - 'THIRD_PARTY_NOTICES.md'
 
 permissions:
   contents: read
