@@ -14,6 +14,9 @@ semantic versioning for tagged releases.
   ([ADR 0002](docs/adr/0002-vendored-zstd-decoder.md)) and decoded exactly as
   version 3, through full and metadata-only reads. See
   [SPZ_FORMAT.md](docs/reference/SPZ_FORMAT.md) for the container rules.
+- The `gaussian-spz` package declares SPZ version 4 smoke, roundtrip, and
+  negative fixtures, and the aggregate package consumer test opens a version 4
+  file, so the package-origin gates cover the new container.
 - New diagnostic `GSPZ-E016` refuses a file whose
   `SPZ_ADOBE_coordinate_system` extension declares a storage frame other than
   RUB.
@@ -33,6 +36,10 @@ semantic versioning for tagged releases.
   (`GSPZ-E004`) instead of unsupported (`GSPZ-E003`).
 - The `gaussian-spz` library no longer exports the vendored miniz symbols on
   Linux and macOS. v0.10.0 exported 40 of them.
+- Each packaged `THIRD_PARTY_NOTICES.md` now includes the full license text
+  of every vendored component it covers: miniz, libwebp with its patent
+  grant, Zstandard, and the tinyPLY notice. The v0.10.0 packages named the
+  miniz and libwebp licenses without their texts.
 - The `gaussian-sog` library no longer exports the vendored libwebp and miniz
   symbols on Linux and macOS. v0.10.0 exported 319 of them, so a libwebp or
   miniz loaded elsewhere in the host could be used in their place.

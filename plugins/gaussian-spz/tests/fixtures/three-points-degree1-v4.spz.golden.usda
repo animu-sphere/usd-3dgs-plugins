@@ -1,0 +1,32 @@
+#usda 1.0
+(
+    defaultPrim = "Asset"
+    doc = """Generated from Composed Stage of root layer C:\\dev\\usd-3dgs-plugins\\plugins\\gaussian-spz\\tests\\fixtures\\three-points-degree1-v4.spz
+"""
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "Asset" (
+    customData = {
+        dictionary gs = {
+            uint64 gaussianCount = 3
+            int shDegree = 1
+            string sourceFormat = "Gaussian Splatting SPZ"
+        }
+    }
+    kind = "component"
+)
+{
+    def ParticleField3DGaussianSplat "Splat"
+    {
+        float3[] extent = [(-1799.4843, -1462.1666, -1124.849), (1284.5829, 1621.9005, 1959.2181)]
+        float[] opacities = [0.7529412, 0.78039217, 0.80784315]
+        quatf[] orientations = [(-0.11485296, -0.18542525, 0.9686404, 0.11900427), (-0.15359853, 0.098247714, -0.48293594, 0.85646236), (-0.19234411, -0.012453935, -0.13837706, 0.97144246)]
+        point3f[] positions = [(272.62573, 609.94336, 947.261), (1284.5786, 1621.8962, 1959.2139), (-1799.4685, -1462.1509, -1124.8333)]
+        float3[] radiance:sphericalHarmonicsCoefficients = [(2.235294, 2.4183006, 2.6013072), (0.3046875, 0.359375, 0.4140625), (0.46875, 0.5234375, 0.578125), (0.6328125, 0.6875, 0.7421875), (2.7843137, 2.9673202, 3.1503267), (0.796875, 0.8515625, 0.90625), (0.9609375, -0.984375, -0.9296875), (-0.875, -0.8203125, -0.765625), (3.3333333, -3.1764705, -2.993464), (-0.7109375, -0.65625, -0.6015625), (-0.546875, -0.4921875, -0.4375), (-0.3828125, -0.328125, -0.2734375)]
+        uniform int radiance:sphericalHarmonicsDegree = 1
+        float3[] scales = [(0.00015846132, 0.0002454297, 0.00038012897), (0.00058875524, 0.000911882, 0.0014123505), (0.0021874912, 0.0033880526, 0.0052475184)]
+    }
+}
+

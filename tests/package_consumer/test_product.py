@@ -20,6 +20,8 @@ FIXTURES = (
      "Gaussian Splatting compressed PLY"),
     ("gaussian-spz", "GaussianSpzFileFormat", "decode-degree1-v2.spz", 2, 1,
      "Gaussian Splatting SPZ"),
+    ("gaussian-spz", "GaussianSpzFileFormat", "three-points-degree1-v4.spz", 3, 1,
+     "Gaussian Splatting SPZ"),
     ("gaussian-sog", "GaussianSogFileFormat", "kit-one-degree0.sog", 1, 0,
      "Gaussian Splatting SOG"),
 )

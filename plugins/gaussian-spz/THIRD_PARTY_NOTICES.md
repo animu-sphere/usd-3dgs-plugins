@@ -6,12 +6,37 @@ The `gaussian-spz` plugin includes miniz 3.0.2, vendored from the upstream
 release archive `miniz-3.0.2.zip`
 (SHA-256 `ada38db0b703a56d3dd6d57bf84a9c5d664921d870d8fea4db153979fb5332c5`).
 
-miniz is distributed under the MIT license. Its upstream license text, README,
-and changelog are preserved under `third_party/miniz` in the source
-repository. The plugin uses only miniz's raw-DEFLATE decompression and CRC32;
-the SPZ gzip member framing is parsed by this repository's own reader.
+miniz is distributed under the MIT license. Its README and changelog are
+preserved under `third_party/miniz` in the source repository. The plugin uses only miniz's raw-DEFLATE decompression and CRC32;
+the SPZ gzip member framing is parsed by this repository's own reader. Its
+license text follows.
 
 Upstream: <https://github.com/richgel999/miniz>
+
+```text
+Copyright 2013-2014 RAD Game Tools and Valve Software
+Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+
+All Rights Reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
 
 ## Zstandard 1.5.7
 
