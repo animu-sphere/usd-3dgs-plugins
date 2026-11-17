@@ -45,6 +45,9 @@ VERSION_FILE = REPO_ROOT / "VERSION"
 PROJECT_MANIFEST = REPO_ROOT / "openstrata.toml"
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
 NOTES_TEMPLATE = REPO_ROOT / "docs" / "contributing" / "RELEASE_NOTES_TEMPLATE.md"
+REPOSITORY_URL = "https://github.com/animu-sphere/usd-3dgs-plugins"
+# A Markdown inline link target: `](target)` or `](target#anchor)`.
+_LINK_TARGET = re.compile(r"\]\((?P<target>[^)\s]+)\)")
 
 # `ost ci generate` hard-codes these for cells requiring full evidence. The
 # release lane consumes the same artifacts and must never verify them more
@@ -328,9 +331,28 @@ def cmd_matrix(args: argparse.Namespace) -> int:
     return 0
 
 
+def absolute_links(markdown: str, tag: str) -> str:
+    """Point the changelog's repository-relative links at the tagged tree.
+
+    CHANGELOG.md sits at the repository root, so its relative links resolve
+    there; in a GitHub release body they would resolve against the releases
+    page and break.
+    """
+    def rewrite(match: re.Match[str]) -> str:
+        target = match.group("target")
+        has_scheme = re.match(r"^[a-z][a-z0-9+.-]*:", target, re.IGNORECASE)
+        if has_scheme or target.startswith(("#", "/")):
+            return match.group(0)
+        path = target[2:] if target.startswith("./") else target
+        return f"]({REPOSITORY_URL}/blob/{tag}/{path})"
+
+    return _LINK_TARGET.sub(rewrite, markdown)
+
+
 def cmd_notes(args: argparse.Namespace) -> int:
     version = _version_from_tag(args.tag)
     _, body = changelog_section(version, args.allow_unreleased)
+    body = absolute_links(body, args.tag)
 
     checksums = "(appended by the release workflow)"
     if args.checksums:
