@@ -271,3 +271,17 @@ log the roadmap no longer needs to carry.
 - ✅ Declared compressed fixtures in the package gates and verified product
   packages on Windows, macOS, and Linux.
   [Release record](../releases/v0.10.0.md)
+
+## M. v0.11.0 — SPZ v4 format coverage
+
+- ✅ Spiked SPZ v4 and accepted a vendored, decompression-only Zstandard
+  1.5.7 decoder.
+  [Format spike](format-spike-spz-v4-2026-11-17.md) ·
+  [ADR 0002](../adr/0002-vendored-zstd-decoder.md)
+- ✅ Imported SPZ v4 in `gaussian-spz`, refused declared non-RUB frames with
+  `GSPZ-E016` in every container version, and added v4 equivalence pairs.
+  [SPZ format scope](../reference/SPZ_FORMAT.md)
+- ✅ Hid the vendored symbols in the Linux and macOS libraries, shipped full
+  licence texts in every packaged notice, declared v4 fixtures in the package
+  gates, and verified product packages on Windows, macOS, and Linux.
+  [Release record](../releases/v0.11.0.md)

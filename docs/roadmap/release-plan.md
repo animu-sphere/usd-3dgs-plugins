@@ -2,29 +2,32 @@
 
 | Version | Theme | Scope |
 | --- | --- | --- |
-| v0.1.0–v0.10.0 | Published releases | [Release records](../releases/) |
-| v0.11.0 | SPZ v4 Format Coverage | Read SPZ version 4 through the existing `gaussian-spz` bundle, after a spike and a dependency ADR. |
-| v0.12.0 onward | Unscheduled | [Backlog](backlog.md) |
+| v0.1.0–v0.11.0 | Published releases | [Release records](../releases/) |
+| v0.12.0 | glTF Gaussian Splatting | Read glTF and GLB assets that use the ratified `KHR_gaussian_splatting` extension, after a spike and an ownership ADR. |
+| v0.13.0 onward | Unscheduled | [Backlog](backlog.md) |
 
 This repository owns import and USD authoring. See the
 [API boundary](../architecture/API_BOUNDARY.md) for responsibility for integrated
 distribution and consumer compatibility.
 
-## v0.11.0 — SPZ v4 Format Coverage
+## v0.12.0 — glTF Gaussian Splatting
 
 ### Candidate evaluation
 
-v0.10.0 shipped SuperSplat compressed PLY and deferred the other candidates
-with revisit conditions. The order below is for investigation;
+v0.11.0 shipped SPZ v4. Its research item, the status of glTF
+`KHR_gaussian_splatting`, is settled: the extension is marked "Complete,
+Ratified by the Khronos Group" in the
+[glTF extension registry](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_gaussian_splatting)
+since 2026-09-03. The order below is for investigation;
 [current work](current.md) tracks the selection and implementation, and the
 [capability matrix](../reference/CAPABILITY_MATRIX.md) lists what the tree
 actually supports.
 
 | Order | Candidate | Check before selecting |
 | --- | --- | --- |
-| 1 | SPZ v4 | Confirm from primary sources that current writers emit v4 by default. Document the per-attribute ZSTD stream layout against v1-v3, find redistributable fixtures, and settle the Zstandard decoder dependency in an ADR. |
-| 2 | `.splat` | Fallback with no new dependency. Identify variants and provenance, what the format preserves (it carries no SH), and a routing rule for a headerless format. |
-| Research | glTF `KHR_gaussian_splatting` | Confirm the extension's ratification status and the state of its SPZ compression extension. Scope only an ADR on scene graph, external resources, and ownership with the glTF importer; no implementation in v0.11.0. |
+| 1 | glTF `KHR_gaussian_splatting` (base extension, uncompressed) | Confirm the ratified text, the attribute and accessor rules, the kernel and color-space defaults, and the frame relation between glTF (+Y up, right-handed, metres) and the RUB model frame. Find writers and redistributable fixtures. Settle in an ADR the bundle and `.gltf`/`.glb` file-format ownership, node transforms and multiple primitives, external buffers, and coexistence with other glTF file-format plugins. |
+| 2 | `.splat` | Fallback with no new dependency if the spike or ADR rejects glTF for this release. Identify variants and provenance, what the format preserves (it carries no SH), and a routing rule for a headerless format. |
+| Out of scope | glTF Gaussian compression extensions | None is in the Khronos registry. `KHR_gaussian_splatting_compression_spz_2` ([#2531](https://github.com/KhronosGroup/glTF/pull/2531)), EGSC, and MPEG proposals are open pull requests. Revisit after one is ratified. |
 
 For each spike, document demand, authoritative evidence, a mapping to the
 shared model, testability, and package impact. Select only the scope needed
