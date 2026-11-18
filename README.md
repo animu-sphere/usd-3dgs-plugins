@@ -3,7 +3,8 @@
 [![CI](https://github.com/animu-sphere/usd-3dgs-plugins/actions/workflows/ost-source-ci.yml/badge.svg)](https://github.com/animu-sphere/usd-3dgs-plugins/actions/workflows/ost-source-ci.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/animu-sphere/usd-3dgs-plugins)](LICENSE)
 
-OpenUSD file-format plugins for read-only import of Gaussian PLY, SPZ, and SOG.
+OpenUSD file-format plugins for read-only import of Gaussian PLY, SPZ, SOG, and
+`.splat`.
 They open trained splat assets as USD layers with
 `ParticleField3DGaussianSplat` at `/Asset/Splat`. See the
 [capability matrix](docs/reference/CAPABILITY_MATRIX.md) for supported variants

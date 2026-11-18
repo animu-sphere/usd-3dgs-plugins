@@ -22,6 +22,7 @@ responsible for the next decision and the evidence needed to revisit it.
 | --- | --- | --- | --- |
 | Attribute peak temporary allocations | `usd-3dgs-plugins` | A reproducible allocation profile can separate parser and decoder temporaries from the retained USD layer on the same benchmark inputs. | [Benchmark corpus](../reference/BENCHMARK_CORPUS.md) |
 | Investigate memory mapping or reduced-copy reads | `usd-3dgs-plugins` | Per-phase measurements show material I/O or copying cost; compare measurements against the baseline before proposing a change. | [Phase timings](../reference/BENCHMARK_CORPUS.md#phase-timings) |
+| Add `.splat` to the benchmark corpus | `usd-3dgs-plugins` | The corpus and scale rows cover PLY, SPZ, and SOG only. Add `.splat` rows generated from the same source when a performance question involves `.splat` or the next baseline is recorded; v0.12.0 shipped without them. | [Benchmark corpus](../reference/BENCHMARK_CORPUS.md) |
 | Re-evaluate worker-thread authoring | `usd-3dgs-plugins` | On the next OpenUSD re-pin, add a regression test for direct detached-stage authoring under an outer `SdfChangeBlock`. Remove the hop only if full and metadata-only reads and reload preserve the stage contract across PLY, SPZ, and SOG on supported builds. | [Workaround policy](../design/DESIGN_POLICY.md#75-worker-thread-authoring-workaround) · [OpenUSD configurations](../reference/SUPPORTED_CONFIGURATIONS.md) |
 
 ## USD contract and tooling

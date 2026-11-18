@@ -1,6 +1,6 @@
 # usd-3dgs-plugins {tag}
 
-The PLY, SPZ, and SOG plugins open Gaussian Splatting assets as OpenUSD layers
+The PLY, SPZ, SOG, and `.splat` plugins open Gaussian Splatting assets as OpenUSD layers
 and author OpenUSD's standard `ParticleField3DGaussianSplat` schema.
 
 - **Supported configurations:** [SUPPORTED_CONFIGURATIONS.md](https://github.com/animu-sphere/usd-3dgs-plugins/blob/{tag}/docs/reference/SUPPORTED_CONFIGURATIONS.md)
@@ -18,7 +18,7 @@ and author OpenUSD's standard `ParticleField3DGaussianSplat` schema.
 
 | Artifact | Contents |
 | --- | --- |
-| `usd-3dgs-plugins-{version}-<target>-plugin-product.tar.zst` | Aggregate product containing all three target-specific plugin bundles and their declared dependencies |
+| `usd-3dgs-plugins-{version}-<target>-plugin-product.tar.zst` | Aggregate product containing all four target-specific plugin bundles and their declared dependencies |
 | `usd-3dgs-plugins-{version}-src.tar.gz` | Source archive at the tag |
 | `SHA256SUMS` | SHA-256 checksums for every release artifact |
 

@@ -6,6 +6,41 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Added
+
+- New bundle `gaussian-splat` imports headerless `.splat` files, the fixed
+  32-byte record format written by the antimatter15 viewer, SplatTransform,
+  SuperSplat, gsplat.js, and Spark. It decodes through one record reader and
+  one semantic decoder into the shared model and authors the same stage as
+  the other formats, through full and metadata-only reads. See
+  [SPLAT_FORMAT.md](docs/reference/SPLAT_FORMAT.md) for the layout and
+  routing rule, and [SPLAT_MAPPING.md](docs/reference/SPLAT_MAPPING.md) for
+  the decode and its quantization loss.
+- New diagnostics `GSSPLAT-E001`-`E009`, `E100`-`E104`, `E201`, and `W001`,
+  with a machine-readable catalog in the bundle's plugin resources. A
+  renamed PLY, SPZ version 4, ZIP or SOG, or GLB file fails with
+  `GSSPLAT-E003`, naming the format.
+- The cross-format equivalence suite compares `.splat` against lossless PLY
+  (`gaussian_ply_splat_equivalence`), including the CC0 corpus converted from
+  the committed PLY subsets.
+- The aggregate packages contain `gaussian-splat`. Its manifest declares
+  `.splat` smoke, roundtrip, and negative fixtures, and the aggregate package
+  consumer test opens a `.splat` file, so the package-origin gates cover the
+  new bundle.
+
+### Compatibility
+
+- The v0.12.0 aggregate packages contain the PLY, SPZ, SOG, and `.splat`
+  importers for the OpenStrata `cy2026` / `usd` profile on Windows x86_64,
+  macOS arm64, and Linux x86_64 with OpenUSD 26.08 and Python 3.13.
+- `gaussian-splat` registers the `splat` extension. Install it deliberately
+  if another plugin in the same runtime already claims `.splat`: OpenUSD
+  chooses a format by extension only.
+- A `.splat` file always imports at SH degree 0, because the format stores
+  only the base colour. Colour, opacity, and rotation are 8-bit, so a
+  `.splat` file made from a PLY imports within the documented tolerances of
+  that PLY, not exactly.
+
 ## [0.11.0] - 2026-11-18
 
 **SPZ v4 format coverage.**

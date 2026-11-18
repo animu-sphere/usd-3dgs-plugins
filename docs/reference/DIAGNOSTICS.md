@@ -36,6 +36,6 @@ full import reports the Gaussian count, SH degree, bounds, warning count, and
 read, decode, and authoring times. Warnings that affect many Gaussians are
 aggregated by the reader. The summary reports the number of warning messages.
 
-Run `usdchecker` on the USD output for all three formats. A bundled SOG is a
+Run `usdchecker` on the USD output for every format. A bundled SOG is a
 ZIP container, so checking it directly applies USDZ archive rules to its SOG
 entries.

@@ -232,10 +232,10 @@ cells:
       apt: [libx11-dev, libxt-dev]
     up_to: 5
 
-  # gaussian-splat (v0.12.0, FMT-14) runs the PR lane on the same runtimes and
-  # levels. `publish: never` keeps it out of the release matrix until FMT-15
-  # adds its package-consumer declarations; removing the marker is the whole
-  # release change.
+  # gaussian-splat (v0.12.0) runs on the same runtimes and levels. FMT-14
+  # landed it with `publish: never`; FMT-15 removed the marker once the
+  # aggregate package consumer test declared a `.splat` fixture, so the
+  # release lane now builds and ships it with the other bundles.
   - name: gaussian-splat-pr-windows
     lane: pull_request
     runner: windows-hosted
@@ -252,7 +252,6 @@ cells:
     # python313.dll for `runtime validate`'s consumer link.
     host_python: "3.13"
     up_to: 4
-    publish: never
 
   - name: gaussian-splat-pr-macos-arm64
     lane: pull_request
@@ -268,7 +267,6 @@ cells:
     profile: usd
     host_python: "3.13"
     up_to: 5
-    publish: never
 
   - name: gaussian-splat-pr-linux
     lane: pull_request
@@ -287,7 +285,6 @@ cells:
     host_packages:
       apt: [libx11-dev, libxt-dev]
     up_to: 5
-    publish: never
 
   # Workspace CTest cells. The bundle cells above run OST's verification
   # pyramid, which never reaches the repository's own CTest suites: the

@@ -318,7 +318,7 @@ jobs:
           esac
           mkdir -p release-stage
           # The product directory contains the aggregate product plus the
-          # exact PLY/SPZ/SOG member archives and their manifest/SBOM sidecars.
+          # exact PLY/SPZ/SOG/`.splat` member archives and their manifest/SBOM sidecars.
           find "$dist_dir" -maxdepth 1 -type f \
             \( -name '*.tar.zst' -o -name '*.manifest.json' -o -name '*.sbom.spdx.json' \) \
             -exec cp {} release-stage/ \;

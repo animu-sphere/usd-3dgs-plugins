@@ -147,12 +147,42 @@ bundle wins but does not recognise fails with `GSSOG-E002` rather than being
 mis-imported — but the other plugin never sees the file. Install `gaussian-sog`
 deliberately in an environment that already has a `.json` format registered.
 
+## `.splat` input contract
+
+Supported:
+
+- headerless `.splat` files of fixed 32-byte records: float32 position and
+  linear scale, 8-bit colour and alpha, and an 8-bit scalar-first rotation,
+  decoded with the documented quantization loss
+  ([SPLAT_MAPPING.md](SPLAT_MAPPING.md));
+- the Graphdeco PLY frame every observed writer uses, converted into the
+  model's RUB reference frame with the shared `FlipYZAxes`;
+- metadata-only reads from the file size.
+
+Not supported or not verified:
+
+- spherical harmonics above degree 0 — the format stores none;
+- `.ksplat` or any record size other than 32 bytes;
+- `.splat` captures written by third-party tools beyond SplatTransform's
+  MIT test file — no redistributable capture exists, so the corpus is
+  converted from the committed CC0 PLY subsets;
+- writing or exporting `.splat`;
+- streaming, partial reads, or memory mapping.
+
+The bundle claims a file by its `splat` extension and a size that is a
+multiple of 32 bytes, because the format has no header; a renamed PLY,
+SPZ v4, SOG, or GLB file fails with `GSSPLAT-E003`
+([SPLAT_FORMAT.md §4](SPLAT_FORMAT.md)).
+PLY/`.splat` cross-format equivalence is verified by synthetic fixtures and by
+the CC0 corpus against its source PLY; see [EQUIVALENCE.md](EQUIVALENCE.md).
+
 ## Output contract
 
 Every bundle is a read-only shared-library `SdfFileFormat` plugin. Each authors
 one `ParticleField3DGaussianSplat` under `/Asset/Splat`; `/Asset` is the default
 prim. The output contract is described in [PLY_MAPPING.md](PLY_MAPPING.md),
-[SPZ_MAPPING.md](SPZ_MAPPING.md), and [SOG_MAPPING.md](SOG_MAPPING.md); the
+[SPZ_MAPPING.md](SPZ_MAPPING.md), [SOG_MAPPING.md](SOG_MAPPING.md), and
+[SPLAT_MAPPING.md](SPLAT_MAPPING.md); the
 authored stage is identical because all of them author through the shared
 `gaussianUsd` writer.
 
