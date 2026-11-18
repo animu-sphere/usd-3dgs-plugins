@@ -6,6 +6,10 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-18
+
+**SPZ v4 format coverage.**
+
 ### Added
 
 - `gaussian-spz` imports SPZ version 4, the container the reference library,
@@ -43,6 +47,17 @@ semantic versioning for tagged releases.
 - The `gaussian-sog` library no longer exports the vendored libwebp and miniz
   symbols on Linux and macOS. v0.10.0 exported 319 of them, so a libwebp or
   miniz loaded elsewhere in the host could be used in their place.
+
+### Compatibility
+
+- The v0.11.0 aggregate packages contain the PLY, SPZ, and SOG importers
+  for the OpenStrata `cy2026` / `usd` profile on Windows x86_64, macOS
+  arm64, and Linux x86_64 with OpenUSD 26.08 and Python 3.13. SPZ version 4
+  needs no new library or plugin registration; the Zstandard decoder is
+  built into the `gaussian-spz` library, which grows by about 100-230 KB
+  per target ([size record](third_party/zstd/VENDORING.md#binary-size)).
+- An SPZ file that declares a non-RUB frame no longer opens. Convert it to
+  RUB before importing; v0.10.0 opened it in the wrong orientation.
 
 ## [0.10.0] - 2026-11-17
 
