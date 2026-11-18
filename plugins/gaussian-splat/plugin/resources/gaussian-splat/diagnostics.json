@@ -1,0 +1,102 @@
+{
+    "schema": "gaussian-splat.diagnostics/v1",
+    "description": "Stable diagnostic identifiers emitted by the gaussian-splat plugin. Codes are never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[GSSPLAT-E002] ...\".",
+    "diagnostics": [
+        {
+            "code": "GSSPLAT-E001",
+            "severity": "error",
+            "summary": "The file is empty.",
+            "action": "Provide a .splat file containing at least one 32-byte record."
+        },
+        {
+            "code": "GSSPLAT-E002",
+            "severity": "error",
+            "summary": "The file size is not a multiple of the 32-byte .splat record size, so the last record is incomplete.",
+            "action": "The file was cut short or is not a .splat file; obtain a complete copy or re-export it."
+        },
+        {
+            "code": "GSSPLAT-E003",
+            "severity": "error",
+            "summary": "The file starts with the signature of another format (PLY, SPZ version 4, a ZIP archive such as a bundled SOG, or binary glTF), so it is not a .splat file.",
+            "action": "The file was probably renamed; open it with the extension of the format it actually is."
+        },
+        {
+            "code": "GSSPLAT-E004",
+            "severity": "error",
+            "summary": "The record count implied by the file size exceeds the shared import limit of 8,000,000 Gaussians.",
+            "action": "Split or decimate the asset before import."
+        },
+        {
+            "code": "GSSPLAT-E005",
+            "severity": "error",
+            "summary": "The file could not be opened or read completely.",
+            "action": "Check that the path exists, is a regular file, and is readable, and that it is not being modified during import."
+        },
+        {
+            "code": "GSSPLAT-E006",
+            "severity": "error",
+            "summary": "A record stores a non-finite (NaN or infinite) position.",
+            "action": "Re-export the asset; a valid writer stores finite float32 positions."
+        },
+        {
+            "code": "GSSPLAT-E007",
+            "severity": "error",
+            "summary": "A record stores a scale that is zero, negative, or not finite. .splat stores linear scales, which a valid writer always makes positive.",
+            "action": "Re-export the asset. If the file is not a .splat file, open it with its original extension."
+        },
+        {
+            "code": "GSSPLAT-E008",
+            "severity": "error",
+            "summary": "The decoded cloud failed shared model validation before authoring. The decoder should have rejected the input with a more specific code first.",
+            "action": "Report a bug against usd-3dgs-plugins with the file; this indicates a decoder gap rather than a normal malformed-input failure."
+        },
+        {
+            "code": "GSSPLAT-E009",
+            "severity": "error",
+            "summary": "The record buffer or the model arrays for the file's Gaussian count could not be allocated.",
+            "action": "Free memory or split the asset before import."
+        },
+        {
+            "code": "GSSPLAT-E100",
+            "severity": "error",
+            "summary": "Internal misuse of the import pipeline (null output parameters, inconsistent record buffers). Not reachable from file content.",
+            "action": "Report a bug against usd-3dgs-plugins with the reproduction."
+        },
+        {
+            "code": "GSSPLAT-E101",
+            "severity": "error",
+            "summary": "The in-memory USD stage could not be created.",
+            "action": "Check the OpenUSD installation and plugin registration; this failure is environmental, not file content."
+        },
+        {
+            "code": "GSSPLAT-E102",
+            "severity": "error",
+            "summary": "The /Asset or /Asset/Splat prim could not be defined on the generated layer.",
+            "action": "Report a bug against usd-3dgs-plugins; the authoring scaffold is fixed and should always succeed on a healthy stage."
+        },
+        {
+            "code": "GSSPLAT-E103",
+            "severity": "error",
+            "summary": "An attribute value could not be authored on the generated layer.",
+            "action": "Report a bug against usd-3dgs-plugins with the file that triggered it."
+        },
+        {
+            "code": "GSSPLAT-E104",
+            "severity": "error",
+            "summary": "The extent computation overflowed to a non-finite bound.",
+            "action": "The decoded positions or scales are at the edge of float range; re-export the asset with values inside a renderable range."
+        },
+        {
+            "code": "GSSPLAT-E201",
+            "severity": "error",
+            "summary": "Writing USD content back to .splat is unsupported; the plugin is read-only.",
+            "action": "Export through a Gaussian Splatting tool; USD-to-.splat conversion is out of scope for this plugin."
+        },
+        {
+            "code": "GSSPLAT-W001",
+            "severity": "warning",
+            "summary": "One or more records store a zero rotation (all four rotation bytes 128); those Gaussians were given the identity orientation.",
+            "action": "None required. Re-export the asset if the orientation matters."
+        }
+    ]
+}

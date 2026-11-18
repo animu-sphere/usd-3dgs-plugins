@@ -1,0 +1,62 @@
+# OpenStrata plugin bundle manifest.
+# A plugin is a self-describing bundle, not a bare shared library: this file is
+# the contract `ost plugin inspect|build|doctor|test` resolve against.
+#
+# gaussian-splat reads the headerless `.splat` format: fixed 32-byte records
+# with no version, frame, or SH. It decodes through one record reader, one
+# semantic decoder, and the shared Gaussian layer writer, so the authored stage
+# matches PLY, SPZ, and SOG by construction.
+manifest:
+  schema: openstrata.plugin/v1alpha1
+plugin:
+  name: gaussian-splat
+  version: 0.11.0
+  kind: usd-fileformat
+# SPDX license for this plugin's own code. Surfaced by `ost plugin inspect` and
+# recorded in the package manifest. The bundle vendors no third-party code;
+# the workspace notice is packaged by CMakeLists.txt.
+license: Apache-2.0
+runtime:
+  # The OpenUSD version range this plugin tolerates. The runtime supplies the
+  # certified point within it.
+  # ParticleField3DGaussianSplat is part of OpenUSD 26.05's usdVol schema.
+  openusd: ">=26.05,<27.0"
+  # Source bundles do not hard-code C++ ABI; `ost plugin doctor` compares the
+  # resolved target/runtime ABI when a built or packaged manifest records one.
+  cxx_abi: inherit
+provides:
+  - usd-fileformat:splat
+requires:
+  capabilities: [usd-stage-read]
+  libraries:
+    - id: gaussianCore
+      version: ">=0.1,<0.2"
+    - id: gaussianUsd
+      version: ">=0.3,<0.4"
+usd:
+  # Where this bundle's plugInfo.json lives, relative to the bundle root.
+  plug_info: plugin/resources/gaussian-splat/plugInfo.json
+tests:
+  # Synthetic fixtures from tools/generate_fixtures.py. No real `.splat`
+  # capture with a redistribution licence exists; the CC0 corpus conversions
+  # in tests/corpus are not packaged.
+  smoke:
+    - tests/fixtures/decode-known.splat
+    - tests/fixtures/minimal-one.splat
+    - tests/fixtures/zero-rotation.splat
+  roundtrip:
+    - tests/fixtures/decode-known.splat
+  negative:
+    - tests/fixtures/empty.splat
+    - tests/fixtures/partial-record.splat
+    - tests/fixtures/renamed-ply.splat
+    - tests/fixtures/renamed-ply-crlf.splat
+    - tests/fixtures/renamed-ply-odd-size.splat
+    - tests/fixtures/renamed-spz-v4.splat
+    - tests/fixtures/renamed-sog.splat
+    - tests/fixtures/renamed-glb.splat
+    - tests/fixtures/nonfinite-position.splat
+    - tests/fixtures/infinite-position.splat
+    - tests/fixtures/zero-scale.splat
+    - tests/fixtures/negative-scale.splat
+    - tests/fixtures/nonfinite-scale.splat

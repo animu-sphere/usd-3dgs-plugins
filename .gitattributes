@@ -25,6 +25,10 @@ tests/equivalence/fixtures/*.ply -text
 # them); never treat them as text.
 *.spz -text
 
+# .splat files are raw float and byte records. A negative fixture renamed
+# from PLY starts with an ASCII header, so text=auto must not guess.
+*.splat -text
+
 # Bundled SOG assets are ZIP containers; never treat them as text.
 *.sog -text
 

@@ -1,0 +1,20 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "plugins/gaussian-ply/tests/corpus/yashica-t4/yashica-t4-top8192.ply",
+    "sha256": "42537f23b36c093e96b4378845f0d86f77d755b7a611434aa95edbb4fcf53cde",
+    "bytes": 1935010,
+    "gaussian_count": 8192
+  },
+  "derivation": {
+    "tool": "plugins/gaussian-splat/tools/generate_fixtures.py --corpus",
+    "encoding": "antimatter15 convert.py arithmetic (clamp, then truncate) without its importance sort; source order preserved; rest SH dropped"
+  },
+  "output": {
+    "file": "yashica-t4-top8192.splat",
+    "sha256": "51a45143fa488af1847ad4816d37d7ff7a360aa7059374ef50b733a09ba4e316",
+    "bytes": 262144,
+    "gaussian_count": 8192,
+    "sh_degree": 0
+  }
+}

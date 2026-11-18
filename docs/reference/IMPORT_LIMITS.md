@@ -1,10 +1,10 @@
 # Import limits
 
-These are the default resource limits applied before the PLY, SPZ, or SOG
-readers allocate unbounded source or model data. PLY covers both the Graphdeco
-and the SuperSplat compressed dialects. They are an input-safety policy, not a
-change to the `GaussianCloudData` model contract: the model has no semantic
-Gaussian-count ceiling below what the platform can address.
+These are the default resource limits applied before the PLY, SPZ, SOG, or
+`.splat` readers allocate unbounded source or model data. PLY covers both the
+Graphdeco and the SuperSplat compressed dialects. They are an input-safety
+policy, not a change to the `GaussianCloudData` model contract: the model has
+no semantic Gaussian-count ceiling below what the platform can address.
 
 The shared Gaussian ceiling is deliberately above the committed 5.8-million
 Gaussian PLY performance asset, while keeping a declared count from turning a
@@ -12,7 +12,7 @@ single import into an unbounded allocation request.
 
 | Resource | Limit | Applies to |
 | --- | ---: | --- |
-| Declared Gaussian count | 8,000,000 | PLY, SPZ, SOG |
+| Declared Gaussian count | 8,000,000 | PLY, SPZ, SOG, `.splat` (the count implied by the file size) |
 | SOG `meta.json` size | 4 MiB | Bundled and unbundled SOG |
 | SOG JSON nesting depth | 32 levels | SOG metadata |
 | SOG JSON value tokens | 100,000 | SOG metadata |
@@ -36,13 +36,15 @@ unbundled SOG file-format loader applies the plane input bound to the
 resolver-provided asset size before allocating a companion buffer; the reader
 keeps the same check after the loader returns. The shared 8,000,000 count
 ceiling is evaluated after those format-level range checks, so existing
-malformed-container diagnostics remain stable.
+malformed-container diagnostics remain stable. A `.splat` file has no declared
+count: the reader derives it from the file size, after the signature and
+record-size checks, so the largest accepted file is 256,000,000 bytes.
 
 Limit failures use the format-specific stable diagnostic codes `GSPLY-E019`,
-`GSPZ-E015`, and `GSSOG-E016`. A failed import never produces a partial
-`GaussianCloudData` or USD layer. `CanRead()` remains a routing decision and
-may claim a structurally recognizable file whose `Read()` then rejects a
-declared resource limit.
+`GSPZ-E015`, `GSSOG-E016`, and `GSSPLAT-E004`. A failed import never produces a
+partial `GaussianCloudData` or USD layer. `CanRead()` remains a routing
+decision and may claim a structurally recognizable file whose `Read()` then
+rejects a declared resource limit.
 
 These budgets are compile-time defaults. Any host configuration of them must
 preserve the same checked arithmetic and atomic import failure.
@@ -57,7 +59,7 @@ message naming the budget that fired.
 
 | Budget | Hostile input | Expected |
 | --- | --- | --- |
-| Declared Gaussian count | `gaussian-ply/.../too-many-gaussians.ply`, `gaussian-ply/.../compressed-too-many-gaussians.ply` (header only; full and metadata-only reads), `gaussian-spz/.../shared-limit-v2.spz`, `gaussian-spz/.../shared-limit-v4.spz` (header only; full and metadata-only reads), `gaussian-sog/.../too-many-gaussians/meta.json` | `GSPLY-E019`, `GSPZ-E015`, `GSSOG-E016` |
+| Declared Gaussian count | `gaussian-ply/.../too-many-gaussians.ply`, `gaussian-ply/.../compressed-too-many-gaussians.ply` (header only; full and metadata-only reads), `gaussian-spz/.../shared-limit-v2.spz`, `gaussian-spz/.../shared-limit-v4.spz` (header only; full and metadata-only reads), `gaussian-sog/.../too-many-gaussians/meta.json`, a `.splat` file grown to 8,000,001 records at test time (reader `TestImportLimit`; full and layout-only reads) | `GSPLY-E019`, `GSPZ-E015`, `GSSOG-E016`, `GSSPLAT-E004` |
 | SOG `meta.json` size | `zip-metadata-over-limit.sog` declares 4 MiB + 1 byte; unbundled `meta.json` of the same size, written at test time | `GSSOG-E016` (full and metadata-only reads) |
 | SOG JSON nesting depth / value tokens | in-memory documents one past each bound | `ParseJson` rejection (`GSSOG-E005` when reached through `meta.json`) |
 | SOG ZIP entries | `too-many-entries.sog` (65 entries) | `GSSOG-E016` |

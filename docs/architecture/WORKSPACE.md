@@ -15,6 +15,7 @@ and variants these components support.
 | `gaussian-ply` | OpenStrata plugin bundle (`usd-fileformat`) | Detect and decode Gaussian PLY. |
 | `gaussian-spz` | plugin bundle (`usd-fileformat`) | Read SPZ containers and decode their quantized values. |
 | `gaussian-sog` | plugin bundle (`usd-fileformat`) | Read SOG archives and resolve companion images, then decode their property planes. |
+| `gaussian-splat` | plugin bundle (`usd-fileformat`) | Check the record layout of headerless `.splat` files and decode their 8-bit fields. |
 | `gaussianCore` | plain CMake/OpenStrata static library | Own the Gaussian model, validation, shared math, diagnostics and statistics helpers, and the decoder test kit. |
 | `gaussianUsd` | plain CMake/OpenStrata static library | Author the shared `GaussianCloudData` model into the OpenUSD schema. Diagnostic codes stay owned by the calling bundle. |
 
@@ -38,6 +39,8 @@ gaussian-spz -> miniz (private, vendored raw-DEFLATE/CRC32; gzip framing is in-r
 gaussian-sog -> gaussianCore
 gaussian-sog -> gaussianUsd
 gaussian-sog -> miniz and libwebp (private, vendored ZIP and image decoders)
+gaussian-splat -> gaussianCore
+gaussian-splat -> gaussianUsd
 gaussianUsd  -> gaussianCore
 gaussianUsd  -> OpenUSD
 ```
@@ -95,6 +98,16 @@ plugins/gaussian-sog/src/io/SogJson.*
 
 plugins/gaussian-sog/src/io/GaussianSogDecoder.*
     SOG codebook/palette decoding into GaussianCloudData
+
+plugins/gaussian-splat/src/GaussianSplatFileFormat.*
+    thin SdfFileFormat integration
+
+plugins/gaussian-splat/src/io/SplatReader.*
+    .splat file layout: size, record count, import limit, and the
+    signatures of files renamed from other formats
+
+plugins/gaussian-splat/src/io/GaussianSplatDecoder.*
+    .splat record decoding into GaussianCloudData
 
 libs/gaussian-core/
     format- and USD-independent Gaussian model, math, size math,
@@ -160,6 +173,7 @@ Per-bundle artifacts use OpenStrata's target-qualified convention:
 gaussian-ply-<version>-<target>.tar.zst
 gaussian-spz-<version>-<target>.tar.zst
 gaussian-sog-<version>-<target>.tar.zst
+gaussian-splat-<version>-<target>.tar.zst
 ```
 
 The published aggregate is

@@ -9,6 +9,7 @@ bundles carry the same file at `plugin/resources/<bundle>/diagnostics.json`.
 | `GSPLY-` | [Gaussian PLY](../../plugins/gaussian-ply/plugin/resources/gaussian-ply/diagnostics.json) |
 | `GSPZ-` | [Niantic SPZ](../../plugins/gaussian-spz/plugin/resources/gaussian-spz/diagnostics.json) |
 | `GSSOG-` | [PlayCanvas SOG](../../plugins/gaussian-sog/plugin/resources/gaussian-sog/diagnostics.json) |
+| `GSSPLAT-` | [Headerless `.splat`](../../plugins/gaussian-splat/plugin/resources/gaussian-splat/diagnostics.json) |
 
 Errors start with a stable `E` code and warnings with a stable `W` code. Match
 the code in automation so message wording can evolve. The bundle owns the codes
@@ -29,7 +30,8 @@ ost plugin run plugins/gaussian-sog --no-inject -- usdchecker build/inspect.usda
 Remove-Item Env:TF_DEBUG
 ```
 
-Use `GSPLY_IMPORT_STATS` for PLY or `GSPZ_IMPORT_STATS` for SPZ. A successful
+Use `GSPLY_IMPORT_STATS` for PLY, `GSPZ_IMPORT_STATS` for SPZ, or
+`GSSPLAT_IMPORT_STATS` for `.splat`. A successful
 full import reports the Gaussian count, SH degree, bounds, warning count, and
 read, decode, and authoring times. Warnings that affect many Gaussians are
 aggregated by the reader. The summary reports the number of warning messages.

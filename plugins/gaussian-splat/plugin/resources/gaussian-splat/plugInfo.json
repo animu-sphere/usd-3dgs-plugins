@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "GaussianSplatFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/libGaussianSplatFileFormat.dll",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "GaussianSplatFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "GaussianSplat File Format",
+                        "extensions": ["splat"],
+                        "formatId": "splat",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}

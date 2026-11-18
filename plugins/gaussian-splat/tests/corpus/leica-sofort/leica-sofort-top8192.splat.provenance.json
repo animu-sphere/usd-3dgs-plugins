@@ -1,0 +1,20 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "plugins/gaussian-ply/tests/corpus/leica-sofort/leica-sofort-top8192.ply",
+    "sha256": "853cd6d8f1c59c471f5a53333d752282daea42ff4f70b89fb1b7d9d7f968d847",
+    "bytes": 1935011,
+    "gaussian_count": 8192
+  },
+  "derivation": {
+    "tool": "plugins/gaussian-splat/tools/generate_fixtures.py --corpus",
+    "encoding": "antimatter15 convert.py arithmetic (clamp, then truncate) without its importance sort; source order preserved; rest SH dropped"
+  },
+  "output": {
+    "file": "leica-sofort-top8192.splat",
+    "sha256": "3138294cff4ff54aec1afa092d7676e75a9cf18d71d01c296398cc1bffe0a753",
+    "bytes": 262144,
+    "gaussian_count": 8192,
+    "sh_degree": 0
+  }
+}
