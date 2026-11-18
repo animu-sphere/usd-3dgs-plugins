@@ -26,9 +26,9 @@ ost plugin test --workspace --up-to 5
 ost plugin package plugins/gaussian-ply
 ```
 
-The workspace carries three bundles; substitute `plugins/gaussian-spz` or
-`plugins/gaussian-sog` in any of the per-bundle commands above to build, verify,
-or package those plugins. The `--workspace` form covers all of them at once.
+The workspace carries four bundles; substitute `plugins/gaussian-spz`,
+`plugins/gaussian-sog`, or `plugins/gaussian-splat` in any of the per-bundle
+commands above to build, verify, or package those plugins. The `--workspace` form covers all of them at once.
 Windows runs to L4 in hosted CI and to L5 locally; see
 [WORKSPACE.md §8](../architecture/WORKSPACE.md).
 
@@ -76,6 +76,7 @@ ctest --test-dir libs/gaussian-core/build/cy2026-windows-x86_64-py313-usd --outp
 ctest --test-dir plugins/gaussian-ply/build/cy2026-windows-x86_64-py313-usd --output-on-failure
 ctest --test-dir plugins/gaussian-spz/build/cy2026-windows-x86_64-py313-usd --output-on-failure
 ctest --test-dir plugins/gaussian-sog/build/cy2026-windows-x86_64-py313-usd --output-on-failure
+ctest --test-dir plugins/gaussian-splat/build/cy2026-windows-x86_64-py313-usd --output-on-failure
 ```
 
 The root build additionally runs cross-format
@@ -96,9 +97,9 @@ cmake --build --preset default
 ctest --test-dir build/default --output-on-failure
 ```
 
-This composes all three bundles plus the shared libraries.
+This composes all four bundles plus the shared libraries.
 `gaussian_usd_composition` exercises references, payloads, and USDZ using
-all three bundles and both SOG layouts. Run it on its own with
+all four bundles and both SOG layouts. Run it on its own with
 `ctest --test-dir build/default -R gaussian_usd_composition --output-on-failure`.
 
 `benchmark_corpus_ci` generates and imports 1,048,576-Gaussian assets in all

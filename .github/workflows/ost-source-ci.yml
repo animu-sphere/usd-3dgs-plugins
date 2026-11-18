@@ -230,6 +230,69 @@ jobs:
             host_python: "3.13"
             host_packages_apt: "libx11-dev libxt-dev"
             host_packages_brew: ""
+          - name: gaussian-splat-pr-windows
+            lane: pull_request
+            runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+            require_openusd: "cy2026/windows/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/windows/x86_64/gl --require-openusd-version 26.08"
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            up_to: 4
+            runs_on: ["windows-2022"]
+            hosted: true
+            runner_profile: windows-hosted
+            bundle: plugins/gaussian-splat
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf"
+            host_python: "3.13"
+            host_packages_apt: ""
+            host_packages_brew: ""
+          - name: gaussian-splat-pr-macos-arm64
+            lane: pull_request
+            runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+            require_openusd: "cy2026/macos/arm64/metal"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/macos/arm64/metal --require-openusd-version 26.08"
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            up_to: 5
+            runs_on: ["macos-15"]
+            hosted: true
+            runner_profile: macos-arm64-hosted
+            bundle: plugins/gaussian-splat
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6"
+            host_python: "3.13"
+            host_packages_apt: ""
+            host_packages_brew: ""
+          - name: gaussian-splat-pr-linux
+            lane: pull_request
+            runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+            require_openusd: "cy2026/linux/x86_64/gl"
+            require_openusd_version: "26.08"
+            openusd_flags: "--require-openusd cy2026/linux/x86_64/gl --require-openusd-version 26.08"
+            target_trust: local
+            minimum_trust: local
+            require_evidence: all
+            evidence_flags: "--require-sbom --require-provenance"
+            platform: cy2026
+            profile: usd
+            up_to: 5
+            runs_on: ["ubuntu-24.04"]
+            hosted: true
+            runner_profile: linux-hosted
+            bundle: plugins/gaussian-splat
+            runtime_remote: "oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f"
+            host_python: "3.13"
+            host_packages_apt: "libx11-dev libxt-dev"
+            host_packages_brew: ""
     steps:
       - name: Check out the repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

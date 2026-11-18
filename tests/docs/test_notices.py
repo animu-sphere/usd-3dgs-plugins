@@ -62,7 +62,8 @@ class PackagedNoticeTests(unittest.TestCase):
                 self.assertIn(TINYPLY_GRANT, body)
 
     def test_every_bundle_packages_the_workspace_notice(self):
-        for bundle in ("gaussian-ply", "gaussian-spz", "gaussian-sog"):
+        for bundle in ("gaussian-ply", "gaussian-spz", "gaussian-sog",
+                       "gaussian-splat"):
             with self.subTest(bundle=bundle):
                 cmake = (ROOT / "plugins" / bundle / "CMakeLists.txt").read_text(
                     encoding="utf-8")

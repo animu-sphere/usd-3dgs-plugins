@@ -6,7 +6,8 @@ if(NOT Python3_Interpreter_FOUND)
 endif()
 
 include("../../cmake/Usd3dgsPythonTests.cmake")
-usd3dgs_python_test_environment(_test_env gaussian-ply gaussian-spz gaussian-sog)
+usd3dgs_python_test_environment(_test_env gaussian-ply gaussian-spz gaussian-sog
+    gaussian-splat)
 
 add_test(
     NAME gaussian_usd_composition

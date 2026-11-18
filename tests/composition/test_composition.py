@@ -14,6 +14,7 @@ FIXTURES = (
     ("gaussian-spz", "decode-degree1-v2.spz", ("SPZ", 2, 1)),
     ("gaussian-sog", "kit-one-degree0.sog", ("SOG", 1, 0)),
     ("gaussian-sog", "unbundled-kit-multi-degree3/meta.json", ("SOG", 3, 3)),
+    ("gaussian-splat", "decode-known.splat", ("SPLAT", 2, 0)),
 )
 
 

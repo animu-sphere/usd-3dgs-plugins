@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Generate PLY/SPZ/SOG/compressed-PLY fixtures that encode one source model.
+"""Generate PLY/SPZ/SOG/compressed-PLY/.splat fixtures that encode one model.
 
 All three bundles decode into the same format-independent `GaussianCloudData`
 (GAUSSIAN_MODEL_CONTRACT.md). This script defines Gaussians *in that shared
@@ -19,7 +19,11 @@ harmonics — and then encodes the same values three times:
   * to a SuperSplat compressed PLY, by the in-repo encoder of
     COMPRESSED_PLY_MAPPING.md (per-chunk bounds, 11/10/11 and 8-bit unorm
     packing, smallest-three rotation, byte SH). Unlike SplatTransform it keeps
-    source order, so the test compares index by index.
+    source order, so the test compares index by index; and
+  * to a headerless `.splat` file, by the bundle's reference-writer encoder
+    (SPLAT_MAPPING.md): PLY-frame float32 positions and linear scales, 8-bit
+    colour, alpha, and rotation, truncated as the reference writer does. The
+    format has no rest coefficients, so only DC survives.
 
 `tests/equivalence/test_*equivalence.cpp` decode every member of a set and
 asserts the clouds agree within the per-format quantization envelopes
@@ -28,7 +32,7 @@ reference each quantizing format is compared against; the two frame-flipping
 formats (PLY, SOG) and the one that flips nothing (SPZ) all having to agree is
 what makes a sign error impossible to hide.
 
-The SPZ, SOG, and compressed PLY encoders are imported from their bundles'
+The SPZ, SOG, compressed PLY, and `.splat` encoders are imported from their bundles'
 fixture generators
 rather than reimplemented here, so the reference quantization formulas exist
 once in the repository and cannot drift between a bundle's decoder suite and
@@ -66,6 +70,9 @@ ply = _load(
 sog = _load(
     "_sog_fixtures",
     REPO / "plugins" / "gaussian-sog" / "tools" / "generate_fixtures.py")
+splat = _load(
+    "_splat_fixtures",
+    REPO / "plugins" / "gaussian-splat" / "tools" / "generate_fixtures.py")
 
 FRACTIONAL_BITS = 12
 
@@ -371,6 +378,23 @@ def write_sog(name: str, gaussians: list[Gaussian]) -> float:
 
 
 # --------------------------------------------------------------------------
+# .splat encoding — the inverse of SPLAT_MAPPING.md
+# --------------------------------------------------------------------------
+
+def write_splat(name: str, gaussians: list[Gaussian]) -> None:
+    """The RDF positions and quaternion `write_ply` stores, with linear
+    scales and the DC term only: `.splat` keeps the Graphdeco frame and has
+    no rest coefficients."""
+    out = b""
+    for g in gaussians:
+        w, x, y, z = g.rotation
+        out += splat.encode_record(
+            to_rdf(g.position), g.scale, g.dc, g.opacity,
+            (w, *to_rdf((x, y, z))))
+    (ROOT / name).write_bytes(out)
+
+
+# --------------------------------------------------------------------------
 
 def main() -> None:
     ROOT.mkdir(parents=True, exist_ok=True)
@@ -409,6 +433,12 @@ def main() -> None:
     chunked = chunked_degree2()
     write_ply("equiv-degree2-chunked-binary-le.ply", chunked)
     write_compressed("equiv-degree2-chunked.compressed.ply", chunked)
+
+    # The same three models as .splat. The PLY partners keep their rest
+    # coefficients; the test compares DC only and requires degree 0.
+    write_splat("equiv-degree3-exact.splat", exact)
+    write_splat("equiv-degree1-offgrid.splat", arbitrary)
+    write_splat("equiv-degree2-chunked.splat", chunked)
 
     # The spans the SOG position tolerances in test_equivalence.cpp are derived
     # from; printed so the constants there can be re-checked after any change

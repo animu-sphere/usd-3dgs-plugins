@@ -3,7 +3,7 @@
 # Cross-format equivalence tests. This directory is deliberately outside every
 # bundle: it links more than one bundle's decoder, which no single bundle can
 # do. `ost plugin build <bundle>` never configures it — only the plain root
-# composition does, and only when all three decoder targets are present.
+# composition does, and only when every format decoder target is present.
 #
 # One executable per quantizing format, both comparing against the lossless PLY
 # decoder: gaussianSpzDecoder and gaussianSogDecoder each carry their own
@@ -11,11 +11,14 @@
 # compiles the archive APIs out and SOG needs them), so linking both into one
 # program is a duplicate-symbol error. See equivalence_common.h. The
 # compressed PLY suite needs only the PLY decoder, which reads both dialects.
+# The .splat suite also compares the bundle's CC0 corpus conversions with the
+# PLY subsets they were made from, so every suite gets the repository root.
 
 foreach(_suite
         "equivalence_tests;test_equivalence.cpp;gaussianSpzDecoder;gaussian_ply_spz_equivalence"
         "sog_equivalence_tests;test_sog_equivalence.cpp;gaussianSogDecoder;gaussian_ply_sog_equivalence"
-        "compressed_equivalence_tests;test_compressed_equivalence.cpp;gaussianPlyDecoder;gaussian_ply_compressed_equivalence")
+        "compressed_equivalence_tests;test_compressed_equivalence.cpp;gaussianPlyDecoder;gaussian_ply_compressed_equivalence"
+        "splat_equivalence_tests;test_splat_equivalence.cpp;gaussianSplatDecoder;gaussian_ply_splat_equivalence")
     list(GET _suite 0 _target)
     list(GET _suite 1 _source)
     list(GET _suite 2 _decoder)
@@ -28,7 +31,8 @@ foreach(_suite
         openstrata::gaussianCore)
     target_include_directories(${_target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_compile_definitions(${_target} PRIVATE
-        EQUIVALENCE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+        EQUIVALENCE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+        EQUIVALENCE_REPO_DIR="${PROJECT_SOURCE_DIR}")
     if(MSVC)
         target_compile_options(${_target} PRIVATE /utf-8)
     endif()

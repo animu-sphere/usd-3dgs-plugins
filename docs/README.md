@@ -48,5 +48,6 @@ behavior. If either changes, review the affected documentation in the same PR.
 | `gaussian-ply` | [Plugin README](../plugins/gaussian-ply/README.md) |
 | `gaussian-spz` | [Plugin README](../plugins/gaussian-spz/README.md) |
 | `gaussian-sog` | [Plugin README](../plugins/gaussian-sog/README.md) |
+| `gaussian-splat` | [Plugin README](../plugins/gaussian-splat/README.md) |
 | `gaussianCore` | [Library README](../libs/gaussian-core/README.md) |
 | `gaussianUsd` | [Library README](../libs/gaussian-usd/README.md) |

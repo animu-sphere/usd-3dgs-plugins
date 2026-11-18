@@ -78,7 +78,8 @@ endforeach()
 if(USD3DGS_BUILD_TESTS
    AND TARGET gaussianPlyDecoder
    AND TARGET gaussianSpzDecoder
-   AND TARGET gaussianSogDecoder)
+   AND TARGET gaussianSogDecoder
+   AND TARGET gaussianSplatDecoder)
     add_subdirectory("tests/equivalence")
     # The large-asset benchmark corpus opens all three formats through their
     # plugins, so it needs the same full composition.

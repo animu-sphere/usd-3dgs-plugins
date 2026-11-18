@@ -29,6 +29,10 @@ carries no spherical harmonics beyond the base colour.
 - A headerless format can only be routed by extension and size, so FMT-13
   must show that the routing rule cannot claim files that belong to other
   formats or bundles.
+- On 2026-11-19 the maintainer accepted the FMT-13 recommendations: a new
+  `gaussian-splat` bundle with the `GSSPLAT-` prefix, and the reference
+  rotation read rule `(b − 128) / 128`
+  ([SPLAT_FORMAT.md §6](../reference/SPLAT_FORMAT.md#6-decisions)).
 
 ## Active work
 
