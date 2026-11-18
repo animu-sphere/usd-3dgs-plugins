@@ -5,6 +5,38 @@ It records what was observed on 2026-11-19 against the named upstream
 revisions and files. It is not a support claim. The
 [capability matrix](../reference/CAPABILITY_MATRIX.md) does not list glTF.
 
+## Correction (2026-11-19)
+
+The frame analysis in §4, and the rows and bullets that depend on it, are
+wrong. The original text below is kept as the record.
+
+- **No conversion is needed.** The glTF specification names its axes from the
+  asset's point of view: the asset's front faces +Z and its left side faces
+  +X. RUB in [ADR 0001](../adr/0001-model-frame-is-rub.md) names the same
+  axes from the viewer's point of view. An asset that faces a viewer standing
+  at +Z has its left side on the viewer's right. "LUF" in this report is
+  therefore the same frame as RUB, and `F = diag(-1, 1, -1)` must not be
+  applied. The sibling importer `usd-gltf-plugins` also keeps glTF
+  coordinates and node transforms unchanged in a Y-up stage. Applying `F`
+  would turn splats 180° away from the meshes in the same file.
+- **SplatTransform.** It maps PLY to glTF with a 180° rotation about Z. The
+  PLY importer and the SPZ reference library map PLY's RDF to RUB with a 180°
+  rotation about X. A SplatTransform GLB therefore imports rotated 180° about
+  +Y relative to the same PLY imported directly. The difference lies in
+  SplatTransform's PLY convention, as in the
+  [SPZ v4 spike](format-spike-spz-v4-2026-11-17.md#5-coordinate-frame), not
+  in glTF. Equivalence fixtures should come from an in-repo generator that
+  applies the RDF→RUB flip.
+- **Node transforms.** The conjugation `F G F⁻¹` is not needed. `G` can be
+  authored unchanged.
+- **Not affected.** The rest-SH sign table, which only applied to `F`, is not
+  needed. The other findings stand: attribute semantics, writers, fixtures,
+  parser cost, and the registration facts in §8.
+
+After this spike, the maintainer deferred glTF on 2026-11-19 and moved
+v0.12.0 to `.splat`. The [backlog](../roadmap/backlog.md#other-format-candidates)
+records why.
+
 ## Summary
 
 | Check | Result |
@@ -113,6 +145,10 @@ new. A point primitive may also have `indices`, which select and repeat
 vertices. SplatTransform's reader accepts them.
 
 ## 4. Frame, units, and colour
+
+> The frame analysis in this section is wrong. See the
+> [correction](#correction-2026-11-19): glTF's axes already match RUB, and no
+> conversion is needed.
 
 **Frame.** The glTF 2.0 specification defines +Y up, the front of the asset
 facing +Z, and the left side facing +X. That is LUF, right-handed. The
