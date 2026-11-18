@@ -43,8 +43,17 @@ tests:
     - tests/fixtures/minimal-v1.spz
     - tests/fixtures/minimal-v2.spz
     - tests/fixtures/minimal-v3.spz
+    # SPZ version 4: one zstd frame per attribute stream (ADR 0002). These
+    # are synthetic fixtures from tools/generate_fixtures.py; no
+    # redistributable real-world v4 capture exists yet.
+    - tests/fixtures/decode-v4.spz
+    - tests/fixtures/minimal-v4.spz
+    - tests/fixtures/three-points-degree1-v4.spz
+    - tests/fixtures/extensions-v4.spz
+    - tests/fixtures/framing-v4.spz
   roundtrip:
     - tests/fixtures/decode-degree1-v2.spz
+    - tests/fixtures/three-points-degree1-v4.spz
   negative:
     - tests/fixtures/decode-degree4-v2.spz
     - tests/fixtures/decode-nonfinite-v1.spz
@@ -68,3 +77,12 @@ tests:
     - tests/fixtures/bad-fhcrc-v2.spz
     - tests/fixtures/trailing-decompressed-v2.spz
     - tests/fixtures/trailing-after-member-v2.spz
+    - tests/fixtures/plaintext-v5.spz
+    - tests/fixtures/stream-count-v4.spz
+    - tests/fixtures/second-frame-v4.spz
+    - tests/fixtures/truncated-frame-v4.spz
+    - tests/fixtures/corrupt-block-v4.spz
+    - tests/fixtures/unflagged-zone-v4.spz
+    - tests/fixtures/degree4-v4.spz
+    - tests/fixtures/coordinate-rdf-v4.spz
+    - tests/fixtures/coordinate-rdf-v2.spz

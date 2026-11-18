@@ -163,7 +163,7 @@ ost plugin run plugins/gaussian-ply --no-inject -- python tests/package_consumer
 
 The test installs the aggregate archive with `ost plugin product install` in
 a temporary directory. Fresh Python and C++ consumers open the packaged
-Graphdeco PLY, compressed PLY, SPZ, and bundled SOG fixtures. The Python
+Graphdeco PLY, compressed PLY, SPZ version 2 and 4, and bundled SOG fixtures. The Python
 consumer checks that the loaded libraries and diagnostic catalogs come from the
 active prefix and that each stage records its source format. `usdcat`
 flattens each stage and `usdchecker` validates the resulting USD.
