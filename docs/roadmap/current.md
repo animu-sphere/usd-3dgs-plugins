@@ -32,6 +32,13 @@ new decoder dependency.
   and the EGSC and MPEG proposals are open pull requests.
 - glTF owns a scene graph, so FMT-10 decides the questions §4.1 of the
   design policy lists before any reader code lands.
+- FMT-09 found no blocker
+  ([spike report](../reports/format-spike-gltf-gaussian-splatting-2026-11-19.md)).
+  The values are already physical and the SH layout is Graphdeco's, so
+  decoding needs a transpose and a LUF→RUB sign conversion. FMT-10 has two
+  open problems. Adobe's `usdGltf` already claims `.gltf`/`.glb` as primary,
+  and Sdf picks a format by extension alone (§8). Writers also use non-identity
+  node transforms (§4).
 
 ## Active work
 
@@ -40,7 +47,7 @@ as work starts; keep task checklists in those issues or PRs.
 
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
-| FMT-09 | Spike glTF `KHR_gaussian_splatting` | A report documents the ratified extension: required and optional attributes, accessor component types and normalization, kernel, color space, and SH layout; the frame and unit relation between glTF and the RUB model frame; observed writers and their defaults; redistributable fixtures; and the parser cost (JSON, GLB chunks, data URIs, external buffers). | — |
+| FMT-09 | Spike glTF `KHR_gaussian_splatting` | A report documents the ratified extension: required and optional attributes, accessor component types and normalization, kernel, color space, and SH layout; the frame and unit relation between glTF and the RUB model frame; observed writers and their defaults; redistributable fixtures; and the parser cost (JSON, GLB chunks, data URIs, external buffers). | [Report](../reports/format-spike-gltf-gaussian-splatting-2026-11-19.md) |
 | FMT-10 | Decide glTF ownership | An ADR settles a dedicated bundle or integration with a glTF importer, `.gltf`/`.glb` file-format registration and coexistence with other glTF plugins, which scene data is authored (node transforms, multiple primitives or nodes, non-Gaussian content), external resource resolution, and the compression extensions left out. | — |
 | FMT-11 | Implement glTF Gaussian import end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including glTF entries in the cross-format equivalence suite. | — |
 | FMT-12 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares the glTF fixtures, and the declared source and package consumer gates pass on the release targets. Packaged notices cover any new vendored component. | — |
