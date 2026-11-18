@@ -69,6 +69,8 @@ as work starts; keep task checklists in those issues or PRs.
 | FMT-07 | Implement SPZ v4 end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including v4 entries in the PLY/SPZ equivalence suite. The change records the `gaussian-spz` library size before and after on each release target ([ADR 0002](../adr/0002-vendored-zstd-decoder.md)). || [PR #69](https://github.com/animu-sphere/usd-3dgs-plugins/pull/69) |
 | FMT-08 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares v4 fixtures, and the declared source and package consumer gates pass on the release targets. Each packaged notice includes the full licence text of every vendored component. | [PR #71](https://github.com/animu-sphere/usd-3dgs-plugins/pull/71) |
 
+The remaining milestone work is the [v0.11.0 release gate](../releases/README.md#release-gate).
+
 ## Release exit
 
 - SPZ v4, or the fallback chosen by FMT-05, passes the
