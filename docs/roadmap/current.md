@@ -37,7 +37,7 @@ as work starts; keep task checklists in those issues or PRs.
 
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
-| FMT-13 | Spike `.splat` | A report documents the record layout and its authoritative source or reference implementation; the variants in use; observed writers, their frame and value conventions, and their provenance; quantization loss (8-bit colour, opacity, and rotation; no SH); the `CanRead()` routing rule and how it coexists with other formats; redistributable fixtures; and which bundle hosts the reader. | — |
+| FMT-13 | Spike `.splat` | A report documents the record layout and its authoritative source or reference implementation; the variants in use; observed writers, their frame and value conventions, and their provenance; quantization loss (8-bit colour, opacity, and rotation; no SH); the `CanRead()` routing rule and how it coexists with other formats; redistributable fixtures; and which bundle hosts the reader. | [#76](https://github.com/animu-sphere/usd-3dgs-plugins/pull/76), [report](../reports/format-spike-splat-2026-11-19.md) |
 | FMT-14 | Implement `.splat` import end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including `.splat` entries in the cross-format equivalence suite. | — |
 | FMT-15 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares the `.splat` fixtures, and the declared source and package consumer gates pass on the release targets. | — |
 
