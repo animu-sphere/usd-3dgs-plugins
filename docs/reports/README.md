@@ -12,6 +12,7 @@ current-state contracts.
 | [Compressed PLY spike (2026-11-17)](format-spike-compressed-ply-2026-11-17.md) | FMT-01 evaluation of SuperSplat compressed PLY against pinned upstream code and real files. |
 | [SPZ v4 spike (2026-11-17)](format-spike-spz-v4-2026-11-17.md) | FMT-05 evaluation of the SPZ v4 container, writer defaults, frame risks, fixtures, and Zstandard cost. |
 | [glTF Gaussian splatting spike (2026-11-19)](format-spike-gltf-gaussian-splatting-2026-11-19.md) | FMT-09 evaluation of the ratified `KHR_gaussian_splatting` extension: attributes, writers, fixtures, parser cost, and file-format coexistence. Its frame analysis is corrected in the report. |
+| [`.splat` spike (2026-11-19)](format-spike-splat-2026-11-19.md) | FMT-13 evaluation of the headerless `.splat` format: record layout, writer arithmetic, frame, quantization loss, routing, fixtures, and the hosting bundle. |
 
 ## What belongs where
 
