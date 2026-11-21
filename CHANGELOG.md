@@ -6,6 +6,10 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-21
+
+**SOG v3 and benchmark coverage.**
+
 ### Added
 
 - `gaussian-sog` reads SOG version 3, the default output of PlayCanvas
@@ -21,6 +25,9 @@ semantic versioning for tagged releases.
   corpus converted to v3 with SplatTransform 3.12.0. The bundle manifest
   declares v3 smoke, roundtrip, and negative fixtures, and the aggregate
   package consumer test opens a v3 file.
+- The benchmark corpus measures SOG v3 and `.splat` in every tier, and the
+  hosted gate grows from 12 to 20 rows; every row meets the existing targets
+  ([BENCHMARK_CORPUS.md](docs/reference/BENCHMARK_CORPUS.md)).
 
 ### Changed
 
