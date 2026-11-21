@@ -29,6 +29,15 @@ about `.splat`, and would say nothing about SOG v3 either.
 - SOG v3 and benchmark coverage are the v0.13.0 scope (selected 2026-11-21).
   If FMT-16 finds a blocker, record the reason in the
   [backlog](backlog.md#other-format-candidates); PERF-01 still ships.
+- On 2026-11-21 the maintainer accepted the FMT-16 recommendations
+  ([report §9](../reports/format-spike-sog-v3-2026-11-21.md#9-proposed-scope-for-fmt-17-and-fmt-18)):
+  opacity above 1 is clamped to 1 with a warning; a 4th SH band is rejected
+  with `GSSOG-E007`; the interim SplatTransform 3.11.0-3.11.1 layout is
+  rejected with `GSSOG-E003`; blind textures are ignored with a warning; and
+  `model` values `antialiased` and `2dgs` warn in both v2 and v3. The last
+  adds a warning to v2 imports that are silent today, the one exception to
+  FMT-17's unchanged-v2 criterion.
+- `.ksplat` was reconsidered on 2026-11-21 and deferred again.
 - Streamed SOG and LOD stay in the backlog. FMT-16 records whether v3
   changes that boundary.
 - A second OpenUSD SDK point was considered and not scheduled: the
@@ -43,8 +52,8 @@ as work starts; keep task checklists in those issues or PRs.
 
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
-| FMT-16 | Spike SOG v3 | A report documents the v2-to-v3 changes from the specification and the SplatTransform source; which writers and versions emit v3 and whether it is their default; bundled and unbundled layouts; frame and value conventions; any new dependency or codec; the new hostile-input surface; redistributable fixtures; and what replaces the `version-3.sog` negative fixture. | — |
-| FMT-17 | Implement SOG v3 import end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including SOG v3 entries in the cross-format equivalence suite. SOG v2 behaviour and diagnostics are unchanged. | — |
+| FMT-16 | Spike SOG v3 | A report documents the v2-to-v3 changes from the specification and the SplatTransform source; which writers and versions emit v3 and whether it is their default; bundled and unbundled layouts; frame and value conventions; any new dependency or codec; the new hostile-input surface; redistributable fixtures; and what replaces the `version-3.sog` negative fixture. | [report](../reports/format-spike-sog-v3-2026-11-21.md) |
+| FMT-17 | Implement SOG v3 import end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including SOG v3 entries in the cross-format equivalence suite. SOG v2 behaviour and diagnostics are unchanged, except the `model` warning accepted from FMT-16 (D5). | — |
 | FMT-18 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares the SOG v3 fixtures, and the declared source and package consumer gates pass on the release targets. | — |
 | PERF-01 | Benchmark every supported format | The fixture, corpus, and scale tiers and the hosted gate include `.splat` and SOG v3 rows generated from the same CC0 sources as the existing rows. [BENCHMARK_CORPUS.md](../reference/BENCHMARK_CORPUS.md) records the new baseline, and every row meets the targets or the targets are revised with a stated reason. | — |
 
