@@ -46,7 +46,7 @@ throughout this guide. Install only the ones you need; none depends on another.
 
 One caveat specific to `gaussian-sog`: because the stock unbundled layout is
 named `meta.json`, that bundle registers the `.json` extension as well as
-`.sog`. It claims a `.json` file only when the file actually parses as a SOG v2
+`.sog`. It claims a `.json` file only when the file actually parses as a SOG v2 or v3
 metadata document, so unrelated JSON is left alone — but if your environment
 already has a plugin claiming `.json`, install `gaussian-sog` deliberately
 rather than by default.
