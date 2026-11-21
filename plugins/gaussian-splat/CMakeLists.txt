@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(GaussianSplatPlugin
-    VERSION 0.11.0
+    VERSION 0.12.0
     DESCRIPTION "OpenUSD splat file-format plugin"
     LANGUAGES CXX)
 
