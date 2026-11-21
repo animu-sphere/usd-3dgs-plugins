@@ -59,6 +59,10 @@ as work starts; keep task checklists in those issues or PRs.
 
 ## Release exit
 
+v0.13.0 was published on 2026-11-21; see the
+[release record](../releases/v0.13.0.md).
+
+
 - SOG v3 passes the
   [format acceptance gate](release-plan.md#format-acceptance-gate).
 - The benchmark targets hold for every supported format.

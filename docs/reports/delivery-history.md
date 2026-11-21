@@ -299,3 +299,16 @@ log the roadmap no longer needs to carry.
   diagnostics and PLY equivalence pairs, declared its fixtures in the package
   gates, and verified product packages on Windows, macOS, and Linux.
   [Release record](../releases/v0.12.0.md)
+
+## O. v0.13.0 — SOG v3 and benchmark coverage
+
+- ✅ Spiked SOG v3 against the specification and SplatTransform v3.12.0,
+  found the interim 3.11.0-3.11.1 layout, and accepted five decoding
+  decisions.
+  [Format spike](format-spike-sog-v3-2026-11-21.md)
+- ✅ Imported SOG v3 in `gaussian-sog` alongside v2, with v3 fixtures,
+  equivalence pairs, a v3 CC0 corpus, and package-gate declarations.
+  [v3 mapping](../reference/SOG_MAPPING.md#10-sog-version-3)
+- ✅ Benchmarked SOG v3 and `.splat` in every tier, grew the hosted gate to 20
+  rows, and verified product packages on Windows, macOS, and Linux.
+  [Release record](../releases/v0.13.0.md)
