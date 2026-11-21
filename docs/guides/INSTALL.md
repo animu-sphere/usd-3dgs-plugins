@@ -128,9 +128,9 @@ a Hydra renderer. Opening a stage and rendering visible splats are separate
 capabilities.
 
 Examples viewed with OpenUSD's `hdParticleField` delegate:
-[PLY](../assets/usdview_hdParticleField_PLY.png),
-[SOG](../assets/usdview_hdParticleField_SOG.png), and
-[SPZ](../assets/usdview_hdParticleField_SPZ.png).
+[PLY](../assets/screenshots/usdview_hdParticleField_PLY.png),
+[SOG](../assets/screenshots/usdview_hdParticleField_SOG.png), and
+[SPZ](../assets/screenshots/usdview_hdParticleField_SPZ.png).
 
 ## `.splat` usage example
 
