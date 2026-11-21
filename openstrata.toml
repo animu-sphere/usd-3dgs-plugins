@@ -1,6 +1,6 @@
 [project]
 name = "usd-3dgs-plugins"
-version = "0.12.0"
+version = "0.13.0"
 
 [requires]
 platform = "cy2026"
