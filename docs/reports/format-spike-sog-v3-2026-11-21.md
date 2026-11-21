@@ -197,7 +197,8 @@ behaviour and diagnostics unchanged:
 FMT-18 declares the v3 fixtures in the bundle manifest and the aggregate
 package consumer test, and updates the capability matrix and CHANGELOG.
 
-Decisions for the maintainer:
+Decisions for the maintainer. On 2026-11-21 the maintainer accepted every
+recommendation below (D1-D5).
 
 | # | Question | Recommendation | Alternative |
 | --- | --- | --- | --- |
