@@ -27,7 +27,7 @@ revision and local parser fixes.
 | SuperSplat compressed PLY | supported | binary little-endian with the 18-property `chunk`, SH degrees 0-3, full and metadata-only reads, routed by header signature inside `gaussian-ply`. Hand-coded decoder fixtures, an index-by-index equivalence suite against lossless PLY, and committed CC0 SplatTransform 3.11.2 conversions matched to their sources; locally verified on SuperSplat 2.4.1-2.7.1 exports up to 1.94M Gaussians. Mapping and quantization loss in [COMPRESSED_PLY_MAPPING.md](COMPRESSED_PLY_MAPPING.md); producers in [PLY dialects](PLY_DIALECTS.md#observed-compressed-producers) |
 | Compressed PLY variants | unsupported | ASCII or big-endian (`GSPLY-E020`) and the 12-property colourless `chunk` (`GSPLY-E021`) are rejected with specific diagnostics |
 | Compressed PLY render-mode tags | supported (ignored) | `SplatRenderMode: mip \| 2dgs` and `postshot.anti_aliasing=1` produce warning `GSPLY-W004`; the Gaussians are authored as ordinary 3DGS splats |
-| `.splat` and `.ksplat` | unsupported | No registered importer for either format |
+| `.ksplat` | unsupported | No registered importer; `.splat` is imported by `gaussian-splat` ([below](#splat-input-and-semantic-mapping)) |
 | Position | supported | `x/y/z` copied as local-space position |
 | Scale | supported | stable finite `exp(scale_*)` conversion |
 | Rotation | supported | scalar-first quaternion normalization; zero becomes identity with warning |
@@ -62,7 +62,7 @@ revision and local parser fixes.
 | Native-RUB reference frame (no conversion) | supported | SPZ's RUB convention is the model frame (ADR 0001); dequantized verbatim, verified through the decoder and USD |
 | Extension records, extension frames, antialiased flag | supported (ignored) | records parsed by type and length in both generations, v4 skippable frames bounded but not decompressed; ignored by the decoder with warnings `GSPZ-W001`/`W002`, except the coordinate-system record above |
 | Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test |
-| Cross-format equivalence | supported | synthetic triples encode one source model into PLY, SPZ, and SOG; `gaussian_ply_spz_equivalence` and `gaussian_ply_sog_equivalence` compare every model attribute against the lossless PLY side at documented quantization-aware tolerances, covering SPZ v2-v4 and both SOG profiles — see [EQUIVALENCE.md](EQUIVALENCE.md) |
+| Cross-format equivalence | supported | synthetic models are encoded into PLY, SPZ, SOG, compressed PLY, and `.splat`; `gaussian_ply_spz_equivalence`, `gaussian_ply_sog_equivalence`, `gaussian_ply_compressed_equivalence`, and `gaussian_ply_splat_equivalence` compare every model attribute against the lossless PLY side at documented quantization-aware tolerances, covering SPZ v2-v4 and both SOG profiles — see [EQUIVALENCE.md](EQUIVALENCE.md) |
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only; for v4 it also validates the plaintext extension zone and table of contents |
 | Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
 
@@ -90,10 +90,27 @@ revision and local parser fixes.
 | Real trained SOG assets | supported | committed 8,192-Gaussian corpus (`yashica-t4`, `leica-sofort`) at degree 3, checked semantically by the smoke test |
 | Stable diagnostics | supported | `GSSOG-E***`/`GSSOG-W***` codes with a machine-readable catalog cross-checked against the sources in both directions |
 
+## `.splat` input and semantic mapping
+
+| Capability | Status | Evidence / behavior |
+| --- | --- | --- |
+| Headerless 32-byte `.splat` records | supported | `SplatReader` derives the count from the file size; hand-checked decoder fixtures, an independent SplatTransform 3.11.2 test file, and committed CC0 conversions of the PLY corpus. Layout and routing in [SPLAT_FORMAT.md](SPLAT_FORMAT.md) |
+| Routing (`CanRead()`) | supported | extension `splat` and a non-empty size that is a multiple of 32, from a stat alone; `Read()` rejects renamed PLY, SPZ v4, ZIP/SOG, and GLB files by signature with `GSSPLAT-E003` ([SPLAT_FORMAT.md §4](SPLAT_FORMAT.md)) |
+| Position and linear scale (float32) | supported | copied as stored; non-finite positions (`GSSPLAT-E006`) and zero, negative, or non-finite scales (`GSSPLAT-E007`) are rejected |
+| Colour and alpha (8-bit) | supported | decoded to the DC term and opacity by the exact inverse of the writer formula; writers clip DC outside about ±1.77 ([SPLAT_MAPPING.md §3](SPLAT_MAPPING.md)) |
+| Rotation (8-bit, scalar first) | supported | `(b − 128) / 128`, then normalization; worst-case error 1.75° for truncating writers; all-zero rotations become identity with `GSSPLAT-W001` ([SPLAT_MAPPING.md §4](SPLAT_MAPPING.md)) |
+| SH degrees 1-3 | unsupported | the format stores no rest coefficients, so every `.splat` file imports at SH degree 0 |
+| RDF→RUB reference-frame conversion | supported | every observed writer stores Graphdeco PLY columns, so the shared `FlipYZAxes` applies; the equivalence suite checks the CC0 corpus against its source PLY ([SPLAT_MAPPING.md §5](SPLAT_MAPPING.md)) |
+| `.ksplat` or other record sizes | unsupported | the extension and the 32-byte record size are the whole contract; a size that is not a multiple of 32 fails with `GSSPLAT-E002` |
+| Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the file size and the signature check without reading records |
+| Real trained `.splat` assets | supported | committed 8,192-Gaussian corpus (`yashica-t4`, `leica-sofort`) converted from the CC0 PLY subsets; no redistributable capture written by a third-party tool exists |
+| Stable diagnostics | supported | `GSSPLAT-E***`/`GSSPLAT-W***` codes with a machine-readable catalog cross-checked against the sources in both directions |
+
 ## USD authoring
 
-`gaussian-ply`, `gaussian-spz`, and `gaussian-sog` all author through the shared
-`libs/gaussian-usd` writer, so the rows below are identical for every format.
+`gaussian-ply`, `gaussian-spz`, `gaussian-sog`, and `gaussian-splat` all author
+through the shared `libs/gaussian-usd` writer, so the rows below are identical
+for every format.
 
 | Capability | Status | USD output |
 | --- | --- | --- |
@@ -105,7 +122,7 @@ revision and local parser fixes.
 | Extent | supported | conservative three-sigma bounds from position/scale |
 | Source provenance | supported | `customData.gs` with source format, count, and SH degree |
 | USDA inspection | supported | `WriteToString` delegates to USDA |
-| Write/export to any Gaussian format | unsupported | `WriteToFile` reports read-only behavior (`GSPLY-E203`/`GSPZ-E201`/`GSSOG-E201`) |
+| Write/export to any Gaussian format | unsupported | `WriteToFile` reports read-only behavior (`GSPLY-E203`/`GSPZ-E201`/`GSSOG-E201`/`GSSPLAT-E201`) |
 | Animated Gaussians | unsupported | static arrays only |
 | Multiple clouds/cameras | unsupported | one `/Asset/Splat`, no camera import |
 
@@ -118,7 +135,7 @@ combinations and results.
 
 ## Hydra rendering
 
-All three importers author `ParticleField3DGaussianSplat`. Stage inspection
+All four importers author `ParticleField3DGaussianSplat`. Stage inspection
 works independently of the active Hydra delegate. Visible splats require a
 delegate that implements that schema; the stock hdStorm path is not a splat
 rendering target for this project.
@@ -127,5 +144,5 @@ The experimental [Merlin Gaussian PLY host session](https://github.com/animu-sph
 verifies a synthetic Graphdeco PLY using digest-pinned public packages on
 Windows x86_64. Use its pinned `lookdev` Formation to reproduce the preview.
 The record covers the exact host, runtime and delegate; it does not establish
-SPZ or SOG rendering support. The `usd` aggregate product is covered by the
-separate [plugin release record](../releases/v0.9.0.md).
+SPZ, SOG, or `.splat` rendering support. The `usd` aggregate product is
+covered by the separate [plugin release record](../releases/v0.9.0.md).

@@ -24,6 +24,8 @@ FIXTURES = (
      "Gaussian Splatting SPZ"),
     ("gaussian-sog", "GaussianSogFileFormat", "kit-one-degree0.sog", 1, 0,
      "Gaussian Splatting SOG"),
+    ("gaussian-splat", "GaussianSplatFileFormat", "decode-known.splat", 2, 0,
+     "Gaussian Splatting SPLAT"),
 )
 BUNDLES = tuple(dict.fromkeys(bundle for bundle, *_ in FIXTURES))
 
@@ -123,7 +125,7 @@ def check_lifecycle(archive, digest):
             assert prefix.resolve().parent == scratch
             shutil.rmtree(prefix)
         run(*command, "--previous", first, "--previous", replacement, cwd=scratch)
-        print("Passed uninstallation: none of the three file formats can open", flush=True)
+        print("Passed uninstallation: none of the four bundles' file formats can open", flush=True)
 
 
 def main():

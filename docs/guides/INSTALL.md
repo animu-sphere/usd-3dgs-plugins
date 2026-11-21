@@ -1,9 +1,10 @@
 # Building and installing USD 3DGS Plugins
 
 The [latest stable release](https://github.com/animu-sphere/usd-3dgs-plugins/releases/latest)
-provides product archives containing the `gaussian-ply`, `gaussian-spz`, and
-`gaussian-sog` member bundles. See the [release records](../releases/README.md)
-for the verification results for each release.
+provides product archives containing the `gaussian-ply`, `gaussian-spz`,
+`gaussian-sog`, and (from v0.12.0) `gaussian-splat` member bundles. See the
+[release records](../releases/README.md) for the verification results for each
+release.
 Check [SUPPORTED_CONFIGURATIONS.md](../reference/SUPPORTED_CONFIGURATIONS.md)
 before reusing a binary package: OpenUSD plugin binaries must match the target
 platform, compiler ABI, OpenUSD build, and Python ABI.
@@ -37,10 +38,10 @@ ost plugin doctor plugins/gaussian-ply
 ost plugin test --workspace --up-to 5
 ```
 
-The workspace ships independent bundles for PLY, SPZ, and SOG. See the
+The workspace ships independent bundles for PLY, SPZ, SOG, and `.splat`. See the
 [capability matrix](../reference/CAPABILITY_MATRIX.md) for supported inputs.
 The bundles install and activate the same way — substitute
-`plugins/gaussian-spz` or `plugins/gaussian-sog` in the per-bundle commands
+`plugins/gaussian-spz`, `plugins/gaussian-sog`, or `plugins/gaussian-splat` in the per-bundle commands
 throughout this guide. Install only the ones you need; none depends on another.
 
 One caveat specific to `gaussian-sog`: because the stock unbundled layout is
@@ -131,6 +132,20 @@ Examples viewed with OpenUSD's `hdParticleField` delegate:
 [SOG](../assets/usdview_hdParticleField_SOG.png), and
 [SPZ](../assets/usdview_hdParticleField_SPZ.png).
 
+## `.splat` usage example
+
+A headerless `.splat` file opens through the `gaussian-splat` bundle:
+
+```powershell
+ost plugin run plugins\gaussian-splat -- usdcat --flatten --skipSourceFileComment --usdFormat usda --out scene-splat.usda "plugins\gaussian-splat\tests\fixtures\decode-known.splat"
+```
+
+The stage records `sourceFormat = "Gaussian Splatting SPLAT"` and SH degree 0,
+because the format stores only the base colour. `.splat` has no header, so
+the bundle claims a file by its extension and a size that is a multiple of
+32 bytes; see [SPLAT_FORMAT.md](../reference/SPLAT_FORMAT.md#4-routing) for
+the routing rule and the quantization loss to expect.
+
 ## Package and verify
 
 ```sh
@@ -140,7 +155,7 @@ ost plugin test --workspace --from-package --up-to 5
 
 The package-origin command extracts the generated artifacts to a clean staging
 directory before running discovery, `usdcat`, and Python stage-open checks for
-all three bundles. The package is written under:
+all four bundles. The package is written under:
 
 ```text
 plugins/<bundle>/dist/plugins/<bundle>/<version>/<target>/
@@ -154,7 +169,7 @@ Use the verification level for your environment in
 
 ### Verify the aggregate installation
 
-From the repository root after building all three bundles:
+From the repository root after building all four bundles:
 
 ```sh
 ost plugin package --workspace --product --json > build/product-package.json
@@ -163,7 +178,7 @@ ost plugin run plugins/gaussian-ply --no-inject -- python tests/package_consumer
 
 The test installs the aggregate archive with `ost plugin product install` in
 a temporary directory. Fresh Python and C++ consumers open the packaged
-Graphdeco PLY, compressed PLY, SPZ version 2 and 4, and bundled SOG fixtures. The Python
+Graphdeco PLY, compressed PLY, SPZ version 2 and 4, bundled SOG, and `.splat` fixtures. The Python
 consumer checks that the loaded libraries and diagnostic catalogs come from the
 active prefix and that each stage records its source format. `usdcat`
 flattens each stage and `usdchecker` validates the resulting USD.
@@ -172,7 +187,7 @@ OST installs to a new prefix. To switch prefixes, activate the new one in a
 fresh process. To uninstall an isolated installation, close the processes
 using it, remove its directory, and remove its search paths from the next
 session. The test checks prefix precedence with the first install still
-present, then checks that stale search paths discover none of the three plugins
+present, then checks that stale search paths discover none of the four plugins
 after both test prefixes are removed. The test is part of the release workflow
 and passed locally on Windows with OpenUSD 26.08 and OpenStrata 0.23.20.
 

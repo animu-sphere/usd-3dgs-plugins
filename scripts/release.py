@@ -260,10 +260,10 @@ def cmd_matrix(args: argparse.Namespace) -> int:
         # lane. It names no bundle and builds nothing a release ships.
         if cell.get("kind") == "workspace":
             continue
-        # `publish: never` marks a cell whose bundle must not ship — the
-        # gaussian-sog skeleton runs the PR lane but is excluded here, so a
-        # bundle joins the release by removing the marker, not by editing
-        # release logic.
+        # `publish: never` marks a cell whose bundle must not ship yet — a new
+        # bundle (gaussian-sog's skeleton, gaussian-splat before FMT-15) runs
+        # the PR lane but is excluded here, so a bundle joins the release by
+        # removing the marker, not by editing release logic.
         if cell.get("publish") == "never":
             continue
 
@@ -292,7 +292,7 @@ def cmd_matrix(args: argparse.Namespace) -> int:
             }
         )
 
-    # A release product is one aggregate archive per target. Group the three
+    # A release product is one aggregate archive per target. Group the
     # format cells so each target builds/tests every bundle in one workspace,
     # then `ost plugin package --workspace --product` can emit the product
     # archive containing the exact member archives and their sidecars.
