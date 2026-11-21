@@ -45,7 +45,8 @@ as work starts; keep task checklists in those issues or PRs.
 | FMT-14 | Implement `.splat` import end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including `.splat` entries in the cross-format equivalence suite. | [#77](https://github.com/animu-sphere/usd-3dgs-plugins/pull/77) |
 | FMT-15 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares the `.splat` fixtures, and the declared source and package consumer gates pass on the release targets. | [#78](https://github.com/animu-sphere/usd-3dgs-plugins/pull/78) |
 
-The remaining milestone work is the [v0.12.0 release gate](../releases/README.md#release-gate).
+v0.12.0 was published on 2026-11-21; see the
+[release record](../releases/v0.12.0.md).
 
 ## Release exit
 
