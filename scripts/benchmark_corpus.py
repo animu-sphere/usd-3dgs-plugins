@@ -16,9 +16,9 @@ the committed assets' hashes, and that the fast WebP encoder the scale tier
 uses emits the same bytes as the fixture generator's reference encoder.
 
 `generate` writes the `scale` tier: translated copies of the committed CC0
-`yashica-t4-top8192.ply` subset on a cubic grid, in all three formats, from
-one in-memory source, so the PLY, SPZ, and SOG rows of one step describe the
-same Gaussians. Generation is deterministic and checked against the hashes the
+`yashica-t4-top8192.ply` subset on a cubic grid, in every supported format
+(PLY, SPZ, SOG v2 and v3, and `.splat`), from one in-memory source, so the
+rows of one step describe the same Gaussians. Generation is deterministic and checked against the hashes the
 manifest records; a mismatch is a failure, not a refresh.
 
 `run` measures the selected assets through `scripts/benchmark_import.py`, one
@@ -30,7 +30,7 @@ resource targets. It captures each plugin's phase timings in the JSON report.
 `--work`, generated assets live in a temporary directory removed on exit.
 
 `run` needs the same environment as the integration tests: OpenUSD's Python
-modules and all three plugins on `PYTHONPATH` / `PXR_PLUGINPATH_NAME`.
+modules and all four plugins on `PYTHONPATH` / `PXR_PLUGINPATH_NAME`.
 Requires only the standard library.
 """
 
@@ -59,12 +59,14 @@ MANIFEST = REPO / "tests" / "benchmark" / "corpus.json"
 SCHEMA = "usd-3dgs-plugins.benchmark-corpus/v1"
 BENCHMARK_IMPORT = REPO / "scripts" / "benchmark_import.py"
 SOG_TOOLS = REPO / "plugins" / "gaussian-sog" / "tools" / "generate_fixtures.py"
+SPLAT_TOOLS = REPO / "plugins" / "gaussian-splat" / "tools" / "generate_fixtures.py"
 
 TIERS = ("fixture", "corpus", "scale", "real")
 IMPORT_DEBUG_SYMBOLS = {
     "ply": "GSPLY_IMPORT_STATS",
     "spz": "GSPZ_IMPORT_STATS",
     "sog": "GSSOG_IMPORT_STATS",
+    "splat": "GSSPLAT_IMPORT_STATS",
 }
 FORMATS = tuple(IMPORT_DEBUG_SYMBOLS)
 SOURCE_KINDS = ("committed", "generated", "local", "download")
@@ -87,14 +89,24 @@ def fail(message: str) -> None:
     raise SystemExit(f"error: {message}")
 
 
-def load_sog_tools():
-    """The SOG fixture generator, imported by path: the scale tier reuses its
-    VP8L writer, quaternion packing, and SH sign table instead of copying
-    them."""
-    spec = importlib.util.spec_from_file_location("_gaussian_sog_tools", SOG_TOOLS)
+def _load_tools(name: str, path: pathlib.Path):
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_sog_tools():
+    """The SOG fixture generator, imported by path: the scale tier reuses its
+    VP8L writer, v2 and v3 quaternion and opacity packing, and SH sign table
+    instead of copying them."""
+    return _load_tools("_gaussian_sog_tools", SOG_TOOLS)
+
+
+def load_splat_tools():
+    """The `.splat` fixture generator, imported by path: the scale tier reuses
+    its reference-writer record encoding."""
+    return _load_tools("_gaussian_splat_tools", SPLAT_TOOLS)
 
 
 def sha256_file(path: pathlib.Path) -> str:
@@ -410,9 +422,11 @@ def quantile_codebook(sog, values: list[float]):
     return codebook, lookup
 
 
-def write_sog(base: BaseTile, offsets, path: pathlib.Path, sog) -> dict:
-    """A bundled SOG v2 archive through the SOG fixture generator's encoding
-    rules (SOG_MAPPING.md). SOG stores PLY's native RDF frame, so the base
+def write_sog(base: BaseTile, offsets, path: pathlib.Path, sog,
+              version: int = 2) -> dict:
+    """A bundled SOG v2 or v3 archive through the SOG fixture generator's
+    encoding rules (SOG_MAPPING.md; v3 changes only the rotation, opacity,
+    and label encodings, §10). SOG stores PLY's native RDF frame, so the base
     rows need no conversion. Positions are re-quantized over the whole grid;
     every other plane is the base's texels, repeated, and the shN palette
     holds one centroid per base Gaussian."""
@@ -469,7 +483,9 @@ def write_sog(base: BaseTile, offsets, path: pathlib.Path, sog) -> dict:
     scale_channels = [bytes(scale_index(row[c]) for row in scale_rows) for c in range(3)]
     planes["scales.webp"] = plane(*(per_gaussian(ch, 0) for ch in scale_channels), opaque)
 
-    quats = [sog.encode_quaternion(row)
+    encode_rotation = (sog.encode_quaternion_v3 if version == 3
+                       else sog.encode_quaternion)
+    quats = [encode_rotation(row)
              for row in base.rows("rot_0", "rot_1", "rot_2", "rot_3")]
     planes["quats.webp"] = plane(*(per_gaussian(bytes(q[c] for q in quats), 0 if c < 3 else 255)
                                    for c in range(4)))
@@ -477,12 +493,16 @@ def write_sog(base: BaseTile, offsets, path: pathlib.Path, sog) -> dict:
     dc_rows = base.rows("f_dc_0", "f_dc_1", "f_dc_2")
     sh0_codebook, sh0_index = quantile_codebook(sog, [v for row in dc_rows for v in row])
     sh0_channels = [bytes(sh0_index(row[c]) for row in dc_rows) for c in range(3)]
-    sh0_alpha = bytes(_uint8(sigmoid(o) * 255.0) for o in base.column("opacity"))
+    if version == 3:
+        sh0_alpha = bytes(sog.encode_opacity_v3(sigmoid(o))
+                          for o in base.column("opacity"))
+    else:
+        sh0_alpha = bytes(_uint8(sigmoid(o) * 255.0) for o in base.column("opacity"))
     planes["sh0.webp"] = plane(*(per_gaussian(ch, 0) for ch in sh0_channels),
                                per_gaussian(sh0_alpha, 255))
 
     meta = {
-        "version": 2,
+        "version": version,
         "count": total,
         "means": {"mins": mins, "maxs": maxs, "files": ["means_l.webp", "means_u.webp"]},
         "scales": {"codebook": scale_codebook, "files": ["scales.webp"]},
@@ -507,6 +527,8 @@ def write_sog(base: BaseTile, offsets, path: pathlib.Path, sog) -> dict:
         planes["shN_centroids.webp"] = sog.webp_lossless_planar(
             centroid_width, centroid_height, *(bytes(ch) for ch in channels),
             bytes([255]) * texels)
+        # One label per base Gaussian: below 65,536, so the v3 third label
+        # byte is 0 and both versions share the label plane.
         labels = array.array("H", range(count))
         if sys.byteorder == "big":
             labels.byteswap()
@@ -529,6 +551,36 @@ def write_sog(base: BaseTile, offsets, path: pathlib.Path, sog) -> dict:
             info.create_system = 0
             archive.writestr(info, payload)
     return {"sha256": sha256_file(path), "bytes": path.stat().st_size}
+
+
+# --- scale tier: .splat ----------------------------------------------------------
+
+
+def write_splat(base: BaseTile, offsets, path: pathlib.Path, splat) -> dict:
+    """32-byte `.splat` records through the reference writer's arithmetic
+    (`plugins/gaussian-splat/tools/generate_fixtures.py`, SPLAT_MAPPING.md):
+    the PLY frame as stored, linear scales, the DC term only, and the
+    opacity after the sigmoid. Only positions change per tile, so each
+    record's last 20 bytes are the base's, repeated."""
+    xs, ys, zs = (base.column(axis) for axis in ("x", "y", "z"))
+    tails = [
+        splat.encode_record((0.0, 0.0, 0.0),
+                            tuple(math.exp(s) for s in scale), dc, sigmoid(o),
+                            rotation)[12:]
+        for scale, dc, o, rotation in zip(
+            base.rows("scale_0", "scale_1", "scale_2"),
+            base.rows("f_dc_0", "f_dc_1", "f_dc_2"),
+            base.column("opacity"),
+            base.rows("rot_0", "rot_1", "rot_2", "rot_3"))]
+    digest = hashlib.sha256()
+    with path.open("wb") as stream:
+        for dx, dy, dz in offsets:
+            tile = b"".join(
+                struct.pack("<3f", x + dx, y + dy, z + dz) + tail
+                for x, y, z, tail in zip(xs, ys, zs, tails))
+            digest.update(tile)
+            stream.write(tile)
+    return {"sha256": digest.hexdigest(), "bytes": path.stat().st_size}
 
 
 # --- generation ----------------------------------------------------------------
@@ -556,6 +608,7 @@ def generate(manifest: dict, assets: list[dict], work: pathlib.Path,
     if base.sha256 != scale["sha256"] or base.count != scale["gaussian_count"]:
         return ["scale_source: the base tile does not match the manifest"]
     sog = load_sog_tools()
+    splat = load_splat_tools()
     problems: list[str] = []
     for asset in generated:
         source = asset["source"]
@@ -569,8 +622,11 @@ def generate(manifest: dict, assets: list[dict], work: pathlib.Path,
             result = write_ply(base, offsets, path)
         elif asset["format"] == "spz":
             result = write_spz(base, offsets, path, sog.SH_FLIP_YZ)
+        elif asset["format"] == "splat":
+            result = write_splat(base, offsets, path, splat)
         else:
-            result = write_sog(base, offsets, path, sog)
+            result = write_sog(base, offsets, path, sog,
+                               version=source.get("sog_version", 2))
         elapsed = time.perf_counter() - start
         print(f"  {asset['id']}: wrote {path.name} "
               f"({result['bytes'] / 2**20:,.1f} MiB, {elapsed:.1f} s)")
@@ -805,7 +861,7 @@ def run(manifest: dict, assets: list[dict], args) -> int:
 def command_list(manifest: dict, args) -> int:
     for asset in select(manifest, args):
         count = asset.get("gaussian_count")
-        print(f"{asset['id']:<28} {asset['tier']:<8} {asset['format']:<4} "
+        print(f"{asset['id']:<28} {asset['tier']:<8} {asset['format']:<5} "
               f"{(f'{count:,}' if count else '?'):>10}  {asset['source']['kind']:<10}"
               f"{'  ci' if asset.get('ci') else ''}")
     return 0
@@ -834,7 +890,9 @@ def command_generate(manifest: dict, args) -> int:
     assets = select(manifest, args)
     problems = generate(manifest, assets, args.work, record=args.record)
     if args.record:
-        MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        # LF on every host, so a run on Windows records the same bytes.
+        MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8",
+                            newline="\n")
         print(f"recorded generated hashes in {MANIFEST.relative_to(REPO)}")
     for problem in problems:
         print(f"FAIL {problem}")

@@ -19,10 +19,15 @@ process, so every row comes from the seam
 
 | Tier | Measures | Assets | Origin | Hosted CI |
 | --- | --- | ---: | --- | --- |
-| `fixture` | process startup and the per-call floor | 3 — one per format | committed synthetic fixtures | ✅ |
-| `corpus` | real value distributions at 8,192 Gaussians | 6 — two captures × three formats | committed CC0 subsets | ✅ |
-| `scale` | how import scales to the 8,000,000 ceiling | 9 — three steps × three formats | generated from a committed CC0 subset | 1M step only |
-| `real` | real captures at their native size | 9 | retained exports, one local conversion, and references available on demand | never |
+| `fixture` | process startup and the per-call floor | 5 — one per encoding | committed synthetic fixtures | ✅ |
+| `corpus` | real value distributions at 8,192 Gaussians | 10 — two captures × five encodings | committed CC0 subsets | ✅ |
+| `scale` | how import scales to the 8,000,000 ceiling | 15 — three steps × five encodings | generated from a committed CC0 subset | 1M step only |
+| `real` | real captures at their native size | 11 | retained exports, three local conversions, and references available on demand | never |
+
+The five encodings are Graphdeco PLY, SPZ, SOG v2, SOG v3, and `.splat`.
+Compressed PLY and SPZ v3/v4 are not separate rows: they share their bundle's
+reader with an encoding already measured, and their value paths are covered
+by the [equivalence suite](EQUIVALENCE.md).
 
 Every committed and generated asset may run in CI. Real assets never do: some
 are not redistributable, and none is in the repository (design policy §17).
@@ -41,21 +46,27 @@ subset:
   copy. The grid spacing is the source's largest extent plus 25 %, rounded up
   to 1/16 unit, so every offset is exact in float32 and in SPZ's 12-bit fixed
   point, and copies never overlap.
-- **One source, three formats.** The PLY, SPZ, and SOG assets of a step are
-  encoded from the same in-memory rows, so they describe the same Gaussians
-  and their rows are comparable. PLY keeps the source's bytes and Brush
+- **One source, five encodings.** The PLY, SPZ, SOG v2, SOG v3, and `.splat`
+  assets of a step are encoded from the same in-memory rows, so they describe
+  the same Gaussians and their rows are comparable. PLY keeps the source's bytes and Brush
   property order with x/y/z translated. SPZ v2 goes through the reference
   serializer's quantization after the RDF→RUB conversion of
   [ADR 0001](../adr/0001-model-frame-is-rub.md). SOG v2 follows
   [SOG_MAPPING.md](SOG_MAPPING.md): positions are quantized over the whole
   grid, the scale, `sh0`, and SH codebooks are 256-entry quantile fits, and
-  the `shN` palette holds one centroid per source Gaussian.
+  the `shN` palette holds one centroid per source Gaussian. SOG v3 is the
+  same archive with the v3 rotation and opacity encodings
+  ([SOG_MAPPING.md §10](SOG_MAPPING.md#10-sog-version-3)). `.splat` uses the
+  reference writer's arithmetic from
+  [SPLAT_MAPPING.md](SPLAT_MAPPING.md): float32 positions and linear scales,
+  and the DC colour, opacity, and rotation as bytes; it has no rest SH, so
+  its rows are SH degree 0.
 
-| Step | Copies | Gaussians | PLY | SPZ | SOG | Hosted CI |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `scale-1m` | 128 | 1,048,576 | 236.0 MiB | 39.5 MiB | 24.5 MiB | ✅ |
-| `scale-4m` | 512 | 4,194,304 | 944.0 MiB | 157.7 MiB | 96.5 MiB | local |
-| `scale-ceiling` | 976 | 7,995,392 | 1,799.5 MiB | 300.6 MiB | 183.5 MiB | local |
+| Step | Copies | Gaussians | PLY | SPZ | SOG v2 | SOG v3 | `.splat` | Hosted CI |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `scale-1m` | 128 | 1,048,576 | 236.0 MiB | 39.5 MiB | 24.5 MiB | 24.5 MiB | 32.0 MiB | ✅ |
+| `scale-4m` | 512 | 4,194,304 | 944.0 MiB | 157.7 MiB | 96.5 MiB | 96.5 MiB | 128.0 MiB | local |
+| `scale-ceiling` | 976 | 7,995,392 | 1,799.5 MiB | 300.6 MiB | 183.5 MiB | 183.5 MiB | 244.0 MiB | local |
 
 `scale-ceiling` is the largest whole number of copies under the 8,000,000
 declared-count ceiling, so the top step is an input the importer must accept.
@@ -79,7 +90,9 @@ repeats with an 8,192-Gaussian period:
   uncompressed flat code, four bytes per texel, in a stored ZIP. The archive
   is larger than SplatTransform output, and WebP decoding takes the literal
   path rather than the entropy-coded one. The quantile codebooks and the
-  8,192-centroid palette are not k-means fits.
+  8,192-centroid palette are not k-means fits. SOG v3 shares all of this.
+- `.splat` is uncompressed and fixed-size, so its source bytes follow the
+  count exactly and its container cost is representative.
 
 Source size and the compressed-container decode paths are measured on the
 `corpus` and `real` tiers, never inferred from the `scale` tier.
@@ -88,8 +101,8 @@ Source size and the compressed-container decode paths are measured on the
 
 `corpus.json` records each generated asset's hash, and `generate` and `run`
 check it every time. A mismatch is a failure, not a refresh: it means
-generation stopped reproducing the recorded bytes. PLY and SOG are checked by
-file SHA-256. SPZ is checked by the SHA-256 of its decompressed payload,
+generation stopped reproducing the recorded bytes. PLY, SOG, and `.splat`
+are checked by file SHA-256. SPZ is checked by the SHA-256 of its decompressed payload,
 because deflate output varies between zlib builds; the SPZ corpus records the
 same check for the same reason. `generate --record` rewrites the hashes, and
 must be used only together with a change to the generator.
@@ -109,6 +122,8 @@ format's quantization step.
 | `real-yashica-t4-spz` | Scaniverse | 55,662 | CC0-1.0 | retained by the author; source of the committed subset |
 | `real-leica-sofort-spz` | Scaniverse | 171,397 | CC0-1.0 | retained by the author; source of the committed subset |
 | `real-leica-sofort-sog` | SplatTransform v3.1.6 | 145,912 | CC0-1.0 | local conversion of the full Brush export |
+| `real-leica-sofort-sog-v3` | SplatTransform v3.12.0 | 145,912 | CC0-1.0 | local SOG v3 conversion of the full Brush export |
+| `real-leica-sofort-splat` | SplatTransform v3.12.0 | 145,912 | CC0-1.0 | local `.splat` conversion of the full Brush export |
 | `real-cactus-142k-ply` | Jawset Postshot | 139,410 | unrecorded | personal test data; local only |
 | `real-cactus-2m-ply` | Jawset Postshot | 1,935,120 | unrecorded | personal test data; local only |
 | `real-garden-ply` | Graphdeco reference | 5,834,784 | Gaussian-Splatting License, non-commercial | download on demand |
@@ -132,6 +147,13 @@ splat-transform --no-tty camera_02_30000.ply leica-sofort-full.sog
 
 The manifest records the measured output's hash. This exercises SplatTransform
 on a full capture; the `scale` tier is still the only multi-million SOG input.
+The SOG v3 and `.splat` conversions of the same file were made with
+SplatTransform v3.12.0 (`5d5be2b`) on Node.js 22.12.0:
+
+```sh
+splat-transform --no-tty camera_02_30000.ply leica-sofort-full-v3.sog
+splat-transform --no-tty camera_02_30000.ply leica-sofort-full.splat
+```
 
 ## Targets
 
@@ -143,14 +165,14 @@ runner and filesystem variation.
 | Target | Bound | Rationale |
 | --- | --- | --- |
 | Gaussian count, SH degree | equal to the manifest | correctness at scale comes before speed |
-| Metadata-only read | ≤ 0.15 s at any size | §12.3 rules out decoding the Gaussian payload. The slowest measured row was the local ceiling SOG at 54.7 ms, including the ZIP read. |
+| Metadata-only read | ≤ 0.15 s at any size | §12.3 rules out decoding the Gaussian payload. The slowest measured row was the local ceiling SOG v2 at 64.3 ms in the v0.13.0 run, including the ZIP read. |
 | `CanRead()` | ≤ 0.10 s | Routing reads a small prefix (design policy §7.6). All hosted rows finished below 1 ms, and all local rows below 7 ms. The limit leaves room for file open latency. |
 | Peak resident memory | ≤ 0.60 GiB + 0.50 GiB per million Gaussians | The local 4M and ceiling rows measured about 0.41 GiB per million. The 1M PLY peak on macOS ranged from 0.783 to 0.985 GiB across two runs. The fixed allowance leaves room for that variation under a 1.124 GiB limit at 1M. |
 | `Stage.Open`, phase timings, flatten | recorded | compare elapsed times on the same machine and build configuration |
 
 ## Running
 
-`verify` needs only Python. `run` needs OpenUSD's Python modules and all three
+`verify` needs only Python. `run` needs OpenUSD's Python modules and all four
 plugins on `PYTHONPATH` and `PXR_PLUGINPATH_NAME`, exactly like the Python
 integration tests.
 
@@ -167,7 +189,7 @@ just before it is measured and is deleted afterwards. `--work` keeps them, and
 reuses any whose hash still matches. `local` and `download` assets are looked
 up by file name in `--assets` (or `USD3DGS_BENCHMARK_ASSETS`), and are
 reported as `unavailable` when absent; `--require-all` makes that a failure.
-Generating every step takes about two minutes and 3.7 GiB of disk.
+Generating every step takes a few minutes and about 5 GiB of disk.
 
 ### Phase timings
 
@@ -196,7 +218,8 @@ The composed root build registers two CTest cases, which the
   committed assets' hashes, and the planar WebP encoder the scale tier uses,
   checked byte-for-byte against the fixture generator's reference encoder.
 - `benchmark_corpus_ci` runs `run --ci`: the fixture and corpus tiers and the
-  1M scale step in all three formats, gated on the targets above. The JSON
+  1M scale step in every encoding, gated on the targets above. Before
+  v0.13.0 these were 12 rows (PLY, SPZ, SOG v2); PERF-01 made them 20. The JSON
   report is written to `tests/benchmark/benchmark-report.json` in the build
   tree.
 
@@ -272,6 +295,37 @@ Both peaked at about 0.13 GiB. The Leica Sofort SPZ comes from a separate
 capture and is not another encoding of those Gaussians. Garden and Bicycle
 both measured about 0.41 GiB per million Gaussians, in line with the scale
 PLY rows.
+
+### v0.13.0 additions
+
+PERF-01 added SOG v3 and `.splat` to every tier. On 2026-11-21 the same
+Windows machine, with the `ost build` workspace (CMake Release, MSVC 19.51,
+OpenUSD 26.08, Python 3.13.14) at `5a26a92` plus the PERF-01 changes,
+passed all 20 hosted-gate rows and the 12 rows below. The SOG v2 rows were
+measured again in the same session for comparison.
+
+| Asset | Gaussians | `CanRead()` | Metadata-only | `Stage.Open` | Flatten to USDC | Peak resident |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `scale-1m-sog` | 1,048,576 | 0.1 ms | 14.5 ms | 0.31 s | 0.15 s | 0.49 GiB |
+| `scale-1m-sog-v3` | 1,048,576 | 0.5 ms | 14.8 ms | 0.37 s | 0.14 s | 0.49 GiB |
+| `scale-1m-splat` | 1,048,576 | 0.1 ms | 12.6 ms | 0.10 s | 0.07 s | 0.16 GiB |
+| `scale-4m-sog` | 4,194,304 | 0.2 ms | 32.5 ms | 1.28 s | 0.60 s | 1.74 GiB |
+| `scale-4m-sog-v3` | 4,194,304 | 0.2 ms | 42.5 ms | 1.31 s | 0.56 s | 1.74 GiB |
+| `scale-4m-splat` | 4,194,304 | 0.1 ms | 12.9 ms | 0.29 s | 0.24 s | 0.41 GiB |
+| `scale-ceiling-sog` | 7,995,392 | 0.2 ms | 64.3 ms | 2.50 s | 1.14 s | 3.26 GiB |
+| `scale-ceiling-sog-v3` | 7,995,392 | 0.1 ms | 55.2 ms | 2.40 s | 1.06 s | 3.26 GiB |
+| `scale-ceiling-splat` | 7,995,392 | 0.1 ms | 11.9 ms | 0.57 s | 0.43 s | 0.72 GiB |
+| `real-leica-sofort-ply` | 145,912 | 0.2 ms | 6.7 ms | 0.11 s | 0.02 s | 0.13 GiB |
+| `real-leica-sofort-sog-v3` | 145,912 | 0.1 ms | 9.2 ms | 0.07 s | 0.03 s | 0.13 GiB |
+| `real-leica-sofort-splat` | 145,912 | 0.1 ms | 12.4 ms | 0.01 s | 0.02 s | 0.08 GiB |
+
+SOG v3 costs the same as SOG v2 at every step: the exponential map and the
+squared opacity replace two equally cheap per-Gaussian decodes, and the
+container work is unchanged. `.splat` is the cheapest encoding measured. It
+has no rest SH, so the stage holds 1 coefficient triple per Gaussian instead
+of 16, and peak memory is 0.09 GiB per million Gaussians at the ceiling
+against 0.41 for the degree-3 encodings. Its metadata-only read stays near
+12 ms at every size because it needs only the file size.
 
 ### v0.7.0 phase baseline
 

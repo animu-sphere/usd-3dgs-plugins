@@ -2,7 +2,7 @@
 #
 # The large-asset benchmark corpus (docs/reference/BENCHMARK_CORPUS.md). Like
 # tests/equivalence, this directory sits outside every bundle: one suite opens
-# all three formats, so it needs every plugin registered at once, which only
+# every format, so it needs every plugin registered at once, which only
 # the plain root composition provides.
 #
 # Two tests:
@@ -11,7 +11,7 @@
 #   the committed assets and the scale tier's WebP encoder against the SOG
 #   fixture generator's reference encoder.
 # * benchmark_corpus_ci generates the `ci: true` rows of the scale tier (the
-#   1,048,576-Gaussian step, in PLY, SPZ, and SOG) into a temporary directory,
+#   1,048,576-Gaussian step, in PLY, SPZ, SOG v2 and v3, and .splat) into a temporary directory,
 #   checks the bytes against the recorded hashes, measures every `ci: true`
 #   row through scripts/benchmark_import.py one process per asset, and gates
 #   each row on the manifest's expectations and resource targets. The report
@@ -31,7 +31,8 @@ add_test(
     COMMAND "${Python3_EXECUTABLE}" "${_tool}" verify)
 
 include("../../cmake/Usd3dgsPythonTests.cmake")
-usd3dgs_python_test_environment(_test_env gaussian-ply gaussian-spz gaussian-sog)
+usd3dgs_python_test_environment(_test_env gaussian-ply gaussian-spz gaussian-sog
+    gaussian-splat)
 
 add_test(
     NAME benchmark_corpus_ci
