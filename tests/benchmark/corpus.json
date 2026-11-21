@@ -4,10 +4,10 @@
   "targets": {
     "status": "measured",
     "metadata_only_seconds_max": 0.15,
-    "can_read_seconds_max": 0.10,
+    "can_read_seconds_max": 0.1,
     "peak_resident_gib": {
-      "base": 0.60,
-      "per_million_gaussians": 0.50
+      "base": 0.6,
+      "per_million_gaussians": 0.5
     }
   },
   "scale_source": {
@@ -58,6 +58,34 @@
         "kind": "committed",
         "path": "plugins/gaussian-sog/tests/fixtures/kit-multi-degree3.sog",
         "sha256": "a5a138ebbab6d0c40810124b60a291ec64d705b41c4eda7668f47a61763690f5"
+      }
+    },
+    {
+      "id": "fixture-sog-v3-kit-multi",
+      "tier": "fixture",
+      "format": "sog",
+      "gaussian_count": 3,
+      "sh_degree": 3,
+      "license": "Apache-2.0 (generated fixture)",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-sog/tests/fixtures/kit-multi-degree3-v3.sog",
+        "sha256": "5cf068c191e2deeb757a6b4a66de07f754206e46b0adc6ac4a481283db68a238"
+      }
+    },
+    {
+      "id": "fixture-splat-known",
+      "tier": "fixture",
+      "format": "splat",
+      "gaussian_count": 2,
+      "sh_degree": 0,
+      "license": "Apache-2.0 (generated fixture)",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-splat/tests/fixtures/decode-known.splat",
+        "sha256": "cd9d066558d4bf17bdc798952cac25fa8483cf9bdce52be119ad2789529e49d8"
       }
     },
     {
@@ -145,6 +173,62 @@
       }
     },
     {
+      "id": "corpus-yashica-t4-sog-v3",
+      "tier": "corpus",
+      "format": "sog",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-sog/tests/corpus/yashica-t4/yashica-t4-top8192-v3.sog",
+        "sha256": "5a08dbd262eeaa8792194ade32be07f29561ac00eff7b00f764f1ea952ae6d0e"
+      }
+    },
+    {
+      "id": "corpus-leica-sofort-sog-v3",
+      "tier": "corpus",
+      "format": "sog",
+      "gaussian_count": 8192,
+      "sh_degree": 3,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-sog/tests/corpus/leica-sofort/leica-sofort-top8192-v3.sog",
+        "sha256": "08608ca051dbd4f9dc8d27c5968b1d76bd89cf0fdd8df206894f102a8c536f52"
+      }
+    },
+    {
+      "id": "corpus-yashica-t4-splat",
+      "tier": "corpus",
+      "format": "splat",
+      "gaussian_count": 8192,
+      "sh_degree": 0,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-splat/tests/corpus/yashica-t4/yashica-t4-top8192.splat",
+        "sha256": "51a45143fa488af1847ad4816d37d7ff7a360aa7059374ef50b733a09ba4e316"
+      }
+    },
+    {
+      "id": "corpus-leica-sofort-splat",
+      "tier": "corpus",
+      "format": "splat",
+      "gaussian_count": 8192,
+      "sh_degree": 0,
+      "license": "CC0-1.0",
+      "ci": true,
+      "source": {
+        "kind": "committed",
+        "path": "plugins/gaussian-splat/tests/corpus/leica-sofort/leica-sofort-top8192.splat",
+        "sha256": "3138294cff4ff54aec1afa092d7676e75a9cf18d71d01c296398cc1bffe0a753"
+      }
+    },
+    {
       "id": "scale-1m-ply",
       "tier": "scale",
       "format": "ply",
@@ -192,6 +276,39 @@
       }
     },
     {
+      "id": "scale-1m-sog-v3",
+      "tier": "scale",
+      "format": "sog",
+      "gaussian_count": 1048576,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "ci": true,
+      "source": {
+        "kind": "generated",
+        "tiles": 128,
+        "file": "scale-1m-v3.sog",
+        "sog_version": 3,
+        "sha256": "344fa36f81fd80d176e915e68fb6fc836b1b21a20cfaad7d0ca6458aef8da05f",
+        "bytes": 25680307
+      }
+    },
+    {
+      "id": "scale-1m-splat",
+      "tier": "scale",
+      "format": "splat",
+      "gaussian_count": 1048576,
+      "sh_degree": 0,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "ci": true,
+      "source": {
+        "kind": "generated",
+        "tiles": 128,
+        "file": "scale-1m.splat",
+        "sha256": "9cf3901d55a6e684dff8aea4cc9ece1770034b97d040b22c986a1aa882f3187f",
+        "bytes": 33554432
+      }
+    },
+    {
       "id": "scale-4m-ply",
       "tier": "scale",
       "format": "ply",
@@ -236,6 +353,37 @@
       }
     },
     {
+      "id": "scale-4m-sog-v3",
+      "tier": "scale",
+      "format": "sog",
+      "gaussian_count": 4194304,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 512,
+        "file": "scale-4m-v3.sog",
+        "sog_version": 3,
+        "sha256": "b618402f97a389f44cc371916a027269ebb2970d8d986fe6eb5d7949e71a9532",
+        "bytes": 101177777
+      }
+    },
+    {
+      "id": "scale-4m-splat",
+      "tier": "scale",
+      "format": "splat",
+      "gaussian_count": 4194304,
+      "sh_degree": 0,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 512,
+        "file": "scale-4m.splat",
+        "sha256": "9f36cae630be0a8aaaa4ef93fa3f596baafc4b7bb7fc5d23cd4e6bf9b98218e7",
+        "bytes": 134217728
+      }
+    },
+    {
       "id": "scale-ceiling-ply",
       "tier": "scale",
       "format": "ply",
@@ -277,6 +425,37 @@
         "file": "scale-ceiling.sog",
         "sha256": "5578b7f17fc79b87d443ffd81afd9fec2675fc82820d87e00ec753d8f1582e0c",
         "bytes": 192456498
+      }
+    },
+    {
+      "id": "scale-ceiling-sog-v3",
+      "tier": "scale",
+      "format": "sog",
+      "gaussian_count": 7995392,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 976,
+        "file": "scale-ceiling-v3.sog",
+        "sog_version": 3,
+        "sha256": "b4de0be22e5f0dd6e97b4989bdc890dd30bc9c8372e3ac1ec52c80bf892d8b3d",
+        "bytes": 192456498
+      }
+    },
+    {
+      "id": "scale-ceiling-splat",
+      "tier": "scale",
+      "format": "splat",
+      "gaussian_count": 7995392,
+      "sh_degree": 0,
+      "license": "CC0-1.0 (derived from the scale source)",
+      "source": {
+        "kind": "generated",
+        "tiles": 976,
+        "file": "scale-ceiling.splat",
+        "sha256": "a62bc0168cc78afc8fdccd883964be101129c8ad13f7518430a5d6122db134ee",
+        "bytes": 255852544
       }
     },
     {
@@ -359,6 +538,42 @@
         "derived_from": "real-leica-sofort-ply",
         "command": "splat-transform --no-tty camera_02_30000.ply leica-sofort-full.sog",
         "availability": "full CC0 capture converted to SOG; local only"
+      }
+    },
+    {
+      "id": "real-leica-sofort-sog-v3",
+      "tier": "real",
+      "format": "sog",
+      "gaussian_count": 145912,
+      "sh_degree": 3,
+      "license": "CC0-1.0 (derived from the full Leica Sofort PLY export)",
+      "source": {
+        "kind": "local",
+        "file": "leica-sofort-full-v3.sog",
+        "sha256": "6ef61e412e726a576960c018d7668916b7a2770923da0333148cc0720bf097d4",
+        "bytes": 4416108,
+        "producer": "SplatTransform v3.12.0 (5d5be2b)",
+        "derived_from": "real-leica-sofort-ply",
+        "command": "splat-transform --no-tty camera_02_30000.ply leica-sofort-full-v3.sog",
+        "availability": "full CC0 capture converted to SOG v3; local only"
+      }
+    },
+    {
+      "id": "real-leica-sofort-splat",
+      "tier": "real",
+      "format": "splat",
+      "gaussian_count": 145912,
+      "sh_degree": 0,
+      "license": "CC0-1.0 (derived from the full Leica Sofort PLY export)",
+      "source": {
+        "kind": "local",
+        "file": "leica-sofort-full.splat",
+        "sha256": "5d51ce2673cb94db647e045354d15ef5b3eb677d6938f490e1d17dfafedbfab5",
+        "bytes": 4669184,
+        "producer": "SplatTransform v3.12.0 (5d5be2b)",
+        "derived_from": "real-leica-sofort-ply",
+        "command": "splat-transform --no-tty camera_02_30000.ply leica-sofort-full.splat",
+        "availability": "full CC0 capture converted to .splat; local only"
       }
     },
     {
