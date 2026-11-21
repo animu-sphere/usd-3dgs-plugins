@@ -22,6 +22,23 @@ its metadata are not byte-for-byte reproducible. The reproducible and
 nondeterministic archive entries are listed in the adjacent JSON provenance
 record.
 
+## SOG v3 conversion
+
+- Source subset: the same `leica-sofort-top8192.ply`.
+- Converter: `@playcanvas/splat-transform` v3.12.0,
+  commit `5d5be2b`, on Node.js v22.12.0,
+  command `splat-transform leica-sofort-top8192.ply leica-sofort-top8192-v3.sog`, with default options.
+- The writer reorders rows into Morton order; every source Gaussian is
+  retained.
+- Output: SOG v3 bundled layout, 8,192 Gaussians, SH degree 3,
+  412,872 bytes, SHA-256
+  `08608ca051dbd4f9dc8d27c5968b1d76bd89cf0fdd8df206894f102a8c536f52`.
+- No Gaussian stores opacity above 1, so `meta.json` has no `opacity` entry.
+  SplatTransform carries the source PLY header comments into `comments`.
+
+As in the v2 conversion, the SH palette and its metadata are not
+byte-for-byte reproducible; the adjacent JSON record lists which entries are.
+
 ## License
 
 CC0-1.0. To the extent possible under law, the repository author dedicates

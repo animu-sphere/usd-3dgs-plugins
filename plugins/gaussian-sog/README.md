@@ -1,6 +1,6 @@
 # gaussian-sog
 
-An OpenUSD `SdfFileFormat` plugin that imports **SOG v2** — PlayCanvas's "Splat
+An OpenUSD `SdfFileFormat` plugin that imports **SOG v2 and v3** — PlayCanvas's "Splat
 Object Graphics" 3D Gaussian splat format — as a
 `ParticleField3DGaussianSplat` stage.
 

@@ -22,6 +22,23 @@ its metadata are not byte-for-byte reproducible. The reproducible and
 nondeterministic archive entries are listed in the adjacent JSON provenance
 record.
 
+## SOG v3 conversion
+
+- Source subset: the same `yashica-t4-top8192.ply`.
+- Converter: `@playcanvas/splat-transform` v3.12.0,
+  commit `5d5be2b`, on Node.js v22.12.0,
+  command `splat-transform yashica-t4-top8192.ply yashica-t4-top8192-v3.sog`, with default options.
+- The writer reorders rows into Morton order; every source Gaussian is
+  retained.
+- Output: SOG v3 bundled layout, 8,192 Gaussians, SH degree 3,
+  404,989 bytes, SHA-256
+  `5a08dbd262eeaa8792194ade32be07f29561ac00eff7b00f764f1ea952ae6d0e`.
+- No Gaussian stores opacity above 1, so `meta.json` has no `opacity` entry.
+  SplatTransform carries the source PLY header comments into `comments`.
+
+As in the v2 conversion, the SH palette and its metadata are not
+byte-for-byte reproducible; the adjacent JSON record lists which entries are.
+
 ## License
 
 CC0-1.0. To the extent possible under law, the repository author dedicates

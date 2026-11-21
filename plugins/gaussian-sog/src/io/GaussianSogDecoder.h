@@ -23,7 +23,7 @@ struct GaussianSogMetadata {
     int shDegree = 0;
 };
 
-// Semantic decoding of a SOG v2 container into the format-independent
+// Semantic decoding of a SOG v2 or v3 container into the format-independent
 // GaussianCloudData: split-precision inverse-log positions, exponential scale
 // codebook lookup, smallest-three quaternion unpacking, raw-DC and opacity
 // decoding, and palette-resolved higher-order SH. SOG stores PLY-native

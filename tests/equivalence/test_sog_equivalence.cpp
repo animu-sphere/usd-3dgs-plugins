@@ -86,6 +86,34 @@ constexpr SogTolerance kSogOffGrid{
     8.0e-3f,
 };
 
+// SOG v3 (SOG_MAPPING.md §10) keeps every v2 bound except two:
+//
+//   opacity    `(a / 204)^2`: half a code step at byte b is
+//              (2b + 1) / (2 * 204^2), at most 4.92e-3 for opacity <= 1
+//              (b <= 204), so 5e-3.
+//   rotation   an exponential map rounded to 1/127 per axis; the reference
+//              measures a 1.20 degree worst case, about 0.0105 on a component,
+//              so 1.2e-2.
+constexpr SogTolerance kSogV3Exact{
+    "SOG v3 degree-3, exact codebooks",
+    8.4e-6f,
+    1.0e-6f,
+    5.0e-3f,
+    1.0e-6f,
+    1.0e-6f,
+    1.2e-2f,
+};
+
+constexpr SogTolerance kSogV3OffGrid{
+    "SOG v3 degree-1, off-grid positions",
+    4.2e-5f,
+    1.0e-6f,
+    5.0e-3f,
+    1.0e-6f,
+    1.0e-6f,
+    1.2e-2f,
+};
+
 bool Decode(const char* plyFixture, const char* sogFixture,
             gs::GaussianCloudData* ply, gs::GaussianCloudData* sog)
 {
@@ -225,6 +253,14 @@ int main()
     TestPair("degree-1 off-grid, SOG v2 (bundled)",
              "equiv-degree1-offgrid-binary-le.ply", "equiv-degree1-offgrid.sog",
              kSogOffGrid, 3, 1);
+
+    // The same two models as SOG v3.
+    TestPair("degree-3 exact, SOG v3 (bundled)",
+             "equiv-degree3-exact-binary-le.ply", "equiv-degree3-exact-v3.sog",
+             kSogV3Exact, 4, 3);
+    TestPair("degree-1 off-grid, SOG v3 (bundled)",
+             "equiv-degree1-offgrid-binary-le.ply",
+             "equiv-degree1-offgrid-v3.sog", kSogV3OffGrid, 3, 1);
 
     return Report("PLY/SOG equivalence");
 }

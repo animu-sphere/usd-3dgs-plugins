@@ -90,6 +90,14 @@ bounds ([SOG_MAPPING.md §3-§6](SOG_MAPPING.md)):
 | opacity | `uint8`, `b/255` | 1/510 ≈ 1.96e-3 |
 | rotation | smallest-three, three `uint8` scaled by `1/sqrt(2)` | 8e-3 |
 
+SOG v3 ([SOG_MAPPING.md §10](SOG_MAPPING.md#10-sog-version-3)) changes two
+rows; the others are the same storage and the same bound:
+
+| Attribute | SOG v3 storage | Tolerance |
+| --- | --- | --- |
+| opacity | `uint8`, `(b/204)²` | half a step at byte 204, `409 / (2 · 204²)` ≈ 4.92e-3, so 5e-3 |
+| rotation | exponential map, three `uint8` rounded to 1/127 | 1.2e-2, above the reference's measured 1.20° worst case (≈ 0.0105 on a component) |
+
 Two consequences are worth stating explicitly:
 
 - **Positions are bounded relatively, not absolutely.** The encoder quantizes
@@ -173,8 +181,9 @@ disagreement. So the fixtures come in two kinds:
 Rotation uses the envelope value in both profiles: `first-three` stores `w`
 implicitly, so no quaternion round-trips exactly — not even the identity.
 
-The SOG suite has the same two profiles (`kSogExact`, `kSogOffGrid`) and they
-differ only in the position bound, because SOG's codebooks make every other
+The SOG suite has the same two profiles (`kSogExact`, `kSogOffGrid`), and
+their v3 counterparts (`kSogV3Exact`, `kSogV3OffGrid`) pair the same two
+models encoded as SOG v3. Each pair differs only in the position bound, because SOG's codebooks make every other
 attribute exact in both. The two SOG profiles are therefore the same rule
 evaluated at two different log-domain spans: 1.096 for the on-grid cloud, 5.488
 for the off-grid one, whose largest position is 1000.5.

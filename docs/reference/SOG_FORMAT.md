@@ -31,14 +31,26 @@ resolved in favour of the implementation: the developer-documentation page
 describes a y-up/z-back frame, while the implementation stores PLY-native
 (Graphdeco) coordinates (§4, [SOG_MAPPING.md §5](SOG_MAPPING.md)).
 
-Target: **SOG v2** (the `meta.json` `version: 2` generation), both layouts:
+Target: **SOG v2 and v3** (the `meta.json` `version: 2` and `version: 3`
+generations), both layouts. v3 was added in v0.13.0 after the
+[SOG v3 spike](../reports/format-spike-sog-v3-2026-11-21.md); its decode is in
+[SOG_MAPPING.md §10](SOG_MAPPING.md#10-sog-version-3). The layouts:
 
 - **bundled** — one `.sog` file, a ZIP archive holding `meta.json` plus
   lossless-WebP property images;
 - **unbundled** — `meta.json` opened directly, with the property images as
   resolver-backed companion files.
 
-Streamed SOG (`lod-meta.json`, spatial chunks, LOD) is unsupported.
+Streamed SOG (`lod-meta.json`, spatial chunks, LOD) is unsupported. Its
+chunks are unbundled v2 or v3 datasets, so v3 support is a prerequisite for
+it, not a change of its boundary.
+
+The v3 facts were confirmed on 2026-11-21 against the specification page
+("describes version 3") and SplatTransform v3.12.0 (commit `5d5be2b`), which
+writes v3 by default and still writes v2 with `--sog-version 2`.
+SplatTransform 3.11.0 and 3.11.1 wrote an interim v3 layout with no `quats`
+property; it is refused with `GSSOG-E003`
+([SOG_MAPPING.md §10](SOG_MAPPING.md#10-sog-version-3)).
 
 ## 2. Decision — implement from the specification
 
@@ -106,11 +118,16 @@ The reader and decoder use the shared writer:
   quantization equations, before any real asset is attempted.
 - **Cross-format equivalence** — `tools/generate_equivalence_fixtures.py`
   generates one-source-model PLY/SPZ/SOG triples in `tests/equivalence/`.
-- **Real assets** — two provenance-recorded real SOG assets (the CC0
-  `yashica-t4` and `leica-sofort` corpus conversions, made with pinned
-  SplatTransform v3.1.6) are committed and validated automatically by the
-  semantic smoke test. Cross-format equivalence remains covered by synthetic
-  triples only.
+- **Real assets** — four provenance-recorded real SOG assets are committed
+  and validated automatically by the semantic smoke test: the CC0
+  `yashica-t4` and `leica-sofort` corpus subsets converted to v2 with pinned
+  SplatTransform v3.1.6 and to v3 with v3.12.0. Cross-format equivalence
+  remains covered by synthetic pairs only.
+- **SOG v3** — the fixture generator writes every v2 positive fixture's v3
+  counterpart, hand-checked exponential-map bytes, opacity bytes 102/204/255,
+  a palette entry past 65,535, and one fixture per v3 rejection and warning;
+  `version-4.sog` replaced `version-3.sog` as the unsupported-version
+  fixture.
 
 ## 6. Format decisions
 
@@ -142,13 +159,16 @@ they settle are in [SOG_MAPPING.md](SOG_MAPPING.md).
   - *unbundled* `meta.json` is routed by registering the `.json` extension and
     claiming **only** when a bounded prefix parses as a JSON object with
     `version == 2` and the required SOG property keys (`means`, `scales`,
-    `quats`, `sh0`) each carrying their `files` array. The strict shape keeps
+    `quats`, `sh0`) each carrying their `files` array, or with
+    `version == 3` and the same keys except `quats`. Leaving `quats` out of
+    the v3 gate routes the interim SplatTransform 3.11.0-3.11.1 layout to
+    `Read()`, which names it, instead of disowning it silently. The strict shape keeps
     the broad `.json` registration from claiming unrelated JSON; a defective
     SOG `meta.json` past that gate still reaches `Read()` for a specific
     diagnostic rather than a silent routing refusal. The broad `.json`
     registration is the deliberate, maintainer-ratified (2026-07-22)
     consequence of supporting the stock unbundled layout; the strict
-    `version == 2` + SOG-keys gate is what keeps it from claiming unrelated
+    version + SOG-keys gate is what keeps it from claiming unrelated
     JSON.
 
 - **libwebp pin — decided: v1.6.0** (§3), The exact commit and

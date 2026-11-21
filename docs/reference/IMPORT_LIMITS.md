@@ -16,6 +16,7 @@ single import into an unbounded allocation request.
 | SOG `meta.json` size | 4 MiB | Bundled and unbundled SOG |
 | SOG JSON nesting depth | 32 levels | SOG metadata |
 | SOG JSON value tokens | 100,000 | SOG metadata |
+| SOG v3 blind textures | 64 | SOG v3 `meta.json` `blind` entries; the planes are never decoded |
 | SOG bundled archive source size | 1 GiB | Bundled SOG |
 | SOG ZIP entries | 64 | Bundled SOG |
 | SOG ZIP expanded size | 2 GiB | Bundled SOG |
@@ -63,6 +64,7 @@ message naming the budget that fired.
 | SOG `meta.json` size | `zip-metadata-over-limit.sog` declares 4 MiB + 1 byte; unbundled `meta.json` of the same size, written at test time | `GSSOG-E016` (full and metadata-only reads) |
 | SOG JSON nesting depth / value tokens | in-memory documents one past each bound | `ParseJson` rejection (`GSSOG-E005` when reached through `meta.json`) |
 | SOG ZIP entries | `too-many-entries.sog` (65 entries) | `GSSOG-E016` |
+| SOG v3 blind textures | `v3-too-many-blind.sog` (65 `blind` entries) | `GSSOG-E016` |
 | SOG ZIP entry size | `oversized-entry.sog` (one entry declaring 600 MiB) | `GSSOG-E016` |
 | SOG ZIP expanded size | `oversized-expansion.sog` (five entries declaring 500 MiB each) | `GSSOG-E016` (full and metadata-only reads) |
 | SOG duplicate ZIP entry | `duplicate-entry.sog` | `GSSOG-E004` |

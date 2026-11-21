@@ -105,6 +105,13 @@ void TestRouting()
     CHECK(!reader.CanReadUnbundled(Fixture("not-sog.json")));
     CHECK(!reader.CanReadUnbundled(Fixture("kit-one-degree0.sog")));
     CHECK(!reader.CanReadUnbundled(Fixture("no-such-file.json")));
+
+    // SOG v3 is claimed too, including the interim 3.11.0-3.11.1 layout
+    // without `quats`, so that Read() can say why it is refused.
+    CHECK(reader.CanReadUnbundled(
+        Fixture("unbundled-kit-multi-degree3-v3/meta.json")));
+    CHECK(reader.CanReadUnbundled(
+        Fixture("unbundled-v3-interim-layout/meta.json")));
 }
 
 // --- the bundled layout ------------------------------------------------------
@@ -517,6 +524,27 @@ void TestMetadataOnly()
     CHECK(!gssog::SogReader().ReadMetadata(Fixture("empty-count.sog"),
                                            &rejected, &error));
     CHECK(HasCode(error, gssog::diag::kEmptyPointSet));
+
+    // SOG v3 metadata: the version, and the informational facts the decoder
+    // turns into warnings.
+    gssog::SogMetadata v3;
+    error.clear();
+    CHECK(gssog::SogReader().ReadMetadata(Fixture("kit-multi-degree3-v3.sog"),
+                                          &v3, &error));
+    CHECK(v3.version == 3);
+    CHECK(v3.gaussianCount == 3);
+    CHECK(v3.shBands == 3);
+    CHECK(v3.model.empty());
+    CHECK(v3.blindTextureCount == 0);
+    gssog::SogMetadata blind;
+    CHECK(gssog::SogReader().ReadMetadata(Fixture("v3-blind.sog"), &blind,
+                                          &error));
+    CHECK(blind.blindTextureCount == 1);
+    gssog::SogMetadata model;
+    CHECK(gssog::SogReader().ReadMetadata(Fixture("model-antialiased.sog"),
+                                          &model, &error));
+    CHECK(model.version == 2);
+    CHECK(model.model == "antialiased");
 }
 
 // --- one case per container diagnostic ---------------------------------------
@@ -528,7 +556,17 @@ void TestMalformedContainers()
     ExpectCode("bad-zip.sog", gssog::diag::kMalformedArchive);
     ExpectCode("malformed-meta.sog", gssog::diag::kMalformedMetadata);
     ExpectCode("version-1.sog", gssog::diag::kUnsupportedVersion);
-    ExpectCode("version-3.sog", gssog::diag::kUnsupportedVersion);
+    ExpectCode("version-4.sog", gssog::diag::kUnsupportedVersion);
+    // The interim SplatTransform 3.11.0-3.11.1 layout: version 3 without
+    // `quats`, in both layouts.
+    ExpectCode("v3-interim-layout.sog", gssog::diag::kUnsupportedVersion);
+    ExpectCode("unbundled-v3-interim-layout/meta.json",
+               gssog::diag::kUnsupportedVersion);
+    // A 4th SH band is valid SOG v3 but outside the model.
+    ExpectCode("v3-bands-4.sog", gssog::diag::kInvalidShBands);
+    ExpectCode("v3-bad-opacity-max.sog", gssog::diag::kMalformedMetadata);
+    ExpectCode("v3-bad-blind.sog", gssog::diag::kMalformedMetadata);
+    ExpectCode("v3-too-many-blind.sog", gssog::diag::kImportLimitExceeded);
     ExpectCode("empty-count.sog", gssog::diag::kEmptyPointSet);
     ExpectCode("too-many-gaussians/meta.json",
                gssog::diag::kImportLimitExceeded);

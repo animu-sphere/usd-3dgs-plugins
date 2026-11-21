@@ -79,6 +79,17 @@ inline constexpr const char* kWriteUnsupported = "GSSOG-E201";
 // one — but the file is degraded, so it is reported once with a count rather
 // than silently accepted or per-Gaussian spammed.
 inline constexpr const char* kShLabelsOutOfRange = "GSSOG-W001";
+// SOG v3 stores opacity up to 1.5625. The model contract keeps opacity in
+// [0, 1], and the specification requires a renderer without over-unity
+// support to clamp to 1, so those Gaussians are clamped and counted once.
+inline constexpr const char* kOpacityClamped = "GSSOG-W002";
+// SOG v3 blind textures carry application fields with no model slot; they
+// are not decoded, and the import says so once.
+inline constexpr const char* kBlindDataIgnored = "GSSOG-W003";
+// `meta.model` names a render model ("antialiased", "2dgs") the stage cannot
+// express; the Gaussians are authored as ordinary 3DGS splats, as the PLY
+// (GSPLY-W004) and SPZ (GSPZ-W002) importers do for their equivalents.
+inline constexpr const char* kRenderModelIgnored = "GSSOG-W004";
 
 // Every diagnostic message starts with its bracketed code so text consumers
 // and machine consumers see one stable spelling: "[GSSOG-E003] ...". The

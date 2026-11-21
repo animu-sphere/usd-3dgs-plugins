@@ -12,7 +12,7 @@
             "code": "GSSOG-E003",
             "severity": "error",
             "summary": "The SOG version is not supported by this release.",
-            "action": "This release reads SOG v2 (meta.json \"version\": 2). Re-export legacy v1 assets — which carry per-channel mins/maxs instead of codebooks — with a current PlayCanvas SplatTransform or SuperSplat."
+            "action": "This release reads SOG v2 and v3 (meta.json \"version\": 2 or 3). Re-export legacy v1 assets — which carry per-channel mins/maxs instead of codebooks — with a current PlayCanvas SplatTransform or SuperSplat. A version 3 meta.json without a \"quats\" property is the interim layout of SplatTransform 3.11.0-3.11.1; re-export it with SplatTransform 3.11.2 or later."
         },
         {
             "code": "GSSOG-E004",
@@ -24,7 +24,7 @@
             "code": "GSSOG-E005",
             "severity": "error",
             "summary": "meta.json is malformed.",
-            "action": "meta.json must parse as a JSON object carrying the SOG v2 property descriptions (means, scales, quats, sh0, optional shN) with their declared types. Re-export the asset."
+            "action": "meta.json must parse as a JSON object carrying the SOG property descriptions (means, scales, quats, sh0, optional shN, and for v3 the optional opacity, blind, extras, and comments) with their declared types. Re-export the asset."
         },
         {
             "code": "GSSOG-E006",
@@ -36,7 +36,7 @@
             "code": "GSSOG-E007",
             "severity": "error",
             "summary": "The declared spherical-harmonic band count is invalid.",
-            "action": "meta.shN.bands must be 1, 2, or 3 (SH degrees 1-3) when shN is present. Re-export the asset, or drop shN for a degree-0 cloud."
+            "action": "meta.shN.bands must be 1, 2, or 3 (SH degrees 1-3) when shN is present. SOG v3 also allows 4 bands, which this release rejects because it imports SH degrees 0-3 only. Re-export the asset with at most 3 bands, or drop shN for a degree-0 cloud."
         },
         {
             "code": "GSSOG-E008",
@@ -133,6 +133,24 @@
             "severity": "warning",
             "summary": "Spherical-harmonic palette labels point past the palette.",
             "action": "The affected Gaussians decode with zero higher-order coefficients, matching the reference decoder. The asset is degraded; re-export it if the higher-order lighting matters."
+        },
+        {
+            "code": "GSSOG-W002",
+            "severity": "warning",
+            "summary": "Opacity above 1 was clamped to 1.",
+            "action": "SOG v3 stores opacity up to 1.5625 for renderers with an over-unity profile. The authored stage keeps opacity in [0, 1], so the affected Gaussians are authored at opacity 1, as the specification requires of a renderer without that support."
+        },
+        {
+            "code": "GSSOG-W003",
+            "severity": "warning",
+            "summary": "SOG v3 blind data was not imported.",
+            "action": "Blind textures carry application-defined fields that have no slot on the authored stage. The Gaussians import normally; read the blind planes from the source file if an application needs them."
+        },
+        {
+            "code": "GSSOG-W004",
+            "severity": "warning",
+            "summary": "The render model in meta.json was ignored.",
+            "action": "meta.model names a render model (\"antialiased\" or \"2dgs\") that the authored stage cannot express. The Gaussians are authored as ordinary 3DGS splats; a renderer that needs the model must be configured for it separately."
         }
     ]
 }

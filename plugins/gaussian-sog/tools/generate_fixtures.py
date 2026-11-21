@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Generate the deterministic SOG v2 fixtures used by the reader, decoder, and
+"""Generate the deterministic SOG v2 and v3 fixtures used by the reader, decoder, and
 plugin tests.
 
 Everything here is written by hand, with no third-party dependency:
@@ -310,8 +310,42 @@ def encode_quaternion(rotation: tuple[float, float, float, float]) -> tuple[int,
     return (quantized[0], quantized[1], quantized[2], 252 + largest)
 
 
-def encode_sog(gaussians: list[Gaussian], bands: int = 0) -> tuple[dict, dict[str, bytes]]:
-    """The whole SOG v2 encode: `meta.json` plus every property plane."""
+def encode_quaternion_v3(rotation: tuple[float, float, float, float]) -> tuple[int, int, int, int]:
+    """SOG v3's 24-bit exponential map, the reference `encodeQuatExpMap`
+    (splat-transform v3.12.0, src/lib/utils/quat-expmap.ts): flip to w >= 0,
+    `p = (2/pi) * theta * v/|v|` with `theta = atan2(|v|, w)`, and store each
+    component as `round(p * 127 + 128)`. Alpha carries nothing and is 255."""
+    norm = math.sqrt(sum(component * component for component in rotation))
+    w, x, y, z = (component / norm for component in rotation)
+    if w < 0.0:
+        w, x, y, z = -w, -x, -y, -z
+    length = math.sqrt(x * x + y * y + z * z)
+    if length == 0.0:
+        p = (0.0, 0.0, 0.0)
+    else:
+        scale = (2.0 / math.pi) * math.atan2(length, w) / length
+        p = (x * scale, y * scale, z * scale)
+    stored = [min(255, max(0, round(component * 127.0 + 128.0))) for component in p]
+    return (stored[0], stored[1], stored[2], 255)
+
+
+def encode_opacity_v3(opacity: float) -> int:
+    """SOG v3 opacity byte, the reference `encodeOpacityByte`: the square
+    root scaled by 204, so byte 204 is exactly 1 and 255 is 1.5625."""
+    if not opacity > 0.0:
+        return 0
+    return min(255, round(math.sqrt(opacity) * 204.0))
+
+
+def encode_sog(gaussians: list[Gaussian], bands: int = 0,
+               version: int = 2,
+               palette_labels: list[int] | None = None) -> tuple[dict, dict[str, bytes]]:
+    """The whole SOG encode: `meta.json` plus every property plane. Version 3
+    changes only the rotation, opacity, and palette-label encodings
+    (SOG_MAPPING.md §10). `palette_labels` places Gaussian `i`'s centroid at
+    palette entry `palette_labels[i]` instead of `i`, and sizes the palette to
+    the largest label plus one, so a small cloud can exercise a large palette."""
+    assert version in (2, 3)
     native = [to_sog_frame(gaussian) for gaussian in gaussians]
     count = len(native)
     width, height = plane_shape(count)
@@ -343,12 +377,18 @@ def encode_sog(gaussians: list[Gaussian], bands: int = 0) -> tuple[dict, dict[st
     # sh0: a raw-DC codebook in RGB, opacity in alpha.
     sh0_codebook, sh0_index = build_codebook(
         [component for gaussian in native for component in gaussian.dc])
+    def opacity_byte(opacity: float) -> int:
+        if version == 3:
+            return encode_opacity_v3(opacity)
+        return min(255, max(0, round(opacity * 255.0)))
+
     sh0_texels = [
         tuple([sh0_index[f32(component)] for component in gaussian.dc]
-              + [min(255, max(0, round(gaussian.opacity * 255.0)))])
+              + [opacity_byte(gaussian.opacity)])
         for gaussian in native]
 
-    quat_texels = [encode_quaternion(gaussian.rotation) for gaussian in native]
+    encode_rotation = encode_quaternion_v3 if version == 3 else encode_quaternion
+    quat_texels = [encode_rotation(gaussian.rotation) for gaussian in native]
 
     blank = (0, 0, 0, 255)
     planes = {
@@ -359,7 +399,7 @@ def encode_sog(gaussians: list[Gaussian], bands: int = 0) -> tuple[dict, dict[st
         "sh0.webp": webp_lossless(width, height, sh0_texels + [blank] * padding),
     }
     meta = {
-        "version": 2,
+        "version": version,
         "count": count,
         "means": {
             "mins": mins,
@@ -378,22 +418,31 @@ def encode_sog(gaussians: list[Gaussian], bands: int = 0) -> tuple[dict, dict[st
             [component for gaussian in native
              for triple in gaussian.rest for component in triple])
         # One palette centroid per Gaussian, 64 centroids per row.
+        labels = list(palette_labels) if palette_labels else list(range(count))
+        assert len(labels) == count
+        palette_count = max(labels) + 1
         centroid_width = 64 * coefficients
-        centroid_height = (count + 63) // 64
-        centroids = [blank] * (centroid_width * centroid_height)
-        for index, gaussian in enumerate(native):
-            row = index // 64
-            column = (index % 64) * coefficients
+        centroid_height = (palette_count + 63) // 64
+        channels = [bytearray(centroid_width * centroid_height) for _ in range(4)]
+        channels[3][:] = b"\xff" * len(channels[3])
+        for label, gaussian in zip(labels, native):
+            row = label // 64
+            column = (label % 64) * coefficients
             for coefficient, triple in enumerate(gaussian.rest):
-                centroids[row * centroid_width + column + coefficient] = tuple(
-                    [sh_index[f32(component)] for component in triple] + [255])
-        label_texels = [(index & 0xFF, index >> 8, 0, 255) for index in range(count)]
-        planes["shN_centroids.webp"] = webp_lossless(
-            centroid_width, centroid_height, centroids)
+                texel = row * centroid_width + column + coefficient
+                for channel, component in enumerate(triple):
+                    channels[channel][texel] = sh_index[f32(component)]
+        # 16-bit labels in v2, 24-bit in v3 (the blue byte is the high byte).
+        label_texels = [
+            (label & 0xFF, (label >> 8) & 0xFF,
+             (label >> 16) & 0xFF if version == 3 else 0, 255)
+            for label in labels]
+        planes["shN_centroids.webp"] = webp_lossless_planar(
+            centroid_width, centroid_height, *(bytes(c) for c in channels))
         planes["shN_labels.webp"] = webp_lossless(
             width, height, label_texels + [blank] * padding)
         meta["shN"] = {
-            "count": count,
+            "count": palette_count,
             "bands": bands,
             "codebook": sh_codebook,
             "files": ["shN_centroids.webp", "shN_labels.webp"],
@@ -577,6 +626,64 @@ def main() -> None:
     labels_meta["shN"]["count"] = 1
     write_bundle("labels-out-of-range.sog", labels_meta, degree1_planes)
 
+    # `model` exists in v2 too; the stage cannot express it (GSSOG-W004).
+    model_meta = json.loads(json.dumps(one_meta))
+    model_meta["model"] = "antialiased"
+    write_bundle("model-antialiased.sog", model_meta, one_planes)
+
+    # --- positive SOG v3: the same clouds through the v3 rotation, opacity,
+    # and palette-label encodings (SOG_MAPPING.md §10).
+    one_v3_meta, one_v3_planes = encode_sog(KIT_ONE, version=3)
+    write_bundle("kit-one-degree0-v3.sog", one_v3_meta, one_v3_planes)
+    multi_v3_meta, multi_v3_planes = encode_sog(kit_multi(), bands=3, version=3)
+    write_bundle("kit-multi-degree3-v3.sog", multi_v3_meta, multi_v3_planes)
+    write_unbundled("unbundled-kit-multi-degree3-v3", multi_v3_meta,
+                    multi_v3_planes)
+    degree1_v3_meta, degree1_v3_planes = encode_sog(DEGREE1, bands=1, version=3)
+    write_bundle("decode-degree1-v3.sog", degree1_v3_meta, degree1_v3_planes)
+
+    # Hand-checked exponential-map bytes: the exact identity, the
+    # specification's example (0, 1/sqrt2, 1/sqrt2, 0) -> (218, 218, 128), and
+    # the all-255 corner whose |p| is sqrt(3), which readers "must accept".
+    rotations_meta, rotations_planes = encode_sog(DEGREE1 + KIT_ONE, version=3)
+    rotations_planes["quats.webp"] = webp_lossless(2, 2, [
+        (128, 128, 128, 255), (218, 218, 128, 255), (255, 255, 255, 255),
+        (0, 0, 0, 255)])
+    write_bundle("v3-rotations.sog", rotations_meta, rotations_planes)
+
+    # Opacity bytes 255 (1.5625, clamped with GSSOG-W002), 204 (exactly 1),
+    # and 102 (exactly 0.25), with the `opacity.max` the writer records.
+    bright = [Gaussian(g.position, g.scale, g.rotation, opacity, g.dc)
+              for g, opacity in zip(DEGREE1 + KIT_ONE, (1.5625, 1.0, 0.25))]
+    bright_meta, bright_planes = encode_sog(bright, version=3)
+    bright_meta["opacity"] = {"max": 1.5625}
+    write_bundle("v3-opacity-above-one.sog", bright_meta, bright_planes)
+
+    # One blind texture (never decoded, GSSOG-W003), with extras and
+    # comments, which are ignored silently.
+    blind_meta = json.loads(json.dumps(one_v3_meta))
+    blind_meta["blind"] = [{"files": ["blind_0.webp"],
+                            "fields": [{"name": "depth", "type": "unorm8",
+                                        "range": [0.5, 40.0]}]}]
+    blind_meta["extras"] = {"application": {"nested": [1, 2, 3]}}
+    blind_meta["comments"] = ["Exported by generate_fixtures.py"]
+    blind_planes = dict(one_v3_planes)
+    blind_planes["blind_0.webp"] = webp_lossless(1, 1, [(17, 0, 0, 255)])
+    write_bundle("v3-blind.sog", blind_meta, blind_planes)
+
+    model_v3_meta = json.loads(json.dumps(one_v3_meta))
+    model_v3_meta["model"] = "2dgs"
+    write_bundle("v3-model-2dgs.sog", model_v3_meta, one_v3_planes)
+
+    # A palette past the 65,536 entries 16-bit labels can address: the
+    # second Gaussian's centroid is entry 65536, reached only through the
+    # label's third byte.
+    large_meta, large_planes = encode_sog(DEGREE1, bands=1, version=3,
+                                          palette_labels=[0, 65536])
+    # DEFLATE keeps the mostly empty 192x1025 centroid plane small on disk.
+    write_bundle("v3-large-palette.sog", large_meta, large_planes,
+                 compress=True)
+
     # --- negative: one fixture per container diagnostic.
     (ROOT / "not-sog.sog").write_bytes(b"this is not a container at all\n")
     print("  not-sog.sog")
@@ -590,9 +697,37 @@ def main() -> None:
     legacy = json.loads(json.dumps(one_meta))
     del legacy["version"]
     write_bundle("version-1.sog", legacy, one_planes)
-    future = json.loads(json.dumps(one_meta))
-    future["version"] = 3
-    write_bundle("version-3.sog", future, one_planes)
+    future = json.loads(json.dumps(one_v3_meta))
+    future["version"] = 4
+    write_bundle("version-4.sog", future, one_v3_planes)
+
+    # The interim layout SplatTransform 3.11.0-3.11.1 wrote: version 3 with
+    # no `quats` property or plane. Refused as unsupported, in both layouts;
+    # the unbundled one must still be routed so the reason reaches the user.
+    interim = json.loads(json.dumps(one_v3_meta))
+    del interim["quats"]
+    interim_planes = dict(one_v3_planes)
+    del interim_planes["quats.webp"]
+    write_bundle("v3-interim-layout.sog", interim, interim_planes)
+    write_unbundled("unbundled-v3-interim-layout", interim, interim_planes)
+
+    # A 4th SH band is valid SOG v3 but outside the model (GSSOG-E007).
+    bands4 = json.loads(json.dumps(multi_v3_meta))
+    bands4["shN"]["bands"] = 4
+    write_bundle("v3-bands-4.sog", bands4, multi_v3_planes)
+
+    bad_opacity = json.loads(json.dumps(one_v3_meta))
+    bad_opacity["opacity"] = {"max": 2.0}
+    write_bundle("v3-bad-opacity-max.sog", bad_opacity, one_v3_planes)
+
+    bad_blind = json.loads(json.dumps(one_v3_meta))
+    bad_blind["blind"] = {"files": ["blind_0.webp"]}
+    write_bundle("v3-bad-blind.sog", bad_blind, one_v3_planes)
+
+    many_blind = json.loads(json.dumps(one_v3_meta))
+    many_blind["blind"] = [{"files": [f"blind_{index}.webp"], "fields": []}
+                           for index in range(65)]
+    write_bundle("v3-too-many-blind.sog", many_blind, one_v3_planes)
 
     empty = json.loads(json.dumps(one_meta))
     empty["count"] = 0

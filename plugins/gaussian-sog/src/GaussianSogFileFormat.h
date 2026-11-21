@@ -20,7 +20,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 TF_DECLARE_PUBLIC_TOKENS(GaussianSogFileFormatTokens,
                          GAUSSIANSOG_FILE_FORMAT_TOKENS);
 
-/// Reads SOG v2 — PlayCanvas "Splat Object Graphics" — into the shared Gaussian
+/// Reads SOG v2 and v3 — PlayCanvas "Splat Object Graphics" — into the shared Gaussian
 /// model and authors it through the one shared `GaussianLayerWriter`, so the
 /// stage a SOG import produces is structurally identical to a PLY or SPZ
 /// import. Container work lives in `SogReader`, semantic decoding in
