@@ -6,6 +6,7 @@ Release records are history and are not rewritten after publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
+| v0.13.0 | 2026-11-21 | [v0.13.0.md](v0.13.0.md) — SOG v3 and benchmark coverage |
 | v0.12.0 | 2026-11-21 | [v0.12.0.md](v0.12.0.md) — `.splat` format coverage |
 | v0.11.0 | 2026-11-18 | [v0.11.0.md](v0.11.0.md) — SPZ v4 format coverage |
 | v0.10.0 | 2026-11-17 | [v0.10.0.md](v0.10.0.md) — format coverage expansion: SuperSplat compressed PLY |
