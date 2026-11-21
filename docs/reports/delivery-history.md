@@ -285,3 +285,17 @@ log the roadmap no longer needs to carry.
   licence texts in every packaged notice, declared v4 fixtures in the package
   gates, and verified product packages on Windows, macOS, and Linux.
   [Release record](../releases/v0.11.0.md)
+
+## N. v0.12.0 — `.splat` format coverage
+
+- ✅ Spiked glTF `KHR_gaussian_splatting`, found no technical blocker, and
+  deferred it while `usd-gltf-plugins` owns `.gltf`/`.glb`.
+  [glTF spike](format-spike-gltf-gaussian-splatting-2026-11-19.md)
+- ✅ Spiked `.splat` and accepted a new `gaussian-splat` bundle, the
+  `(b − 128) / 128` rotation rule, and an extension-and-size routing rule.
+  [Format spike](format-spike-splat-2026-11-19.md) ·
+  [`.splat` format scope](../reference/SPLAT_FORMAT.md)
+- ✅ Imported `.splat` through the shared pipeline with `GSSPLAT-`
+  diagnostics and PLY equivalence pairs, declared its fixtures in the package
+  gates, and verified product packages on Windows, macOS, and Linux.
+  [Release record](../releases/v0.12.0.md)

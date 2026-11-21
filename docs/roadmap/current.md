@@ -1,38 +1,40 @@
-# Current: v0.12.0 — `.splat`
+# Current: v0.13.0 — SOG v3 and benchmark coverage
 
 ## Goal
 
-Read headerless `.splat` assets, decode them into `GaussianCloudData`, and
-author the stage through the shared layer writer.
+Read SOG version 3 through the existing `gaussian-sog` bundle and the shared
+decoder-to-USD pipeline, keeping SOG v2 support. Extend the benchmark corpus
+to every supported format, so the performance targets cover `.splat` and
+SOG v3 as well as PLY, SPZ, and SOG v2.
 
-## Why `.splat`
+## Why SOG v3
 
-`.splat` is the fallback the [release plan](release-plan.md#candidate-evaluation)
-named for v0.12.0. It needs no new dependency. It is a fixed-size record per
-Gaussian with no header, written by web viewers and converters, and it
-carries no spherical harmonics beyond the base colour.
+The PlayCanvas SOG specification now describes version 3, with `meta.json`
+declaring `version: 3`, and SplatTransform writes it. The `gaussian-sog`
+reader accepts only `version == 2` and keeps `version-3.sog` as a negative
+fixture, so files from the current reference converter fail to open. FMT-16
+confirms from primary sources what changed between v2 and v3 and which
+writers emit v3 by default before the release scope is fixed.
+
+## Why benchmark coverage
+
+v0.12.0 shipped `.splat` without benchmark rows
+([backlog entry, now scheduled](backlog.md#performance-and-loading)). The
+corpus, scale, and hosted-gate tiers cover PLY, SPZ, and SOG v2 only, so the
+[performance targets](../reference/BENCHMARK_CORPUS.md#targets) say nothing
+about `.splat`, and would say nothing about SOG v3 either.
 
 ## Decisions
 
-- v0.12.0 first targeted glTF `KHR_gaussian_splatting`. FMT-09 completed its
-  [spike](../reports/format-spike-gltf-gaussian-splatting-2026-11-19.md) and
-  found no technical blocker. The sibling `usd-gltf-plugins` already claims
-  `.gltf`/`.glb` as the primary file format and owns glTF scene translation,
-  so on 2026-11-19 the maintainer deferred glTF until the two repositories
-  settle ownership. Extracting the Gaussian core as a shared library is one
-  option. Both items are in the [backlog](backlog.md). The glTF workstreams
-  FMT-10 to FMT-12 are withdrawn and their IDs are not reused.
-- `.splat` is the v0.12.0 format (selected 2026-11-19). FMT-13 decides the
-  scope. If it finds a blocker, record the reason in the
-  [backlog](backlog.md#other-format-candidates) before choosing another
-  candidate.
-- A headerless format can only be routed by extension and size, so FMT-13
-  must show that the routing rule cannot claim files that belong to other
-  formats or bundles.
-- On 2026-11-19 the maintainer accepted the FMT-13 recommendations: a new
-  `gaussian-splat` bundle with the `GSSPLAT-` prefix, and the reference
-  rotation read rule `(b − 128) / 128`
-  ([SPLAT_FORMAT.md §6](../reference/SPLAT_FORMAT.md#6-decisions)).
+- SOG v3 and benchmark coverage are the v0.13.0 scope (selected 2026-11-21).
+  If FMT-16 finds a blocker, record the reason in the
+  [backlog](backlog.md#other-format-candidates); PERF-01 still ships.
+- Streamed SOG and LOD stay in the backlog. FMT-16 records whether v3
+  changes that boundary.
+- A second OpenUSD SDK point was considered and not scheduled: the
+  OpenStrata runtime matrix and the sibling `usd-vrm-plugins` pin only
+  OpenUSD 26.08, and the 26.05 runtimes have been withdrawn
+  ([backlog](backlog.md#package-verification)).
 
 ## Active work
 
@@ -41,15 +43,15 @@ as work starts; keep task checklists in those issues or PRs.
 
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
-| FMT-13 | Spike `.splat` | A report documents the record layout and its authoritative source or reference implementation; the variants in use; observed writers, their frame and value conventions, and their provenance; quantization loss (8-bit colour, opacity, and rotation; no SH); the `CanRead()` routing rule and how it coexists with other formats; redistributable fixtures; and which bundle hosts the reader. | [#76](https://github.com/animu-sphere/usd-3dgs-plugins/pull/76), [report](../reports/format-spike-splat-2026-11-19.md) |
-| FMT-14 | Implement `.splat` import end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including `.splat` entries in the cross-format equivalence suite. | [#77](https://github.com/animu-sphere/usd-3dgs-plugins/pull/77) |
-| FMT-15 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares the `.splat` fixtures, and the declared source and package consumer gates pass on the release targets. | [#78](https://github.com/animu-sphere/usd-3dgs-plugins/pull/78) |
-
-The remaining milestone work is the [v0.12.0 release gate](../releases/README.md#release-gate).
+| FMT-16 | Spike SOG v3 | A report documents the v2-to-v3 changes from the specification and the SplatTransform source; which writers and versions emit v3 and whether it is their default; bundled and unbundled layouts; frame and value conventions; any new dependency or codec; the new hostile-input surface; redistributable fixtures; and what replaces the `version-3.sog` negative fixture. | — |
+| FMT-17 | Implement SOG v3 import end to end | Reader, decoder, shared authoring, and tests pass the [format acceptance gate](release-plan.md#format-acceptance-gate), including SOG v3 entries in the cross-format equivalence suite. SOG v2 behaviour and diagnostics are unchanged. | — |
+| FMT-18 | Update references and validate packages | Capability claims cite implementation evidence. The bundle manifest declares the SOG v3 fixtures, and the declared source and package consumer gates pass on the release targets. | — |
+| PERF-01 | Benchmark every supported format | The fixture, corpus, and scale tiers and the hosted gate include `.splat` and SOG v3 rows generated from the same CC0 sources as the existing rows. [BENCHMARK_CORPUS.md](../reference/BENCHMARK_CORPUS.md) records the new baseline, and every row meets the targets or the targets are revised with a stated reason. | — |
 
 ## Release exit
 
-- `.splat` passes the
+- SOG v3 passes the
   [format acceptance gate](release-plan.md#format-acceptance-gate).
+- The benchmark targets hold for every supported format.
 - The [release procedure](../releases/) covers package verification, draft
   review, and the post-tag record.
