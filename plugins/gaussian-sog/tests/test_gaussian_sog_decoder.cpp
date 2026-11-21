@@ -91,13 +91,29 @@ gs::testing::CloudTolerances SogTolerances()
     return tolerances;
 }
 
+// SOG v3 changes two of those bounds (SOG_MAPPING.md §10):
+//
+// * rotations are an exponential map rounded to 1/127 per axis. The
+//   reference measures a 1.20 degree worst case over random rotations, about
+//   0.0105 on a quaternion component, so 1.2e-2 bounds it.
+// * opacity is `(a / 204)^2`; half a code step at byte b is
+//   (2b + 1) / (2 * 204^2), 5.1e-3 at the 255 end, so 5.2e-3 bounds it.
+gs::testing::CloudTolerances SogV3Tolerances()
+{
+    gs::testing::CloudTolerances tolerances = SogTolerances();
+    tolerances.rotation = 1.2e-2f;
+    tolerances.opacity = 5.2e-3f;
+    return tolerances;
+}
+
 // The round trip SOG_FORMAT.md §5 requires: the kit's canonical clouds,
 // encoded into SOG by tools/generate_fixtures.py and decoded back. An empty
 // CompareClouds pins Gaussian order, coefficient order, channel order, the
 // quaternion convention, the frame, the derived extent, and every value at
 // once.
-void TestKitRoundTrip(const char* fixture,
-                      const gs::GaussianCloudData& expected)
+void TestKitRoundTrip(
+    const char* fixture, const gs::GaussianCloudData& expected,
+    const gs::testing::CloudTolerances& tolerances = SogTolerances())
 {
     gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
@@ -111,7 +127,7 @@ void TestKitRoundTrip(const char* fixture,
     CHECK(warnings.empty());
     CheckContract(cloud);
     for (const std::string& mismatch :
-         gs::testing::CompareClouds(cloud, expected, SogTolerances())) {
+         gs::testing::CompareClouds(cloud, expected, tolerances)) {
         std::cerr << fixture << ": " << mismatch << "\n";
         ++failures;
     }
@@ -128,6 +144,17 @@ void TestKitRoundTrips()
                      gs::testing::MakeCanonicalMultiGaussianCloud());
     TestKitRoundTrip("unbundled-kit-multi-degree3/meta.json",
                      gs::testing::MakeCanonicalMultiGaussianCloud());
+
+    // The same clouds through the SOG v3 encodings.
+    TestKitRoundTrip("kit-one-degree0-v3.sog",
+                     gs::testing::MakeCanonicalOneGaussianCloud(),
+                     SogV3Tolerances());
+    TestKitRoundTrip("kit-multi-degree3-v3.sog",
+                     gs::testing::MakeCanonicalMultiGaussianCloud(),
+                     SogV3Tolerances());
+    TestKitRoundTrip("unbundled-kit-multi-degree3-v3/meta.json",
+                     gs::testing::MakeCanonicalMultiGaussianCloud(),
+                     SogV3Tolerances());
 }
 
 // The known source values encoded by tools/generate_fixtures.py
@@ -135,13 +162,14 @@ void TestKitRoundTrips()
 // columns, so the generator negated Y and Z on the way in and the decoder must
 // negate them back: these expectations are the *model* values, and a missing or
 // doubled conversion changes their signs.
-void TestDegree1FullPipeline()
+void TestDegree1FullPipeline(const char* fixture, float opacityTolerance,
+                             float rotationTolerance)
 {
     gs::GaussianCloudData cloud;
     std::vector<std::string> warnings;
     std::string error;
-    CHECK(gssog::GaussianSogDecoder().Decode(Fixture("decode-degree1.sog"),
-                                             &cloud, &warnings, &error));
+    CHECK(gssog::GaussianSogDecoder().Decode(Fixture(fixture), &cloud,
+                                             &warnings, &error));
     CHECK(error.empty());
     CHECK(warnings.empty());
     CheckContract(cloud);
@@ -166,8 +194,8 @@ void TestDegree1FullPipeline()
     CheckClose(cloud.scales[1].z, 1.0f, 1e-6f, "scale1.z");
 
     // Opacity: the sh0 alpha byte over 255, already post-sigmoid.
-    CheckClose(cloud.opacities[0], 0.8f, 2.5e-3f, "opacity0");
-    CheckClose(cloud.opacities[1], 0.6f, 2.5e-3f, "opacity1");
+    CheckClose(cloud.opacities[0], 0.8f, opacityTolerance, "opacity0");
+    CheckClose(cloud.opacities[1], 0.6f, opacityTolerance, "opacity1");
 
     // DC: raw band-0 coefficients straight from the sh0 codebook, no color
     // transform and no frame conversion (band 0 is isotropic).
@@ -179,14 +207,15 @@ void TestDegree1FullPipeline()
     CheckClose(cloud.dcCoefficients[1].z, 0.0f, 1e-6f, "dc1.b");
 
     // Rotations reach the model scalar-first, normalized, and flipped into RUB.
-    CheckClose(cloud.rotations[0].real, 1.0f, 1e-2f, "rot0.w");
-    CheckClose(cloud.rotations[0].i, 0.0f, 1e-2f, "rot0.x");
-    CheckClose(cloud.rotations[0].j, 0.0f, 1e-2f, "rot0.y");
-    CheckClose(cloud.rotations[0].k, 0.0f, 1e-2f, "rot0.z");
-    CheckClose(cloud.rotations[1].real, 0.70710678f, 1e-2f, "rot1.w");
-    CheckClose(cloud.rotations[1].i, 0.70710678f, 1e-2f, "rot1.x");
-    CheckClose(cloud.rotations[1].j, 0.0f, 1e-2f, "rot1.y");
-    CheckClose(cloud.rotations[1].k, 0.0f, 1e-2f, "rot1.z");
+    CheckClose(cloud.rotations[0].real, 1.0f, rotationTolerance, "rot0.w");
+    CheckClose(cloud.rotations[0].i, 0.0f, rotationTolerance, "rot0.x");
+    CheckClose(cloud.rotations[0].j, 0.0f, rotationTolerance, "rot0.y");
+    CheckClose(cloud.rotations[0].k, 0.0f, rotationTolerance, "rot0.z");
+    CheckClose(cloud.rotations[1].real, 0.70710678f, rotationTolerance,
+               "rot1.w");
+    CheckClose(cloud.rotations[1].i, 0.70710678f, rotationTolerance, "rot1.x");
+    CheckClose(cloud.rotations[1].j, 0.0f, rotationTolerance, "rot1.y");
+    CheckClose(cloud.rotations[1].k, 0.0f, rotationTolerance, "rot1.z");
 
     // Rest SH: Gaussian-major RGB triples, palette-resolved. Band 1's three
     // coefficients carry the flip signs (-1, -1, +1), which these values pin:
@@ -206,6 +235,121 @@ void TestDegree1FullPipeline()
         CheckClose(cloud.restCoefficients[i].z, expectedRest[i].z, 1e-6f,
                    (label + ".b").c_str());
     }
+}
+
+float Dot(const gs::Quaternion& a, const gs::Quaternion& b)
+{
+    return a.real * b.real + a.i * b.i + a.j * b.j + a.k * b.k;
+}
+
+// q and -q are one rotation, so compare through |<a, b>|.
+void CheckRotation(const gs::Quaternion& actual, const gs::Quaternion& expected,
+                   const char* what)
+{
+    CheckClose(std::fabs(Dot(actual, expected)), 1.0f, 1.0e-5f, what);
+}
+
+// Hand-checked SOG v3 exponential-map bytes (v3-rotations.sog), decoded with
+// the reference equations and then flipped into RUB (w, x, -y, -z):
+//
+// * (128, 128, 128) is the exact identity;
+// * (218, 218, 128) is the specification's encoding of (0, 1/sqrt2,
+//   1/sqrt2, 0): p = (90/127, 90/127, 0), |p| = 1.00221, so
+//   q = (cos 1.57425, 0.70710, 0.70710, 0) = (-0.00345, 0.70710, 0.70710, 0);
+// * (255, 255, 255) has |p| = sqrt(3), past the unit ball, which readers must
+//   accept: theta = 2.72070, q = (-0.91272, 0.23589, 0.23589, 0.23589).
+void TestV3Rotations()
+{
+    gs::GaussianCloudData cloud;
+    std::vector<std::string> warnings;
+    std::string error;
+    CHECK(gssog::GaussianSogDecoder().Decode(Fixture("v3-rotations.sog"),
+                                             &cloud, &warnings, &error));
+    CHECK(error.empty());
+    CHECK(warnings.empty());
+    CheckContract(cloud);
+    CHECK(cloud.rotations.size() == 3);
+    if (cloud.rotations.size() != 3) {
+        return;
+    }
+    CheckClose(cloud.rotations[0].real, 1.0f, 0.0f, "identity.w");
+    CheckClose(cloud.rotations[0].i, 0.0f, 0.0f, "identity.x");
+    CheckRotation(cloud.rotations[1], {-0.003454f, 0.707103f, -0.707103f, 0.0f},
+                  "spec example");
+    CheckRotation(cloud.rotations[2],
+                  {-0.912724f, 0.235892f, -0.235892f, -0.235892f}, "all-255");
+}
+
+// v3 opacity bytes 255, 204, and 102 are exactly 1.5625, 1, and 0.25. The
+// first is clamped to the model's [0, 1] and reported once (GSSOG-W002).
+void TestV3Opacity()
+{
+    gs::GaussianCloudData cloud;
+    std::vector<std::string> warnings;
+    std::string error;
+    CHECK(gssog::GaussianSogDecoder().Decode(
+        Fixture("v3-opacity-above-one.sog"), &cloud, &warnings, &error));
+    CHECK(error.empty());
+    CheckContract(cloud);
+    CHECK(cloud.opacities.size() == 3);
+    if (cloud.opacities.size() == 3) {
+        CheckClose(cloud.opacities[0], 1.0f, 0.0f, "clamped");
+        CheckClose(cloud.opacities[1], 1.0f, 0.0f, "byte 204");
+        CheckClose(cloud.opacities[2], 0.25f, 0.0f, "byte 102");
+    }
+    CHECK(warnings.size() == 1);
+    if (!warnings.empty()) {
+        CHECK(HasCode(warnings[0], gssog::diag::kOpacityClamped));
+        CHECK(warnings[0].find("1 of 3") != std::string::npos);
+    }
+}
+
+// The second Gaussian's centroid is palette entry 65536, reachable only
+// through the third label byte that v3 adds.
+void TestV3LargePalette()
+{
+    gs::GaussianCloudData cloud;
+    std::vector<std::string> warnings;
+    std::string error;
+    CHECK(gssog::GaussianSogDecoder().Decode(Fixture("v3-large-palette.sog"),
+                                             &cloud, &warnings, &error));
+    CHECK(error.empty());
+    CHECK(warnings.empty());
+    CheckContract(cloud);
+    CHECK(cloud.restCoefficients.size() == 6);
+    if (cloud.restCoefficients.size() == 6) {
+        CheckClose(cloud.restCoefficients[0].x, 0.1f, 1e-6f, "rest0.r");
+        CheckClose(cloud.restCoefficients[3].x, 0.6f, 1e-6f, "rest3.r");
+        CheckClose(cloud.restCoefficients[4].y, -0.7f, 1e-6f, "rest4.g");
+        CheckClose(cloud.restCoefficients[5].z, 0.25f, 1e-6f, "rest5.b");
+    }
+}
+
+void ExpectSingleWarning(const char* fixture, const char* code)
+{
+    gs::GaussianCloudData cloud;
+    std::vector<std::string> warnings;
+    std::string error;
+    CHECK(gssog::GaussianSogDecoder().Decode(Fixture(fixture), &cloud,
+                                             &warnings, &error));
+    CHECK(error.empty());
+    CheckContract(cloud);
+    CHECK(warnings.size() == 1);
+    if (!warnings.empty() && !HasCode(warnings[0], code)) {
+        std::cerr << fixture << ": expected " << code << ", got " << warnings[0]
+                  << "\n";
+        ++failures;
+    }
+}
+
+// Data the stage cannot express imports with one warning each: blind
+// textures (v3 only) and a render model (both versions).
+void TestIgnoredMetadataWarns()
+{
+    ExpectSingleWarning("v3-blind.sog", gssog::diag::kBlindDataIgnored);
+    ExpectSingleWarning("v3-model-2dgs.sog", gssog::diag::kRenderModelIgnored);
+    ExpectSingleWarning("model-antialiased.sog",
+                        gssog::diag::kRenderModelIgnored);
 }
 
 // meta.json alone yields the count and degree, with no plane decoded.
@@ -240,6 +384,11 @@ void TestImportStats()
                                              &cloud, nullptr, &error, &stats));
     CHECK(stats.sourceFormat == gssog::kSourceFormatToken);
     CHECK(stats.sourceVersion == "2");
+    gs::GaussianImportStats v3Stats;
+    CHECK(
+        gssog::GaussianSogDecoder().Decode(Fixture("kit-multi-degree3-v3.sog"),
+                                           &cloud, nullptr, &error, &v3Stats));
+    CHECK(v3Stats.sourceVersion == "3");
     CHECK(stats.coordinateConversion ==
           gs::GaussianCoordinateConversion::RdfToRub);
     CHECK(stats.gaussianCount == 3);
@@ -305,8 +454,12 @@ void TestSemanticRejections()
 
     // Container failures surface through the decoder unchanged.
     error.clear();
-    CHECK(!gssog::GaussianSogDecoder().Decode(Fixture("version-3.sog"), &cloud,
+    CHECK(!gssog::GaussianSogDecoder().Decode(Fixture("version-4.sog"), &cloud,
                                               nullptr, &error));
+    CHECK(HasCode(error, gssog::diag::kUnsupportedVersion));
+    error.clear();
+    CHECK(!gssog::GaussianSogDecoder().Decode(Fixture("v3-interim-layout.sog"),
+                                              &cloud, nullptr, &error));
     CHECK(HasCode(error, gssog::diag::kUnsupportedVersion));
 }
 
@@ -319,6 +472,8 @@ void TestRoutingDelegation()
     CHECK(decoder.CanReadUnbundled(
         Fixture("unbundled-kit-multi-degree3/meta.json")));
     CHECK(!decoder.CanReadUnbundled(Fixture("not-sog.json")));
+    CHECK(decoder.CanReadUnbundled(
+        Fixture("unbundled-kit-multi-degree3-v3/meta.json")));
 }
 
 } // namespace
@@ -326,7 +481,12 @@ void TestRoutingDelegation()
 int main()
 {
     TestKitRoundTrips();
-    TestDegree1FullPipeline();
+    TestDegree1FullPipeline("decode-degree1.sog", 2.5e-3f, 1e-2f);
+    TestDegree1FullPipeline("decode-degree1-v3.sog", 5.2e-3f, 1.2e-2f);
+    TestV3Rotations();
+    TestV3Opacity();
+    TestV3LargePalette();
+    TestIgnoredMetadataWarns();
     TestMetadata();
     TestImportStats();
     TestLabelsOutOfRangeWarn();

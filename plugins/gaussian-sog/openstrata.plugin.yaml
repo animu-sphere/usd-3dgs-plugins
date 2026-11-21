@@ -2,7 +2,7 @@
 # A plugin is a self-describing bundle, not a bare shared library: this file is
 # the contract `ost plugin inspect|build|doctor|test` resolve against.
 #
-# gaussian-sog reads PlayCanvas SOG v2 in both layouts: the bundled `.sog` ZIP
+# gaussian-sog reads PlayCanvas SOG v2 and v3 in both layouts: the bundled `.sog` ZIP
 # archive and the unbundled `meta.json` with its companion WebP property
 # planes. Both converge on one container reader, one semantic decoder, and the
 # shared Gaussian layer writer, so the authored stage matches PLY and SPZ by
@@ -57,7 +57,7 @@ tests:
     - tests/fixtures/bad-zip.sog
     - tests/fixtures/malformed-meta.sog
     - tests/fixtures/version-1.sog
-    - tests/fixtures/version-3.sog
+    - tests/fixtures/version-4.sog
     - tests/fixtures/empty-count.sog
     - tests/fixtures/count-exceeds-plane.sog
     - tests/fixtures/bad-bands.sog

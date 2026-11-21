@@ -228,7 +228,7 @@ bool GaussianSogFileFormat::CanRead(const std::string& file) const
 {
     // The two layouts have two different gates (SOG_FORMAT.md §6): a bundled
     // `.sog` is claimed by the ZIP signature, while the far broader `.json`
-    // registration claims only what actually parses as a SOG v2 `meta.json`.
+    // registration claims only what actually parses as a SOG v2 or v3 `meta.json`.
     // Neither gate validates enough to promise a successful read: a file past
     // it must reach Read() and fail with a specific GSSOG diagnostic rather
     // than be disowned to USD's "no plugin found" (§7.6).

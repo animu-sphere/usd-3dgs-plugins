@@ -359,8 +359,8 @@ def write_spz(name: str, gaussians: list[Gaussian], version: int) -> None:
 # SOG encoding — the inverse of SOG_MAPPING.md §3-§6
 # --------------------------------------------------------------------------
 
-def write_sog(name: str, gaussians: list[Gaussian]) -> float:
-    """One bundled SOG v2 archive, and the widest log-domain position span it
+def write_sog(name: str, gaussians: list[Gaussian], version: int = 2) -> float:
+    """One bundled SOG v2 or v3 archive, and the widest log-domain position span it
     declares. The span is what bounds the position disagreement the test
     allows: SOG quantizes `sign(v)*ln(|v|+1)` into 16 bits per axis, so half a
     code step is `span/131070` in the log domain and `(|p|+1)` times that in
@@ -370,7 +370,7 @@ def write_sog(name: str, gaussians: list[Gaussian]) -> float:
     cloud = [
         sog.Gaussian(g.position, g.scale, g.rotation, g.opacity, g.dc, g.rest)
         for g in gaussians]
-    meta, planes = sog.encode_sog(cloud, bands=bands)
+    meta, planes = sog.encode_sog(cloud, bands=bands, version=version)
     sog.write_bundle(name, meta, planes, root=ROOT)
     return max(
         maximum - minimum
@@ -416,6 +416,9 @@ def main() -> None:
     # RDF/RUB signs PLY does while SPZ flips none, so a triple that agrees pins
     # the sign table from both directions.
     exact_span = write_sog("equiv-degree3-exact.sog", exact)
+    # And as SOG v3, which changes only the rotation, opacity, and label
+    # encodings, so a v3-only disagreement is attributable to those.
+    write_sog("equiv-degree3-exact-v3.sog", exact, version=3)
 
     # Arbitrary off-grid values: proves the documented envelope, not just the
     # round-trip of hand-picked points.
@@ -424,6 +427,7 @@ def main() -> None:
     write_spz("equiv-degree1-offgrid-v2.spz", arbitrary, version=2)
     write_spz("equiv-degree1-offgrid-v4.spz", arbitrary, version=4)
     offgrid_span = write_sog("equiv-degree1-offgrid.sog", arbitrary)
+    write_sog("equiv-degree1-offgrid-v3.sog", arbitrary, version=3)
 
     # The same two models as compressed PLY, plus a multi-chunk model whose
     # chunks each carry their own bounds. The test derives every tolerance

@@ -1,6 +1,6 @@
 # Real-asset corpus
 
-Small subsets of real Gaussian Splatting assets converted to bundled SOG,
+Small subsets of real Gaussian Splatting assets converted to bundled SOG v2 and v3,
 committed for tolerance-based semantic tests. Synthetic fixtures in
 [`../fixtures`](../fixtures) remain the primary exact-assertion coverage;
 corpus assets supplement them and must not be the sole source of coverage

@@ -46,14 +46,25 @@ struct SogPlane {
 // The `meta.json` facts available without decoding a single property plane —
 // the metadata-only read (design policy §12.3, SOG_MAPPING.md §9).
 struct SogMetadata {
+    // 2 or 3. Version 3 changes the rotation, opacity, and palette-label
+    // encodings (SOG_MAPPING.md §10); every other plane decodes as in v2.
     int version = 0;
     std::size_t gaussianCount = 0;
-    // Higher-order SH bands, 0 when `shN` is absent. SOG v2 admits 1-3, which
-    // are exactly SH degrees 1-3, so this doubles as the degree.
+    // Higher-order SH bands, 0 when `shN` is absent. Bands 1-3 are exactly SH
+    // degrees 1-3, so this doubles as the degree. SOG v3 also admits a 4th
+    // band, which the reader rejects because the model stops at degree 3.
     int shBands = 0;
+    // `meta.model` when it is a string, otherwise empty. Neither value it
+    // names ("antialiased", "2dgs") is representable on the authored stage,
+    // so the decoder warns and imports ordinary 3DGS splats.
+    std::string model;
+    // How many v3 `blind` textures `meta.json` describes. They carry
+    // application data with no model slot, so they are validated but never
+    // decoded.
+    std::size_t blindTextureCount = 0;
 };
 
-// A validated SOG v2 container: the metadata, the dequantization inputs from
+// A validated SOG v2 or v3 container: the metadata, the dequantization inputs from
 // `meta.json`, and every decoded property plane. Everything here is still in
 // container terms — codebook indices, split bytes, packed quaternions — and
 // becomes model values only in GaussianSogDecoder.
@@ -114,7 +125,7 @@ using SogPrimaryLoader =
                        std::vector<unsigned char>* bytes, std::uint64_t* size,
                        std::string* error)>;
 
-// Owns every SOG v2 container concern: layout detection, ZIP central-directory
+// Owns every SOG v2 and v3 container concern: layout detection, ZIP central-directory
 // walking (vendored miniz), `meta.json` parsing and schema validation,
 // codebook and range checks, lossless-WebP plane decoding (vendored libwebp),
 // plane presence and dimension checks, and companion loading for the unbundled
@@ -141,8 +152,10 @@ class SogReader {
 
     // An unbundled `meta.json`. The `.json` extension is far too broad to
     // claim on its own, so this gate is strict: the file must parse as a JSON
-    // object with `version == 2` and the four required SOG property keys, each
-    // carrying a `files` array.
+    // object with `version` 2 or 3 and the required SOG property keys, each
+    // carrying a `files` array: `means`, `scales`, `quats`, and `sh0` for v2,
+    // and the same without `quats` for v3, so the interim SplatTransform
+    // 3.11.0-3.11.1 layout reaches Read() and is told why it is refused.
     bool CanReadUnbundled(const std::string& path) const noexcept;
 
     // Metadata-only path: parses `meta.json` (from the archive for a bundled

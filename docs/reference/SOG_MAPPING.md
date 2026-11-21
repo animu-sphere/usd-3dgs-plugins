@@ -1,7 +1,7 @@
 # Gaussian SOG mapping contract
 
 This is the normative mapping for the `gaussian-sog` bundle. It documents how a
-SOG v2 container (bundled `.sog` or unbundled `meta.json`) becomes the
+SOG v2 or v3 container (bundled `.sog` or unbundled `meta.json`) becomes the
 format-independent [`GaussianCloudData`](GAUSSIAN_MODEL_CONTRACT.md) and the
 exact OpenUSD values the plugin authors. Container-level concerns (layout
 detection, ZIP walking, `meta.json` schema and image-plane validation) are
@@ -22,8 +22,9 @@ recorded in §5 and resolved in favour of the implementation.
 
 ## 1. Container, version, and layouts
 
-The decoder reads **SOG v2** — the `meta.json` `version: 2` generation — in both
-layouts, converging on one semantic decode:
+The decoder reads **SOG v2 and v3** — the `meta.json` `version: 2` and
+`version: 3` generations — in both layouts, converging on one semantic decode.
+§2-§9 describe v2; §10 lists what v3 changes:
 
 - **bundled** — one `.sog` file, a ZIP archive holding `meta.json` plus the
   lossless-WebP property images;
@@ -211,12 +212,13 @@ out-of-range guard), reported once as a warning because the asset is degraded.
 
 ## 7. Supported SH degree
 
-`meta.shN.bands` is 1-3, i.e. SH degree 1-3; a file with no `shN` is degree 0.
-The whole SOG v2 range therefore lands inside the model's supported degrees 0-3,
-so — unlike SPZ, whose header admits a degree 4 the model does not carry — SOG
-needs no degree-ceiling rejection. A `bands` value outside `{1, 2, 3}` (with
-`shN` present) is a malformed `meta.json` and is rejected by the container
-reader, not silently degraded.
+`meta.shN.bands` is 1-3 in v2, i.e. SH degree 1-3; a file with no `shN` is
+degree 0. The whole SOG v2 range therefore lands inside the model's supported
+degrees 0-3. SOG v3 also admits a 4th band. Like SPZ's degree 4, it is valid
+in the file but outside the model, which rejects an unsupported degree rather
+than truncating it, so the reader refuses it with `GSSOG-E007`. Any other
+`bands` value outside the version's range (with `shN` present) is rejected by
+the container reader with the same code, not silently degraded.
 
 ## 8. OpenUSD mapping
 
@@ -249,7 +251,68 @@ construction; the Python smoke test asserts this contract directly.
 decoded (the reference's `statSogSource` reads exactly this much). The reported
 count is `meta.count`; the SH degree is `meta.shN.bands` (0 when absent).
 
-## 10. Diagnostics
+## 10. SOG version 3
+
+SOG v3 keeps the v2 container, positions, scales, DC colour, palette layout,
+coordinate frame, and bundling, and changes the encodings below. The
+reference is the
+[SOG specification](https://developer.playcanvas.com/user-manual/gaussian-splatting/formats/sog/)
+read on 2026-11-21 and SplatTransform v3.12.0 (commit `5d5be2b`):
+`src/lib/utils/quat-expmap.ts`, `src/lib/utils/opacity.ts`, and
+`src/lib/readers/read-sog.ts`
+([format spike](../reports/format-spike-sog-v3-2026-11-21.md)).
+
+| Attribute | v2 (§3-§6) | v3 |
+| --- | --- | --- |
+| rotation | smallest-three in RGB, tag in A | exponential map in RGB; A carries nothing |
+| opacity | `sh0.a / 255` | `(sh0.a / 204)²`, 0 to 1.5625, then clamped to 1 |
+| palette label | `r \| g << 8` | `r \| g << 8 \| b << 16` |
+| SH bands | 1-3 | 1-4; a 4th band is rejected (§7) |
+
+**Rotation.** The exponential map stores a rotation as a 3-vector `p` with
+`|p| ≤ 1`, scaled by 127 around 128 (`quat-expmap.ts`):
+
+```text
+p     = ((r - 128) / 127, (g - 128) / 127, (b - 128) / 127)
+theta = pi / 2 * |p|
+q     = (cos theta, p * sin(theta) / |p|)     # (w, x, y, z); identity when |p| = 0
+```
+
+Bytes `(128, 128, 128)` are the exact identity. Every byte triple decodes:
+rounding can push `|p|` past 1, and the corner `(255, 255, 255)` has
+`|p| = √3`, and the result is still a unit quaternion. The decoded quaternion
+passes through `NormalizeQuaternion` and the same `FlipYZAxes` as v2. The
+reference writer flips `w ≥ 0` and rounds, and measures a worst case of 1.20°
+over random rotations, against 2.03° for v2.
+
+**Opacity.** The byte stores the square root of the opacity times 204, so
+byte 204 is exactly 1 and bytes 205-255 hold values up to 1.5625 for
+renderers with an over-unity profile (`opacity.ts`). The model keeps opacity in
+`[0, 1]` ([model contract](GAUSSIAN_MODEL_CONTRACT.md)), and the specification
+requires a renderer without over-unity support to clamp to 1, so the decoder
+clamps and reports the count once with `GSSOG-W002`. `meta.opacity.max`, when
+present, must be a number in `(1, 1.5625]`; it is otherwise informational.
+
+**Palette.** Labels gain the blue byte as their high byte, so a v3 palette can
+exceed 65,536 entries. The centroid plane must still be `64 · shCoeffs` wide
+and hold every declared centroid, so the reader's 16,383-pixel dimension limit
+caps a palette at 1,048,512 entries. v2 labels keep ignoring the blue byte.
+
+**Data the stage cannot express.**
+
+| `meta.json` field | Versions | Import |
+| --- | --- | --- |
+| `blind` (blind textures) | v3 | validated as plane lists (at most 64), never decoded, `GSSOG-W003` |
+| `model` (`antialiased`, `2dgs`) | v2, v3 | ignored with `GSSOG-W004`; the Gaussians are authored as ordinary 3DGS splats |
+| `extras`, `comments` | v3 | ignored silently; bounded only by the parser's depth and token limits |
+
+**The interim layout.** SplatTransform 3.11.0 and 3.11.1 wrote `version: 3`
+with the rotation in the alpha channels of other planes and no `quats`
+property; 3.11.2 moved it to `quats.webp` without changing the version. A
+version 3 `meta.json` without `quats` is therefore refused with `GSSOG-E003`,
+asking for a re-export with SplatTransform 3.11.2 or later.
+
+## 11. Diagnostics
 
 Every error and warning starts with a stable bracketed identifier
 (`[GSSOG-E0xx] ...`) joined in `gaussianCore` so the spelling cannot drift

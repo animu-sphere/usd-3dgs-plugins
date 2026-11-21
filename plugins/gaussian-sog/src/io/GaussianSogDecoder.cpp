@@ -27,6 +27,13 @@ constexpr float kSqrt1_2 = 0.70710678118654752440f;
 constexpr unsigned char kQuaternionTagBase = 252;
 // Palette centroids are laid out 64 per row (SOG_MAPPING.md §6).
 constexpr std::size_t kShCentroidsPerRow = 64;
+// SOG v3 (SOG_MAPPING.md §10): rotation bytes are an exponential map scaled
+// by 127 around 128, and the opacity byte stores the square root of the
+// opacity scaled by 204, so byte 204 is exactly 1.
+constexpr float kExpMapByteCentre = 128.0f;
+constexpr float kExpMapByteScale = 127.0f;
+constexpr float kHalfPi = 1.57079632679489661923f;
+constexpr float kV3OpacityByteScale = 204.0f;
 
 // Slot order the three stored components fill, per dropped-component index:
 // the non-dropped scalar-first (w, x, y, z) slots in ascending order
@@ -53,6 +60,27 @@ float InverseLogTransform(float value) noexcept
 {
     const float magnitude = std::exp(std::fabs(value)) - 1.0f;
     return value < 0.0f ? -magnitude : magnitude;
+}
+
+// SOG v3 rotation: `p = (byte - 128) / 127` per axis, `theta = pi/2 * |p|`,
+// `q = (cos theta, p * sin(theta) / |p|)` in (w, x, y, z) order, the
+// reference `decodeQuatExpMap`. Every byte triple decodes: rounding can push
+// |p| slightly past 1 and the result is still a unit quaternion.
+Quaternion DecodeExpMapQuaternion(const unsigned char* stored) noexcept
+{
+    const float px =
+        (static_cast<float>(stored[0]) - kExpMapByteCentre) / kExpMapByteScale;
+    const float py =
+        (static_cast<float>(stored[1]) - kExpMapByteCentre) / kExpMapByteScale;
+    const float pz =
+        (static_cast<float>(stored[2]) - kExpMapByteCentre) / kExpMapByteScale;
+    const float radius = std::sqrt(px * px + py * py + pz * pz);
+    if (radius == 0.0f) {
+        return {1.0f, 0.0f, 0.0f, 0.0f};
+    }
+    const float angle = kHalfPi * radius;
+    const float factor = std::sin(angle) / radius;
+    return {std::cos(angle), px * factor, py * factor, pz * factor};
 }
 
 } // namespace
@@ -87,9 +115,9 @@ bool GaussianSogDecoder::DecodeMetadata(const std::string& path,
         return false;
     }
     metadata->gaussianCount = source.gaussianCount;
-    // SOG v2 bands 1-3 are exactly SH degrees 1-3, and no `shN` is degree 0,
-    // so the whole format range sits inside the model's supported degrees --
-    // unlike SPZ, no degree-ceiling rejection exists (SOG_MAPPING.md §7).
+    // Bands 1-3 are exactly SH degrees 1-3, and no `shN` is degree 0. The
+    // reader has already rejected a v3 4th band (GSSOG-E007), so the degree
+    // is always inside the model's supported range (SOG_MAPPING.md §7).
     metadata->shDegree = source.shBands;
     return true;
 }
@@ -120,6 +148,7 @@ bool GaussianSogDecoder::Decode(const std::string& path,
 
     const std::size_t count = document.metadata.gaussianCount;
     const int shDegree = document.metadata.shBands;
+    const bool v3 = document.metadata.version == 3;
     // The reader validated presence, dimensions, and `count <= width*height`
     // for every plane, so a disagreement here is pipeline misuse, not file
     // content.
@@ -229,21 +258,45 @@ bool GaussianSogDecoder::Decode(const std::string& path,
         result.scales[i] = {x, y, z};
     }
 
+    std::size_t opacitiesClamped = 0;
     for (std::size_t i = 0; i < count; ++i) {
         // DC and opacity share the sh0 plane: RGB are codebook indices for the
         // raw band-0 coefficients, alpha is the already post-sigmoid opacity
-        // (SOG_MAPPING.md §3).
+        // (SOG_MAPPING.md §3): linear in v2, `(a / 204)^2` in v3, which
+        // reaches 1.5625 and is clamped to the model's [0, 1] (§10).
         const unsigned char* stored = document.sh0.Gaussian(i);
         result.dcCoefficients[i] = {document.sh0Codebook[stored[0]],
                                     document.sh0Codebook[stored[1]],
                                     document.sh0Codebook[stored[2]]};
-        result.opacities[i] = static_cast<float>(stored[3]) / 255.0f;
+        if (v3) {
+            const float root =
+                static_cast<float>(stored[3]) / kV3OpacityByteScale;
+            float opacity = root * root;
+            if (opacity > 1.0f) {
+                opacity = 1.0f;
+                ++opacitiesClamped;
+            }
+            result.opacities[i] = opacity;
+        } else {
+            result.opacities[i] = static_cast<float>(stored[3]) / 255.0f;
+        }
     }
 
     for (std::size_t i = 0; i < count; ++i) {
-        // Rotations: smallest-three, the dropped component named by the alpha
-        // tag and reconstructed non-negative (SOG_MAPPING.md §5).
         const unsigned char* stored = document.quats.Gaussian(i);
+        if (v3) {
+            // v3 rotations: a 24-bit exponential map in RGB; the alpha byte
+            // carries nothing (SOG_MAPPING.md §10).
+            if (!NormalizeQuaternion(DecodeExpMapQuaternion(stored),
+                                     &result.rotations[i])) {
+                SetError(error, diag::kInternalError,
+                         "A dequantized quaternion was not normalizable.");
+                return false;
+            }
+            continue;
+        }
+        // v2 rotations: smallest-three, the dropped component named by the
+        // alpha tag and reconstructed non-negative (SOG_MAPPING.md §5).
         if (stored[3] < kQuaternionTagBase) {
             SetError(error, diag::kMalformedRotation,
                      "The quaternion of Gaussian " + std::to_string(i) +
@@ -280,7 +333,8 @@ bool GaussianSogDecoder::Decode(const std::string& path,
 
     std::size_t labelsOutOfRange = 0;
     if (shDegree != 0) {
-        // Higher-order SH: a 16-bit palette label per Gaussian, each centroid
+        // Higher-order SH: a palette label per Gaussian (16-bit in v2, 24-bit
+        // in v3, SOG_MAPPING.md §10), each centroid
         // occupying `coefficients` consecutive texels whose R/G/B are the
         // codebook indices of that coefficient's red/green/blue channel
         // (SOG_MAPPING.md §6).
@@ -301,9 +355,11 @@ bool GaussianSogDecoder::Decode(const std::string& path,
 
         for (std::size_t i = 0; i < count; ++i) {
             const unsigned char* stored = document.shLabels.Gaussian(i);
+            // v2 writers leave the blue byte 0 and v2 readers ignore it.
             const std::size_t label =
                 static_cast<std::size_t>(stored[0]) |
-                (static_cast<std::size_t>(stored[1]) << 8);
+                (static_cast<std::size_t>(stored[1]) << 8) |
+                (v3 ? static_cast<std::size_t>(stored[2]) << 16 : 0);
             if (label >= document.shPaletteCount) {
                 // The reference decoder's out-of-range guard: no centroid, so
                 // no higher-order contribution. Reported once, aggregated.
@@ -335,6 +391,33 @@ bool GaussianSogDecoder::Decode(const std::string& path,
     if (!ValidateGaussianCloud(result, &validationError)) {
         SetError(error, diag::kCloudValidationFailed, validationError);
         return false;
+    }
+
+    if (warnings) {
+        const std::string& model = document.metadata.model;
+        if (!model.empty() && model != "default") {
+            warnings->push_back(diag::Format(
+                diag::kRenderModelIgnored,
+                "meta.json names the render model \"" + model +
+                    "\", which the authored stage cannot express; the "
+                    "Gaussians are authored as ordinary 3DGS splats."));
+        }
+        if (document.metadata.blindTextureCount != 0) {
+            warnings->push_back(diag::Format(
+                diag::kBlindDataIgnored,
+                std::to_string(document.metadata.blindTextureCount) +
+                    " SOG v3 blind texture(s) carry application data that "
+                    "has no slot on the authored stage; they were not "
+                    "imported."));
+        }
+        if (opacitiesClamped != 0) {
+            warnings->push_back(diag::Format(
+                diag::kOpacityClamped,
+                std::to_string(opacitiesClamped) + " of " +
+                    std::to_string(count) +
+                    " Gaussian opacities above 1 were clamped to 1; SOG v3 "
+                    "stores opacity up to 1.5625 for over-unity renderers."));
+        }
     }
 
     if (warnings && labelsOutOfRange != 0) {

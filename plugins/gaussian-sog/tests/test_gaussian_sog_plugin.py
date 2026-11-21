@@ -29,10 +29,16 @@ NEGATIVE_FIXTURES = {
     "no-meta.sog": "GSSOG-E002",
     "bad-zip.sog": "GSSOG-E004",
     "malformed-meta.sog": "GSSOG-E005",
-    # Legacy v1 (no version field) and a future v3 are both unsupported
-    # versions, not corruption.
+    # Legacy v1 (no version field) and a future v4 are both unsupported
+    # versions, not corruption, and so is the interim SplatTransform
+    # 3.11.0-3.11.1 v3 layout without `quats`.
     "version-1.sog": "GSSOG-E003",
-    "version-3.sog": "GSSOG-E003",
+    "version-4.sog": "GSSOG-E003",
+    "v3-interim-layout.sog": "GSSOG-E003",
+    "v3-bands-4.sog": "GSSOG-E007",
+    "v3-bad-opacity-max.sog": "GSSOG-E005",
+    "v3-bad-blind.sog": "GSSOG-E005",
+    "v3-too-many-blind.sog": "GSSOG-E016",
     "count-exceeds-plane.sog": "GSSOG-E006",
     "bad-bands.sog": "GSSOG-E007",
     "missing-plane.sog": "GSSOG-E008",
@@ -212,6 +218,10 @@ def check_routing():
 
     assert json_format.CanRead(
         str(FIXTURES / "unbundled-kit-multi-degree3" / "meta.json"))
+    assert json_format.CanRead(
+        str(FIXTURES / "unbundled-kit-multi-degree3-v3" / "meta.json"))
+    assert json_format.CanRead(
+        str(FIXTURES / "unbundled-v3-interim-layout" / "meta.json"))
     assert not json_format.CanRead(str(FIXTURES / "not-sog.json"))
 
 
@@ -223,6 +233,19 @@ def check_warning_fixture():
     splat = stage.GetPrimAtPath("/Asset/Splat")
     assert splat.GetAttribute("radiance:sphericalHarmonicsDegree").Get() == 1
     mark.Clear()
+
+    # The v3 warnings (GSSOG-W002-W004) and the v2 render-model warning
+    # import too; clamped opacity stays inside [0, 1] on the stage.
+    for name in ("v3-opacity-above-one.sog", "v3-blind.sog",
+                 "v3-model-2dgs.sog", "model-antialiased.sog"):
+        mark = Tf.Error.Mark()
+        stage = Usd.Stage.Open(str(FIXTURES / name))
+        assert stage, f"{name} must still import"
+        mark.Clear()
+    stage = Usd.Stage.Open(str(FIXTURES / "v3-opacity-above-one.sog"))
+    opacities = stage.GetPrimAtPath("/Asset/Splat").GetAttribute(
+        "opacities").Get()
+    assert [round(o, 6) for o in opacities] == [1.0, 1.0, 0.25], opacities
 
 
 def check_write_is_unsupported():
@@ -343,6 +366,11 @@ def main():
     check_stage_contract("kit-multi-degree3-deflated.sog", 3, 3)
     check_stage_contract("decode-degree1.sog", 2, 1)
     check_stage_contract("unbundled-kit-multi-degree3/meta.json", 3, 3)
+    check_stage_contract("kit-one-degree0-v3.sog", 1, 0)
+    check_stage_contract("kit-multi-degree3-v3.sog", 3, 3)
+    check_stage_contract("decode-degree1-v3.sog", 2, 1)
+    check_stage_contract("v3-large-palette.sog", 2, 1)
+    check_stage_contract("unbundled-kit-multi-degree3-v3/meta.json", 3, 3)
     check_layouts_agree()
     check_known_values()
     check_metadata_only()

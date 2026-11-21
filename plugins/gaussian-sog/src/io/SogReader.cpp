@@ -30,8 +30,20 @@ namespace {
 constexpr unsigned char kZipSignature[4] = {'P', 'K', 0x03, 0x04};
 constexpr const char* kMetaEntryName = "meta.json";
 
-constexpr int kSupportedVersion = 2;
-// Every SOG v2 codebook is 256 entries, quoted from write-sog.ts
+// The `meta.json` versions this release reads (SOG_FORMAT.md §1).
+constexpr int kMinimumVersion = 2;
+constexpr int kMaximumVersion = 3;
+// SOG v3 admits a 4th SH band; the shared model stops at degree 3
+// (GAUSSIAN_MODEL_CONTRACT.md, supported SH degrees).
+constexpr int kMaxModelShBands = 3;
+constexpr int kMaxV3ShBands = 4;
+// The largest stored v3 opacity: byte 255 decodes to (255 / 204)^2.
+constexpr double kV3OpacityMaximum = 1.5625;
+// The specification asks writers to keep at most 8 blind textures; the reader
+// bound only keeps a hostile `blind` array from growing without limit, and is
+// the bundled layout's ZIP entry budget.
+constexpr std::size_t kMaxBlindTextures = 64;
+// Every SOG codebook is 256 entries, quoted from write-sog.ts
 // (SOG_MAPPING.md §2).
 constexpr std::size_t kCodebookSize = 256;
 // Palette centroids are laid out 64 per row (SOG_MAPPING.md §6).
@@ -47,7 +59,7 @@ constexpr std::size_t kFormatMaxGaussianCount = 0x7fffffff;
 constexpr std::size_t kMaxMetadataBytes = 4 * 1024 * 1024;
 // Routing reads at most this much (SOG_FORMAT.md §6, the bounded prefix): a
 // `.json` larger than this is declined rather than parsed during format
-// resolution, because no SOG v2 `meta.json` approaches it.
+// resolution, because no SOG `meta.json` approaches it.
 constexpr std::size_t kCanReadPrefixLimit = 1024 * 1024;
 constexpr std::size_t kMaxPlaneDimension = 16383;
 constexpr std::uint64_t kMaxZipArchiveBytes =
@@ -161,7 +173,7 @@ bool RejectOversizedMetadata(std::uint64_t size, std::string* error)
                           "meta.json is " + std::to_string(size) +
                               " bytes, above the " +
                               std::to_string(kMaxMetadataBytes) +
-                              "-byte bound for a SOG v2 document.");
+                              "-byte bound for a SOG document.");
 }
 
 std::string DirectoryOf(const std::string& path)
@@ -404,7 +416,7 @@ bool RequireFiles(const JsonValue& property, const char* propertyName,
             diag::kMalformedMetadata,
             std::string("meta.json \"") + propertyName + "\".files lists " +
                 std::to_string(files->items.size()) +
-                " file(s); SOG v2 declares " + std::to_string(expected) + ".");
+                " file(s); SOG declares " + std::to_string(expected) + ".");
     }
     names->clear();
     for (const JsonValue& item : files->items) {
@@ -444,6 +456,66 @@ bool ValidatePlaneNames(const MetaDocument& meta, std::string* error)
     return true;
 }
 
+// The SOG v3 metadata that has no v2 counterpart (SOG_MAPPING.md §10).
+// `extras` and `comments` are application data and are not inspected beyond
+// the parser's own bounds.
+bool ParseV3Additions(const JsonValue& root, MetaDocument* meta,
+                      std::string* error)
+{
+    const Failure fail{error};
+
+    // `opacity.max` is informational, since the sh0 alpha bytes already carry
+    // every value, but a present value must be the documented shape.
+    if (const JsonValue* opacity = root.Find("opacity"); opacity) {
+        if (!opacity->IsObject()) {
+            return fail(diag::kMalformedMetadata,
+                        "meta.json \"opacity\" is present but is not an "
+                        "object.");
+        }
+        const JsonValue* maximum = opacity->Find("max");
+        if (!maximum || !maximum->IsNumber() || !(maximum->number > 1.0) ||
+            maximum->number > kV3OpacityMaximum) {
+            return fail(diag::kMalformedMetadata,
+                        "meta.json \"opacity\".max must be a number above 1 "
+                        "and at most 1.5625.");
+        }
+    }
+
+    // `blind` textures are validated as plane lists and counted, never
+    // decoded: their fields have no slot in the model.
+    if (const JsonValue* blind = root.Find("blind"); blind) {
+        if (!blind->IsArray()) {
+            return fail(diag::kMalformedMetadata,
+                        "meta.json \"blind\" is present but is not an array.");
+        }
+        if (blind->items.size() > kMaxBlindTextures) {
+            return fail(diag::kImportLimitExceeded,
+                        "meta.json describes " +
+                            std::to_string(blind->items.size()) +
+                            " blind textures, above the limit of " +
+                            std::to_string(kMaxBlindTextures) + ".");
+        }
+        std::vector<std::string> files;
+        for (const JsonValue& texture : blind->items) {
+            if (!texture.IsObject()) {
+                return fail(diag::kMalformedMetadata,
+                            "meta.json \"blind\" entries must be objects.");
+            }
+            const JsonValue* fields = texture.Find("fields");
+            if (!fields || !fields->IsArray()) {
+                return fail(diag::kMalformedMetadata,
+                            "meta.json \"blind\" entries must carry a "
+                            "\"fields\" array.");
+            }
+            if (!RequireFiles(texture, "blind", 1, &files, error)) {
+                return false;
+            }
+        }
+        meta->metadata.blindTextureCount = blind->items.size();
+    }
+    return true;
+}
+
 bool ParseMetaJson(const std::vector<unsigned char>& bytes, MetaDocument* meta,
                    std::string* error)
 {
@@ -471,22 +543,43 @@ bool ParseMetaJson(const std::vector<unsigned char>& bytes, MetaDocument* meta,
         return fail(
             diag::kUnsupportedVersion,
             "meta.json has no \"version\" field, which identifies legacy "
-            "SOG v1. This release reads SOG v2; re-export the asset with a "
-            "current PlayCanvas SplatTransform or SuperSplat.");
+            "SOG v1. This release reads SOG v2 and v3; re-export the asset "
+            "with a current PlayCanvas SplatTransform or SuperSplat.");
     }
     double versionNumber = 0.0;
     if (!RequireIntegral(root, "version", diag::kUnsupportedVersion,
                          &versionNumber, error)) {
         return false;
     }
-    if (versionNumber != static_cast<double>(kSupportedVersion)) {
+    if (versionNumber < static_cast<double>(kMinimumVersion) ||
+        versionNumber > static_cast<double>(kMaximumVersion)) {
+        return fail(diag::kUnsupportedVersion,
+                    "SOG version " + FormatIntegral(versionNumber) +
+                        " is not supported by this release; supported "
+                        "versions are 2 and 3.");
+    }
+    const int sogVersion = static_cast<int>(versionNumber);
+    meta->metadata.version = sogVersion;
+    // SplatTransform 3.11.0 and 3.11.1 wrote `version: 3` with the rotation
+    // in the alpha channels of other planes and no `quats` property. 3.11.2
+    // moved it into `quats.webp` without changing the version, so the missing
+    // property is the only mark of the interim layout (format spike, §3).
+    if (sogVersion == 3 && !root.Find("quats")) {
         return fail(
             diag::kUnsupportedVersion,
-            "SOG version " + FormatIntegral(versionNumber) +
-                " is not supported by this release; supported version is " +
-                std::to_string(kSupportedVersion) + ".");
+            "meta.json declares SOG version 3 but has no \"quats\" property: "
+            "this is the interim layout written by SplatTransform 3.11.0 and "
+            "3.11.1, which stored rotations in alpha channels and is not "
+            "supported. Re-export the asset with SplatTransform 3.11.2 or "
+            "later.");
     }
-    meta->metadata.version = kSupportedVersion;
+
+    // `model` names a render model ("antialiased", "2dgs") in both versions.
+    // It is informational here: the stage has no slot for it.
+    if (const JsonValue* model = root.Find("model");
+        model && model->IsString()) {
+        meta->metadata.model = model->text;
+    }
 
     double count = 0.0;
     if (!RequireIntegral(root, "count", diag::kInvalidGaussianCount, &count,
@@ -566,6 +659,10 @@ bool ParseMetaJson(const std::vector<unsigned char>& bytes, MetaDocument* meta,
     }
     meta->sh0File = files[0];
 
+    if (sogVersion == 3 && !ParseV3Additions(root, meta, error)) {
+        return false;
+    }
+
     // `shN` is optional: a SOG without it is a degree-0 cloud.
     const JsonValue* shN = root.Find("shN");
     if (!shN || shN->IsNull()) {
@@ -579,10 +676,20 @@ bool ParseMetaJson(const std::vector<unsigned char>& bytes, MetaDocument* meta,
     if (!RequireIntegral(*shN, "bands", diag::kInvalidShBands, &bands, error)) {
         return false;
     }
-    if (bands < 1.0 || bands > 3.0) {
+    if (sogVersion == 3 && bands == static_cast<double>(kMaxV3ShBands)) {
+        // Valid SOG v3, but degree 4 is outside the shared model, which
+        // rejects an unsupported degree rather than truncating it.
+        return fail(diag::kInvalidShBands,
+                    "meta.json declares 4 spherical-harmonic bands (SH "
+                    "degree 4). SOG v3 allows it, but this release imports "
+                    "SH degrees 0-3 only and does not truncate.");
+    }
+    if (bands < 1.0 || bands > static_cast<double>(kMaxModelShBands)) {
         return fail(diag::kInvalidShBands,
                     "meta.json declares " + FormatIntegral(bands) +
-                        " spherical-harmonic band(s); SOG v2 admits 1-3.");
+                        " spherical-harmonic band(s); SOG v" +
+                        std::to_string(sogVersion) + " admits " +
+                        (sogVersion == 3 ? "1-4." : "1-3."));
     }
     meta->metadata.shBands = static_cast<int>(bands);
 
@@ -991,7 +1098,7 @@ bool SogReader::CanReadUnbundled(const std::string& path) const noexcept
             return false;
         }
         if (fileSize > data.size()) {
-            return false; // larger than any SOG v2 meta.json
+            return false; // larger than any SOG meta.json
         }
 
         JsonValue root;
@@ -1001,14 +1108,22 @@ bool SogReader::CanReadUnbundled(const std::string& path) const noexcept
             return false;
         }
         // The strict gate that keeps a `.json` registration from claiming
-        // unrelated JSON: the supported version *and* all four required SOG
-        // properties, each with its plane list.
+        // unrelated JSON: a supported version *and* the required SOG
+        // properties, each with its plane list. A v3 document is claimed
+        // without `quats`, so the interim SplatTransform 3.11.0-3.11.1
+        // layout reaches Read() and its specific diagnostic.
         const JsonValue* version = root.Find("version");
         if (!version || !version->IsNumber() ||
-            version->number != static_cast<double>(kSupportedVersion)) {
+            (version->number != static_cast<double>(kMinimumVersion) &&
+             version->number != static_cast<double>(kMaximumVersion))) {
             return false;
         }
+        const bool requireQuats =
+            version->number == static_cast<double>(kMinimumVersion);
         for (const char* property : {"means", "scales", "quats", "sh0"}) {
+            if (!requireQuats && std::string_view(property) == "quats") {
+                continue;
+            }
             const JsonValue* value = root.Find(property);
             if (!value || !value->IsObject()) {
                 return false;

@@ -1,0 +1,57 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "yashica-t4-top8192.ply",
+    "repo_path": "plugins/gaussian-ply/tests/corpus/yashica-t4/yashica-t4-top8192.ply",
+    "sha256": "42537f23b36c093e96b4378845f0d86f77d755b7a611434aa95edbb4fcf53cde",
+    "bytes": 1935010,
+    "gaussian_count": 8192,
+    "sh_degree": 3
+  },
+  "derivation": {
+    "tool": "@playcanvas/splat-transform",
+    "tool_version": "3.12.0",
+    "tool_commit": "5d5be2b",
+    "tool_license": "MIT",
+    "runtime": "Node.js v22.12.0",
+    "command": "splat-transform yashica-t4-top8192.ply yashica-t4-top8192-v3.sog",
+    "options": "defaults (SOG version 3, SH palette sized by --sh-color-error)",
+    "selection": "format conversion only: every source Gaussian is retained; the writer reorders rows into Morton order",
+    "determinism": "a second conversion of the same source reproduced the entries listed as reproducible byte-for-byte; the others come from the randomly initialized k-means SH palette",
+    "reproducible_entries": [
+      "means_l.webp",
+      "means_u.webp",
+      "quats.webp",
+      "scales.webp",
+      "sh0.webp"
+    ],
+    "nondeterministic_entries": [
+      "meta.json",
+      "shN_centroids.webp",
+      "shN_labels.webp"
+    ],
+    "date_utc": "2026-11-21"
+  },
+  "output": {
+    "file": "yashica-t4-top8192-v3.sog",
+    "sha256": "5a08dbd262eeaa8792194ade32be07f29561ac00eff7b00f764f1ea952ae6d0e",
+    "bytes": 404989,
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "sog_version": 3,
+    "layout": "bundled",
+    "generator": "splat-transform v3.12.0",
+    "sh_palette_count": 8128,
+    "opacity_above_one": false,
+    "entry_sha256": {
+      "means_l.webp": "2943a4654a3f427908278390dd66a951306529d5576ca082fbd671dee405f983",
+      "means_u.webp": "cb98640a4c0e7313100b546cf68029d628855c3dc4651f5979c291094d7368e0",
+      "meta.json": "57fca178be30505785b8955f6a3ccdecbaca3621f30949a95e7179f042bb8015",
+      "quats.webp": "0dae3dd65be31be0f3b434437fe3791f3f831526acb5bc187eeae6eb5bf72fa7",
+      "scales.webp": "ee27ec90ca49846d3660a4cbdddcb7263dfe57f9b02d643af87692f9feaf12da",
+      "sh0.webp": "a14521f8686c77ac5a12c511bb602a98fe069651ecf804c36cd18298c440743d",
+      "shN_centroids.webp": "7ab90d9d65c067ce61bbe64bf6cca33ee5aa06e211f401f9640c063e06962254",
+      "shN_labels.webp": "3096053a5b183bb35243c4863c0d803b04f13a0d562926604662e0e70f87699b"
+    }
+  }
+}

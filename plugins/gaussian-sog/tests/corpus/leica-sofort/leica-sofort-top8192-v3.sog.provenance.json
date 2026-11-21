@@ -1,0 +1,57 @@
+{
+  "schema": "usd-3dgs-plugins.corpus-provenance/v1",
+  "source": {
+    "file": "leica-sofort-top8192.ply",
+    "repo_path": "plugins/gaussian-ply/tests/corpus/leica-sofort/leica-sofort-top8192.ply",
+    "sha256": "853cd6d8f1c59c471f5a53333d752282daea42ff4f70b89fb1b7d9d7f968d847",
+    "bytes": 1935011,
+    "gaussian_count": 8192,
+    "sh_degree": 3
+  },
+  "derivation": {
+    "tool": "@playcanvas/splat-transform",
+    "tool_version": "3.12.0",
+    "tool_commit": "5d5be2b",
+    "tool_license": "MIT",
+    "runtime": "Node.js v22.12.0",
+    "command": "splat-transform leica-sofort-top8192.ply leica-sofort-top8192-v3.sog",
+    "options": "defaults (SOG version 3, SH palette sized by --sh-color-error)",
+    "selection": "format conversion only: every source Gaussian is retained; the writer reorders rows into Morton order",
+    "determinism": "a second conversion of the same source reproduced the entries listed as reproducible byte-for-byte; the others come from the randomly initialized k-means SH palette",
+    "reproducible_entries": [
+      "means_l.webp",
+      "means_u.webp",
+      "quats.webp",
+      "scales.webp",
+      "sh0.webp"
+    ],
+    "nondeterministic_entries": [
+      "meta.json",
+      "shN_centroids.webp",
+      "shN_labels.webp"
+    ],
+    "date_utc": "2026-11-21"
+  },
+  "output": {
+    "file": "leica-sofort-top8192-v3.sog",
+    "sha256": "08608ca051dbd4f9dc8d27c5968b1d76bd89cf0fdd8df206894f102a8c536f52",
+    "bytes": 412872,
+    "gaussian_count": 8192,
+    "sh_degree": 3,
+    "sog_version": 3,
+    "layout": "bundled",
+    "generator": "splat-transform v3.12.0",
+    "sh_palette_count": 8128,
+    "opacity_above_one": false,
+    "entry_sha256": {
+      "means_l.webp": "d4d4903e43730eb70fcee7dc9dfce80c6a318c4eb609f658109f0b2f45bbfe5b",
+      "means_u.webp": "34450c019f39d05a6f7d9d017698dbc3c725246c7ebfba9a3b005d99bf088474",
+      "meta.json": "268dd2090d2c70d00799c3d33d38ff635d77a0fc010046beecbe03b90098b703",
+      "quats.webp": "3fb1852be683df18a3e4b71db71a5afc4162843e93ad66eb89ccab777020e37d",
+      "scales.webp": "215ce1a48875420a86b77a5d6536f5f6efe97b290d47112c0e073b3f018ba3c4",
+      "sh0.webp": "ecc49d526393b32ec1de61fcdcb9702338b6f9175d37c806e4a3fa3ef062605d",
+      "shN_centroids.webp": "3b4b770d3180425914c4b46182f55cd17ff37146b4844d16e93f69b58f9ed9b8",
+      "shN_labels.webp": "9938286c7d082d16070050f07ce212218044f129b957e06ca72d80cd5bb804ce"
+    }
+  }
+}
