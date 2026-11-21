@@ -6,6 +6,10 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-21
+
+**`.splat` format coverage.**
+
 ### Added
 
 - New bundle `gaussian-splat` imports headerless `.splat` files, the fixed
