@@ -49,8 +49,13 @@ tests:
     - tests/fixtures/kit-multi-degree3.sog
     - tests/fixtures/kit-multi-degree3-deflated.sog
     - tests/fixtures/decode-degree1.sog
+    - tests/fixtures/kit-one-degree0-v3.sog
+    - tests/fixtures/kit-multi-degree3-v3.sog
+    - tests/fixtures/decode-degree1-v3.sog
+    - tests/fixtures/v3-large-palette.sog
   roundtrip:
     - tests/fixtures/decode-degree1.sog
+    - tests/fixtures/decode-degree1-v3.sog
   negative:
     - tests/fixtures/not-sog.sog
     - tests/fixtures/no-meta.sog
@@ -58,6 +63,10 @@ tests:
     - tests/fixtures/malformed-meta.sog
     - tests/fixtures/version-1.sog
     - tests/fixtures/version-4.sog
+    - tests/fixtures/v3-interim-layout.sog
+    - tests/fixtures/v3-bands-4.sog
+    - tests/fixtures/v3-bad-opacity-max.sog
+    - tests/fixtures/v3-bad-blind.sog
     - tests/fixtures/empty-count.sog
     - tests/fixtures/count-exceeds-plane.sog
     - tests/fixtures/bad-bands.sog

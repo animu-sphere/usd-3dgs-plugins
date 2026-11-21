@@ -24,6 +24,8 @@ FIXTURES = (
      "Gaussian Splatting SPZ"),
     ("gaussian-sog", "GaussianSogFileFormat", "kit-one-degree0.sog", 1, 0,
      "Gaussian Splatting SOG"),
+    ("gaussian-sog", "GaussianSogFileFormat", "kit-multi-degree3-v3.sog", 3, 3,
+     "Gaussian Splatting SOG"),
     ("gaussian-splat", "GaussianSplatFileFormat", "decode-known.splat", 2, 0,
      "Gaussian Splatting SPLAT"),
 )

@@ -62,7 +62,7 @@ revision and local parser fixes.
 | Native-RUB reference frame (no conversion) | supported | SPZ's RUB convention is the model frame (ADR 0001); dequantized verbatim, verified through the decoder and USD |
 | Extension records, extension frames, antialiased flag | supported (ignored) | records parsed by type and length in both generations, v4 skippable frames bounded but not decompressed; ignored by the decoder with warnings `GSPZ-W001`/`W002`, except the coordinate-system record above |
 | Real trained SPZ assets | supported | committed 8,192-Gaussian corpus (Scaniverse, CC0) at degree 3, checked semantically by the smoke test |
-| Cross-format equivalence | supported | synthetic models are encoded into PLY, SPZ, SOG, compressed PLY, and `.splat`; `gaussian_ply_spz_equivalence`, `gaussian_ply_sog_equivalence`, `gaussian_ply_compressed_equivalence`, and `gaussian_ply_splat_equivalence` compare every model attribute against the lossless PLY side at documented quantization-aware tolerances, covering SPZ v2-v4 and both SOG profiles — see [EQUIVALENCE.md](EQUIVALENCE.md) |
+| Cross-format equivalence | supported | synthetic models are encoded into PLY, SPZ, SOG, compressed PLY, and `.splat`; `gaussian_ply_spz_equivalence`, `gaussian_ply_sog_equivalence`, `gaussian_ply_compressed_equivalence`, and `gaussian_ply_splat_equivalence` compare every model attribute against the lossless PLY side at documented quantization-aware tolerances, covering SPZ v2-v4 and SOG v2 and v3 — see [EQUIVALENCE.md](EQUIVALENCE.md) |
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from the container header only; for v4 it also validates the plaintext extension zone and table of contents |
 | Stable diagnostics | supported | `GSPZ-E***`/`GSPZ-W***` codes with a machine-readable catalog cross-checked by the smoke test |
 
@@ -70,24 +70,31 @@ revision and local parser fixes.
 
 | Capability | Status | Evidence / behavior |
 | --- | --- | --- |
-| SOG v2 bundled `.sog` (ZIP) | supported | container reader walks the archive's central directory (vendored miniz); reader and decoder fixtures for stored *and* DEFLATE-compressed entries |
-| SOG v2 unbundled `meta.json` | supported | companion WebP planes load through the asset resolver, always anchored on the layer's own resolved path; a fixture directory proves both layouts author the same stage; per-case resolver behavior and known gaps in [RESOLVER_MATRIX.md](RESOLVER_MATRIX.md) |
+| SOG v2 and v3 bundled `.sog` (ZIP) | supported | container reader walks the archive's central directory (vendored miniz); reader and decoder fixtures for stored *and* DEFLATE-compressed entries |
+| SOG v2 and v3 unbundled `meta.json` | supported | companion WebP planes load through the asset resolver, always anchored on the layer's own resolved path; a fixture directory proves both layouts author the same stage; per-case resolver behavior and known gaps in [RESOLVER_MATRIX.md](RESOLVER_MATRIX.md) |
 | SOG v1 (no `version`, per-channel `mins`/`maxs`) | unsupported | rejected with the specific unsupported-version diagnostic `GSSOG-E003`, not as corruption |
+| SOG v3 interim layout (SplatTransform 3.11.0-3.11.1: `version: 3`, no `quats`) | unsupported | rejected with `GSSOG-E003`, which asks for a re-export with SplatTransform 3.11.2 or later; the unbundled routing gate still claims it so the message is seen ([SOG_MAPPING.md §10](SOG_MAPPING.md#10-sog-version-3)) |
 | Streamed SOG (`lod-meta.json`, chunks, LOD) | unsupported | no chunk or LOD import; see the [composition backlog](../roadmap/backlog.md#other-format-candidates) |
 | Lossless WebP property planes | supported | decoded through the vendored libwebp v1.6.0 decoder subset |
 | Lossy WebP property planes | unsupported | rejected as `GSSOG-E009` rather than decoded approximately, because lossy positions would be silently wrong |
 | Position (16-bit split precision, log domain) | supported | `means_l`/`means_u` codes remapped through the per-axis log range and the inverse-log transform; known-value fixtures |
 | Scale (log-domain codebook) | supported | `exp(codebook[byte])`, strictly positive; a used entry that leaves float range is rejected (`GSSOG-E011`) |
-| Rotation (smallest-three + tag) | supported | the three stored bytes fill the non-dropped scalar-first slots; a tag outside 252-255 fails with `GSSOG-E013` rather than becoming identity |
-| Opacity (`sh0` alpha) | supported | `byte/255`, already post-sigmoid |
+| Rotation, v2 (smallest-three + tag) | supported | the three stored bytes fill the non-dropped scalar-first slots; a tag outside 252-255 fails with `GSSOG-E013` rather than becoming identity |
+| Rotation, v3 (exponential map) | supported | `p = (byte − 128) / 127`, `q = (cos θ, p·sin θ / ‖p‖)` with `θ = π/2·‖p‖`; every byte triple decodes, pinned by hand-checked bytes including the specification's example ([SOG_MAPPING.md §10](SOG_MAPPING.md#10-sog-version-3)) |
+| Opacity, v2 (`sh0` alpha) | supported | `byte/255`, already post-sigmoid |
+| Opacity, v3 (`sh0` alpha) | supported | `(byte/204)²`; values above 1 (up to 1.5625) are clamped to 1 with one aggregated warning `GSSOG-W002` |
 | DC (`sh0` codebook) | supported | raw band-0 coefficients, no color transform |
-| SH rest (palette + centroids + codebook) | supported | labels resolve to centroid texels whose RGB are per-channel codebook indices; a label past the palette yields zero coefficients with one aggregated warning (`GSSOG-W001`) |
-| SH degrees 0-3 | supported | `bands` 1-3 are degrees 1-3 and no `shN` is degree 0, so the whole format range is inside the model's; no degree-ceiling rejection exists |
+| SH rest (palette + centroids + codebook) | supported | labels resolve to centroid texels whose RGB are per-channel codebook indices; 16-bit labels in v2 and 24-bit in v3, so a v3 palette can exceed 65,536 entries; a label past the palette yields zero coefficients with one aggregated warning (`GSSOG-W001`) |
+| SH degrees 0-3 | supported | `bands` 1-3 are degrees 1-3 and no `shN` is degree 0 |
+| SH degree 4 (SOG v3 `bands: 4`) | unsupported | valid SOG v3, rejected with `GSSOG-E007` because the model stops at degree 3 and never truncates |
+| SOG v3 blind textures | supported (ignored) | `blind` entries are validated (at most 64) and never decoded; one warning `GSSOG-W003` |
+| SOG v3 `extras`, `comments` | supported (ignored) | application data, ignored silently within the metadata parser's bounds |
+| Render model (`model`: `antialiased`, `2dgs`) | supported (ignored) | v2 and v3; warning `GSSOG-W004`, and the Gaussians are authored as ordinary 3DGS splats, as `GSPLY-W004` and `GSPZ-W002` do |
 | RDF→RUB reference-frame conversion | supported | SOG stores PLY-native Graphdeco columns, so the shared `FlipYZAxes` applies exactly as for PLY (ADR 0001, [SOG_MAPPING.md §5](SOG_MAPPING.md)); pinned by the equivalence triples |
 | Zero-Gaussian file (`count: 0`) | supported rejection | well-formed SOG, but rejected with `GSSOG-E012`: the shared model requires at least one Gaussian and no stage may misrepresent its source |
-| `.json` routing | supported | `.json` is registered for the unbundled layout, and claimed only when a bounded prefix parses as a SOG v2 `meta.json`; unrelated JSON is declined ([SOG_FORMAT.md §6](SOG_FORMAT.md)) |
+| `.json` routing | supported | `.json` is registered for the unbundled layout, and claimed only when a bounded prefix parses as a SOG v2 or v3 `meta.json`; unrelated JSON is declined ([SOG_FORMAT.md §6](SOG_FORMAT.md)) |
 | Metadata-only read | supported | `Read(metadataOnly=true)` authors the contract from `meta.json` alone, decoding no plane |
-| Real trained SOG assets | supported | committed 8,192-Gaussian corpus (`yashica-t4`, `leica-sofort`) at degree 3, checked semantically by the smoke test |
+| Real trained SOG assets | supported | committed 8,192-Gaussian corpus (`yashica-t4`, `leica-sofort`) at degree 3, as SOG v2 (SplatTransform 3.1.6) and SOG v3 (SplatTransform 3.12.0), checked semantically by the smoke test |
 | Stable diagnostics | supported | `GSSOG-E***`/`GSSOG-W***` codes with a machine-readable catalog cross-checked against the sources in both directions |
 
 ## `.splat` input and semantic mapping

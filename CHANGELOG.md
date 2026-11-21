@@ -6,6 +6,36 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Added
+
+- `gaussian-sog` reads SOG version 3, the default output of PlayCanvas
+  SplatTransform since 3.11.0, alongside version 2, in both the bundled and
+  unbundled layouts. Rotations decode from the v3 exponential map, opacity
+  from `(a / 204)²`, and palette labels are 24-bit, so a palette can exceed
+  65,536 entries. See
+  [SOG_MAPPING.md §10](docs/reference/SOG_MAPPING.md#10-sog-version-3).
+- New warnings `GSSOG-W002` (a v3 opacity above 1 was clamped to 1),
+  `GSSOG-W003` (v3 blind textures were not imported), and `GSSOG-W004` (a
+  `model` of `antialiased` or `2dgs` was ignored).
+- SOG v3 fixtures, equivalence pairs against lossless PLY, and the CC0
+  corpus converted to v3 with SplatTransform 3.12.0. The bundle manifest
+  declares v3 smoke, roundtrip, and negative fixtures, and the aggregate
+  package consumer test opens a v3 file.
+
+### Changed
+
+- A SOG v2 file whose `meta.json` names a `model` (`antialiased` or `2dgs`)
+  now imports with `GSSOG-W004`; it imported silently before. The authored
+  stage is unchanged.
+
+### Compatibility
+
+- A SOG v3 file written by SplatTransform 3.11.0 or 3.11.1 (version 3 with no
+  `quats` property) is refused with `GSSOG-E003`; re-export it with
+  SplatTransform 3.11.2 or later.
+- A SOG v3 file with 4 SH bands is refused with `GSSOG-E007`; the shared
+  model imports SH degrees 0-3.
+
 ## [0.12.0] - 2026-11-21
 
 **`.splat` format coverage.**

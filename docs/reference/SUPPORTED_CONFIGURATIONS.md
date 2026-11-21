@@ -110,24 +110,32 @@ pairs that encode one source model into both formats; see
 
 Supported:
 
-- SOG v2 (`meta.json` `"version": 2`) in both layouts — the bundled `.sog` ZIP
+- SOG v2 and v3 (`meta.json` `"version": 2` or `3`) in both layouts — the bundled `.sog` ZIP
   archive, and an unbundled `meta.json` whose property planes are loaded as
   resolver-backed companion files from its directory;
 - 8-bit RGBA **lossless** WebP property planes, stored or DEFLATE-compressed
   inside the archive;
 - position (16-bit split precision across a per-axis log-domain range), scale
-  (log-domain codebook), rotation (smallest-three with the largest-component
-  tag), opacity (`sh0` alpha), DC (`sh0` codebook), and higher-order SH
+  (log-domain codebook), rotation (v2 smallest-three with the
+  largest-component tag, v3 exponential map), opacity (`sh0` alpha; v3 values
+  above 1 are clamped to 1 with a warning), DC (`sh0` codebook), and
+  higher-order SH
   (palette labels into centroid texels and a shared codebook) — converted from
   SOG's PLY-native Graphdeco columns into the model's RUB reference frame
   ([ADR 0001](../adr/0001-model-frame-is-rub.md));
 - SH degrees 0-3, which is SOG v2's entire `bands` range;
+- SOG v3 blind textures, `extras`, and `comments`, and the `model` field in
+  both versions, which are read but not imported (blind textures and `model`
+  warn);
 - metadata-only reads from `meta.json` alone.
 
 Not supported or not verified:
 
 - legacy SOG v1 (no `version` field, per-channel `mins`/`maxs`) — rejected with
   the unsupported-version diagnostic;
+- the interim SOG v3 layout of SplatTransform 3.11.0-3.11.1 (no `quats`) —
+  rejected with the unsupported-version diagnostic, asking for a re-export;
+- SOG v3 with 4 SH bands (SH degree 4) — rejected;
 - streamed SOG: `lod-meta.json`, spatial chunks, LOD levels, deferred or partial
   loading;
 - lossy WebP property planes — rejected rather than decoded approximately;
@@ -142,7 +150,7 @@ registers `.json` as a primary `SdfFileFormat` extension alongside `.sog`. That
 claim is process-wide: only one plugin can be the primary format for an
 extension, so if another plugin in the same runtime also claims `.json`,
 OpenUSD resolves the collision by registration order and warns. `CanRead()`
-declines anything that is not a SOG v2 metadata document, so a `.json` this
+declines anything that is not a SOG v2 or v3 metadata document, so a `.json` this
 bundle wins but does not recognise fails with `GSSOG-E002` rather than being
 mis-imported — but the other plugin never sees the file. Install `gaussian-sog`
 deliberately in an environment that already has a `.json` format registered.
